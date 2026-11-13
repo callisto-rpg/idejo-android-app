@@ -1,0 +1,60 @@
+// SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package org.idejo.app.core.model
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/** A role as shown beside a name, or listed by the server. */
+@Serializable
+data class Role(
+    val name: String,
+    val id: String? = null,
+    val colour: String? = null,
+    val slug: String? = null,
+)
+
+/**
+ * Someone, as the API shows a person; also a message's author. An opening message of a
+ * topical topic has no author: [id] null, [topical] true, `display_name` "the topic".
+ */
+@Serializable
+data class Person(
+    val id: String? = null,
+    @SerialName("display_name") val displayName: String,
+    val uri: String? = null,
+    val username: String? = null,
+    @SerialName("user_tag") val userTag: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("avatar_dark_url") val avatarDarkUrl: String? = null,
+    val role: Role? = null,
+    val colour: String? = null,
+    val deleted: Boolean = false,
+    val system: Boolean = false,
+    val topical: Boolean = false,
+    @SerialName("ignored_by_me") val ignoredByMe: Boolean = false,
+)
+
+/** The signed-in member (`GET /me`): their card, email and rights. */
+@Serializable
+data class Me(
+    val id: String,
+    @SerialName("display_name") val displayName: String,
+    val username: String? = null,
+    @SerialName("user_tag") val userTag: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("avatar_dark_url") val avatarDarkUrl: String? = null,
+    val colour: String? = null,
+    val roles: List<Role> = emptyList(),
+    @SerialName("bio_md") val bioMd: String? = null,
+    val email: String? = null,
+    val verified: Boolean = false,
+    val welcomed: Boolean = false,
+    @SerialName("auto_punctuation") val autoPunctuation: Boolean = true,
+    @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean = true,
+    @SerialName("warning_pending") val warningPending: Boolean = false,
+    val administrator: Boolean = false,
+    val moderator: Boolean = false,
+    @SerialName("server_moderator") val serverModerator: Boolean = false,
+)

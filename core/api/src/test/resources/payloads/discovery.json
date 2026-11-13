@@ -1,0 +1,58 @@
+{
+  "name": "Garden club",
+  "url": "https://garden.example.org/",
+  "idejo_version": "0.3.12",
+  "logo_url": "https://garden.example.org/logo",
+  "api": {
+    "versions": [
+      "v1"
+    ],
+    "base": "/api/v1",
+    "openapi": "/api/v1/openapi.json",
+    "socket": "/api/v1/socket"
+  },
+  "oauth": {
+    "authorize": "/app/authorize",
+    "token": "/api/v1/oauth/token",
+    "revoke": "/api/v1/oauth/revoke",
+    "client_id": "org.idejo.app",
+    "redirect_uri": "org.idejo.app:/oauth/callback",
+    "scopes": [
+      "read",
+      "write",
+      "private",
+      "moderate",
+      "push"
+    ],
+    "code_challenge_methods": [
+      "S256"
+    ]
+  },
+  "community": {
+    "directory_url": null
+  },
+  "account": {
+    "deletion_url": "https://garden.example.org/users/settings?tab=account#delete-heading",
+    "sign_up_url": null
+  },
+  "features": [
+    "unifiedpush",
+    "gifs",
+    "private_messages",
+    "polls",
+    "scheduled_messages"
+  ],
+  "limits": {
+    "page_size": 100,
+    "requests_per_minute": 600,
+    "upload_max_mb": 3,
+    "devices_per_user": 20
+  },
+  "a_field_from_a_later_version": {
+    "anything": [
+      1,
+      2,
+      3
+    ]
+  }
+}

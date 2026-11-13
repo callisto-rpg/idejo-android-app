@@ -29,8 +29,9 @@ style:
       - '**/*.gradle.kts'
       - '**/core/designsystem/src/main/kotlin/**/theme/**'
       - '**/Samples.kt'
+  # Parsers read best as a run of early returns, one per refusal.
   ReturnCount:
-    excludeGuardClauses: true
+    active: false
   UnusedPrivateMember:
     ignoreAnnotated: ['Preview', 'PreviewLightDark']
 
@@ -38,5 +39,11 @@ complexity:
   LongParameterList:
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
-    # One test per requirement ID; samples are a gallery.
-    excludes: ['**/test/**', '**/androidTest/**', '**/Samples.kt']
+    # One test per requirement ID; samples are a gallery; the API client has one function
+    # per endpoint.
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/Samples.kt'
+      - '**/core/api/**/ForumApi.kt'
+      - '**/core/api/**/IdejoService.kt'

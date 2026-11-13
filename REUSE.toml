@@ -24,6 +24,13 @@ precedence = "override"
 SPDX-FileCopyrightText = "2015 The Rubik Project Authors (https://github.com/googlefonts/rubik)"
 SPDX-License-Identifier = "OFL-1.1"
 
+# JSON payloads for the API tests (JSON has no comments).
+[[annotations]]
+path = "**/src/test/resources/payloads/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Mariano Pictet and contributors"
+SPDX-License-Identifier = "Apache-2.0"
+
 # Screenshots the tests record.
 [[annotations]]
 path = "**/src/test/screenshots/**"
