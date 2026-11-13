@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Every check of CLAUDE.md → Commands, on every pull request and on main.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and lint (${{ matrix.flavour }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        flavour: [Foss, Play]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      # Also checks that the Gradle wrapper is Gradle's own.
+      - uses: gradle/actions/setup-gradle@v6.4.1
+      - name: Build debug and release (R8)
+        run: ./gradlew assemble${{ matrix.flavour }}Debug assemble${{ matrix.flavour }}Release
+      - name: Android Lint
+        run: ./gradlew lint${{ matrix.flavour }}Debug lint${{ matrix.flavour }}Release
+      - name: Licences of the dependencies
+        run: >
+          ./gradlew licenseeAndroid${{ matrix.flavour }}Debug
+          licenseeAndroid${{ matrix.flavour }}Release
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6.4.1
+      - name: Unit tests (every module, both flavours)
+        run: ./gradlew test
+
+  style:
+    name: ktlint, detekt, module lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6.4.1
+      - name: ktlint
+        run: ./gradlew ktlintCheck
+      - name: detekt
+        run: ./gradlew detekt
+      - name: Android Lint (every module)
+        run: ./gradlew lint
+
+  reuse:
+    name: REUSE (licence headers)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: fsfe/reuse-action@v6.0.0

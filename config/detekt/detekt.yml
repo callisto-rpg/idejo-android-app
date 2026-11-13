@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Only what differs from detekt's defaults (run with --build-upon-default-config).
+
+config:
+  validation: true
+
+naming:
+  FunctionNaming:
+    # Composables are PascalCase; tests are named after requirement IDs in backticks
+    # (CLAUDE.md → Conventions).
+    ignoreAnnotated: ['Composable']
+    excludes: ['**/test/**', '**/androidTest/**', '**/testFixtures/**']
+  MatchingDeclarationName:
+    active: false
+
+style:
+  MaxLineLength:
+    maxLineLength: 100
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    excludes: ['**/test/**', '**/androidTest/**', '**/*.gradle.kts']
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+
+complexity:
+  LongParameterList:
+    ignoreAnnotated: ['Composable']

@@ -1,0 +1,14 @@
+idejo for Android
+Copyright 2026 Mariano Pictet and contributors
+
+Licensed under the Apache License, Version 2.0 (LICENSE).
+
+This product includes:
+
+- The Gradle wrapper (gradlew, gradlew.bat, gradle/wrapper/), copyright 2015 the
+  original authors, Apache-2.0.
+- The idejo logo (the launcher icon in app/src/main/res/drawable/ic_launcher_*.xml),
+  copyright Mariano Pictet, CC-BY-4.0 (LICENSES/CC-BY-4.0.txt). "idejo" and its logo are
+  used under idejo's trademark policy.
+
+The licence of every file is given by its SPDX header or by REUSE.toml.

@@ -1,0 +1,18 @@
+version = 1
+SPDX-PackageName = "idejo for Android"
+SPDX-PackageSupplier = "Mariano Pictet"
+SPDX-PackageDownloadLocation = "https://github.com/callisto-rpg/idejo-android-app"
+
+# Files that cannot carry an SPDX header of their own (LI-01).
+[[annotations]]
+path = ["idejo Android — Spec Sheet.md", "NOTICE", "REUSE.toml"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Mariano Pictet and contributors"
+SPDX-License-Identifier = "Apache-2.0"
+
+# The Gradle wrapper, as Gradle generates it.
+[[annotations]]
+path = ["gradlew", "gradlew.bat", "gradle/wrapper/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "2015 the original authors"
+SPDX-License-Identifier = "Apache-2.0"
