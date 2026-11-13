@@ -21,10 +21,22 @@ style:
   MagicNumber:
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/*.gradle.kts']
+    # Colour values belong in the design system's theme (CLAUDE.md → Conventions); previews
+    # and samples are made of examples.
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/*.gradle.kts'
+      - '**/core/designsystem/src/main/kotlin/**/theme/**'
+      - '**/Samples.kt'
+  ReturnCount:
+    excludeGuardClauses: true
   UnusedPrivateMember:
-    ignoreAnnotated: ['Preview']
+    ignoreAnnotated: ['Preview', 'PreviewLightDark']
 
 complexity:
   LongParameterList:
     ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    # One test per requirement ID; samples are a gallery.
+    excludes: ['**/test/**', '**/androidTest/**', '**/Samples.kt']

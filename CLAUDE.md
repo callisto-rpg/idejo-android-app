@@ -182,6 +182,7 @@ sources and are credited in `NOTICE` and `REUSE.toml`. Contributions under idejo
 ./gradlew assembleFossRelease               # release build with R8 (unsigned)
 ./gradlew installFossDebug                  # install on a connected device or emulator
 ./gradlew test                              # unit tests: every module, both flavours
+./gradlew verifyRoborazziDebug              # screenshot tests (recordRoborazziDebug to update)
 ./gradlew ktlintCheck detekt                # style and static analysis (whole repository)
 ./gradlew ktlintFormat                      # fix what ktlint can fix
 ./gradlew lint lintPlayDebug                # Android Lint: every module, and the play flavour
@@ -194,7 +195,9 @@ Needs JDK 17 and the Android SDK (`ANDROID_HOME`, or `sdk.dir` in `local.propert
 ktlint (with the Compose rules) and detekt run as their pinned command-line tools from the
 root build, over every `.kt` and `.kts` file; detekt is 1.23.8, its latest stable (2.0 is
 still alpha). Android Lint fails on warnings; only the "newer version available" checks
-are off. Commands for screenshot, instrumented and end-to-end tests are added with them.
+are off. Screenshots (Roborazzi on Robolectric, SDK 34: Robolectric's later sandboxes need
+Java 21) live in each module's `src/test/screenshots`. Commands for instrumented and
+end-to-end tests are added with them.
 
 ## Steward decisions
 

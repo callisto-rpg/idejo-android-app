@@ -5,8 +5,13 @@
 plugins {
     id("idejo.android.library")
     id("idejo.android.compose")
+    id("idejo.android.screenshots")
 }
 
 android {
     namespace = "org.idejo.app.core.designsystem"
+}
+
+dependencies {
+    implementation(libs.androidx.activity.compose)
 }

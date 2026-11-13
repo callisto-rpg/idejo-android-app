@@ -13,4 +13,5 @@ dependencies {
     implementation(libs.ksp.gradle.plugin)
     implementation(libs.hilt.gradle.plugin)
     implementation(libs.licensee.gradle.plugin)
+    implementation(libs.roborazzi.gradle.plugin)
 }

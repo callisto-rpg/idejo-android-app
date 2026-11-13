@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- Dots before topics (SH-32), in the member guide's words. -->
+    <string name="dot_new_messages">New messages</string>
+    <string name="dot_role_mention">One of your roles was mentioned</string>
+    <string name="dot_reply">A reply to you</string>
+    <string name="dot_mention">You were mentioned</string>
+
+    <!-- Top bar (SH-01, SH-02). -->
+    <string name="top_bar_sidebar">Show the sidebar</string>
+    <string name="top_bar_forum_menu">%1$s menu</string>
+    <string name="top_bar_account">Your account</string>
+    <string name="top_bar_unread">Unread</string>
+    <plurals name="top_bar_unread_count">
+        <item quantity="one">Unread: %1$d message replies to you or mentions you</item>
+        <item quantity="other">Unread: %1$d messages reply to you or mention you</item>
+    </plurals>
+
+    <!-- Topic rows (BR-02, BR-03). -->
+    <plurals name="topic_messages">
+        <item quantity="one">%1$d message</item>
+        <item quantity="other">%1$d messages</item>
+    </plurals>
+    <string name="topic_pinned">Pinned</string>
+    <string name="topic_meta">%1$s · %2$s</string>
+    <string name="topic_latest_message">%1$s: %2$s</string>
+    <plurals name="topic_more_writers">
+        <item quantity="one">+%1$d more</item>
+        <item quantity="other">+%1$d more</item>
+    </plurals>
+
+    <!-- Bubbles (NT-01). -->
+    <string name="bubble_dismiss">Dismiss</string>
+</resources>
