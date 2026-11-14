@@ -28,9 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.idejo.app.core.data.TagGroup
+import org.idejo.app.core.data.tagGroups
 import org.idejo.app.core.designsystem.component.TopicItem
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Tag
@@ -148,15 +152,38 @@ private fun Form(
             }
 
             else -> {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    state.tags.forEach { tag -> TagChip(tag, state.choice.ticked, actions.onTick) }
-                }
+                val groups =
+                    remember(
+                        state.tags,
+                        state.categories,
+                    ) { tagGroups(state.tags, state.categories) }
+                groups.forEach { group -> Group(group, state.choice.ticked, actions.onTick) }
                 Actions(state.choice, actions)
             }
         }
+    }
+}
+
+/** One category's tags under its name, or the tags of every category (BR-04, IX-10). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Group(
+    group: TagGroup,
+    ticked: Set<String>,
+    onTick: (String) -> Unit,
+) = Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    if (group.titled) {
+        Text(
+            group.category?.title ?: stringResource(R.string.tags_every_category),
+            Modifier.semantics { heading() },
+            style = IdejoTheme.typography.titleSmall,
+        )
+    }
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        group.tags.forEach { tag -> TagChip(tag, ticked, onTick) }
     }
 }
 
