@@ -45,7 +45,9 @@ interface TransportListener {
 /**
  * The real WebSocket to `wss://<forum>/api/v1/socket/websocket?vsn=2.0.0`. The token goes
  * in `Sec-WebSocket-Protocol` as Phoenix's `auth_token` (steward decision, 2026-11-14),
- * never in the address (SI-04): `phoenix, base64url.bearer.phx.<the token, base64url>`.
+ * never in the address (SI-04): `phoenix, base64url.bearer.phx.<the token>`, the token in
+ * standard Base64 without padding, as Phoenix decodes it (`Base.decode64!/2`), despite the
+ * prefix's name.
  */
 class OkHttpTransport(
     private val address: ForumAddress,
@@ -119,6 +121,6 @@ class OkHttpTransport(
         const val AUTH_TOKEN_PREFIX = "base64url.bearer.phx."
 
         internal fun protocols(token: String): String =
-            "phoenix, " + AUTH_TOKEN_PREFIX + token.encodeUtf8().base64Url().trimEnd('=')
+            "phoenix, " + AUTH_TOKEN_PREFIX + token.encodeUtf8().base64().trimEnd('=')
     }
 }

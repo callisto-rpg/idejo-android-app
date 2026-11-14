@@ -22,6 +22,15 @@ data class FakeSettings(
     /** `gm_early_reply`: a reply may start before the timers run out. */
     val earlyReply: Boolean = true,
     val autoPunctuation: Boolean = true,
+    /** `GET /server`'s theme (TH-01): the Garden sample's colours. */
+    val theme: org.idejo.app.core.model.ServerTheme =
+        org.idejo.app.core.model.ServerTheme(
+            primary = "#3f6b3a",
+            secondary = "#8a6d3b",
+            tertiary = "#b5523b",
+            lightBackground = "#f6f3ea",
+            darkBackground = "#1d211b",
+        ),
 )
 
 /** The people of the fake forum. */

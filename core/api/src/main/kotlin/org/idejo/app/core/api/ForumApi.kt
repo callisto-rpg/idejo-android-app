@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import org.idejo.app.core.model.AccessToken
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.Changes
+import org.idejo.app.core.model.Command
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
@@ -19,8 +20,15 @@ import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicUpdate
+import org.idejo.app.core.model.Unread
+import org.idejo.app.core.model.UserCard
+import org.idejo.app.core.model.Warning
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -113,6 +121,75 @@ class ForumApi(
         topicId: String,
         commit: Commit,
     ): ApiResult<CommitResult> = call { commit(topicId, commit) }
+
+    suspend fun tags(): ApiResult<List<Tag>> = call { tags().data }
+
+    /** Topics carrying [tags] (slugs), all of them or, with [any], one of them (BR-04). */
+    suspend fun tagged(
+        tags: List<String>,
+        any: Boolean = false,
+        cursor: String? = null,
+    ): ApiResult<Page<Topic>> =
+        call {
+            tagged(tags.joinToString(","), if (any) "or" else null, cursor, null)
+        }
+
+    suspend fun unread(cursor: String? = null): ApiResult<Unread> = call { unread(cursor) }
+
+    suspend fun search(
+        query: String,
+        categoryId: String? = null,
+        cursor: String? = null,
+    ): ApiResult<Page<SearchHit>> = call { search(query, categoryId, cursor) }
+
+    suspend fun user(id: String): ApiResult<UserCard> = call { user(id) }
+
+    suspend fun ignore(
+        id: String,
+        ignored: Boolean,
+    ): ApiResult<UserCard> = call { if (ignored) ignore(id) else unignore(id) }
+
+    suspend fun warnings(): ApiResult<List<Warning>> = call { warnings().data }
+
+    suspend fun acknowledgeWarnings(): ApiResult<Unit> =
+        call {
+            acknowledgeWarnings().let { if (!it.isSuccessful) throw HttpException(it) }
+        }
+
+    /** Getting started closed for good (BR-11). */
+    suspend fun welcome(): ApiResult<Me> = call { welcome() }
+
+    /** A self-select role taken or left (BR-07). */
+    suspend fun role(
+        id: String,
+        taken: Boolean,
+    ): ApiResult<Me> = call { if (taken) addRole(id) else removeRole(id) }
+
+    suspend fun commands(topicId: String): ApiResult<List<Command>> =
+        call { commands(topicId).data }
+
+    /** Read up to [messageId], or all of the topic (TV-06). */
+    suspend fun read(
+        topicId: String,
+        messageId: String? = null,
+    ): ApiResult<Topic> = call { read(topicId, ReadPosition(messageId)) }
+
+    suspend fun follow(
+        topicId: String,
+        followed: Boolean,
+    ): ApiResult<Topic> = call { if (followed) follow(topicId) else unfollow(topicId) }
+
+    suspend fun mute(
+        topicId: String,
+        muted: Boolean,
+    ): ApiResult<Topic> = call { if (muted) mute(topicId) else unmute(topicId) }
+
+    suspend fun markUnread(topicId: String): ApiResult<Topic> = call { markUnread(topicId) }
+
+    suspend fun rename(
+        topicId: String,
+        title: String,
+    ): ApiResult<Topic> = call { updateTopic(topicId, TopicUpdate(title = title)) }
 
     @Suppress("TooGenericExceptionCaught") // Retrofit wraps every failure; each is mapped.
     private suspend fun <T> call(request: suspend IdejoService.() -> T): ApiResult<T> =

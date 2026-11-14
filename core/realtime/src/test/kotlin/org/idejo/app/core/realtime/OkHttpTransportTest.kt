@@ -54,7 +54,7 @@ class OkHttpTransportTest {
             OkHttpTransport(
                 testAddress(),
                 "/api/v1/socket",
-                { AccessToken("idj_abc+/=") },
+                { AccessToken("idj_~~~?") },
                 OkHttpClient(),
             ).connect(Recorder())
         assertTrue(opened.await(5, TimeUnit.SECONDS))
@@ -67,8 +67,11 @@ class OkHttpTransportTest {
         assertEquals("phoenix", protocols[0])
         val encoded = protocols[1].removePrefix(OkHttpTransport.AUTH_TOKEN_PREFIX)
         assertTrue(protocols[1].startsWith(OkHttpTransport.AUTH_TOKEN_PREFIX))
-        assertFalse(encoded.contains('=') || encoded.contains('+') || encoded.contains('/'))
-        assertEquals("idj_abc+/=", encoded.decodeBase64()?.utf8())
+        // Standard Base64 without padding: what Phoenix's Base.decode64!(padding: false) reads.
+        assertFalse(encoded.contains('='))
+        assertFalse(encoded.contains('-') || encoded.contains('_'))
+        assertEquals("idj_~~~?", encoded.decodeBase64()?.utf8())
+        assertTrue(encoded.contains('+') || encoded.contains('/'))
         connection?.close(1000, "bye")
     }
 
