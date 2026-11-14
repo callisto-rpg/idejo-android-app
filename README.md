@@ -5,9 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # idejo for Android
 
-The official Android app for [idejo](https://idejo.org) forums, where every topic is a live
-chat whose lines grow into messages. Sign in once with your idejo ID and every forum you
-joined is one tap away, each in its own colours. Or use the app for a single forum.
+The official Android app for [idejo](https://idejo.org) forums.
 
 The app talks to forums only through idejo's public API v1. Native Kotlin and Jetpack
 Compose; Android 8.0 (API 26) and later.
