@@ -28,6 +28,8 @@ import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
+import org.idejo.app.core.data.Warnings
+import org.idejo.app.core.data.WarningsState
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Topic
 import javax.inject.Inject
@@ -61,6 +63,7 @@ class ShellViewModel
     ) : ViewModel() {
         private val me = MutableStateFlow<Me?>(null)
         private val openTopic = MutableStateFlow<Topic?>(null)
+        private val warned = MutableStateFlow<Warnings?>(null)
         private var sidebar: ForumSidebar? = null
         private var reading: Job? = null
 
@@ -71,15 +74,24 @@ class ShellViewModel
                     if (session == null) flowOf(null) else follow(session)
                 }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+        /** The warnings waiting for the member (TV-11): the card shows while any do. */
+        val warnings: StateFlow<WarningsState> =
+            warned
+                .flatMapLatest { it?.state ?: flowOf(WarningsState()) }
+                .stateIn(viewModelScope, SharingStarted.Eagerly, WarningsState())
+
         private fun follow(session: ForumSession) =
             ForumSidebar(session, viewModelScope).let { opened ->
                 sidebar?.close()
                 sidebar = opened
                 opened.start()
                 me.value = null
+                warned.value?.close()
+                val warnings = Warnings(session, viewModelScope).also { warned.value = it }
                 viewModelScope.launch {
                     if (session.access.value == Access.SignedIn) {
                         me.value = session.call { me() }.getOrNull()
+                        warnings.start(pending = me.value?.warningPending == true)
                     }
                 }
                 combine(
@@ -117,6 +129,22 @@ class ShellViewModel
 
         fun refresh() {
             sidebar?.refresh()
+        }
+
+        /** **I understand** on the warning card, or the card closed (TV-11). */
+        fun acknowledgeWarnings() {
+            warned.value?.acknowledge()
+        }
+
+        /** **The message** on the warning card: opened in the topic it is in now. */
+        fun openWarned(
+            messageId: String,
+            open: (Place) -> Unit,
+        ) {
+            val warnings = warned.value ?: return
+            viewModelScope.launch {
+                warnings.topicOf(messageId)?.let { open(Place.Topic(it, messageId)) }
+            }
         }
 
         /** The fold arrow beside a category (SH-33), remembered per forum. */
@@ -163,6 +191,7 @@ class ShellViewModel
 
         override fun onCleared() {
             sidebar?.close()
+            warned.value?.close()
         }
 
         private fun remember(change: (ForumRecord) -> ForumRecord) {

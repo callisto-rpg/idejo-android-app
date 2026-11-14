@@ -76,4 +76,15 @@ SPDX-License-Identifier: Apache-2.0
     <string name="accounts_remove_confirm">Remove</string>
     <string name="cancel">Cancel</string>
     <string name="no_browser">No browser can open this page.</string>
+    <!-- TV-11: the web's warning card. -->
+    <plurals name="warning_title">
+        <item quantity="one">A moderator warned you</item>
+        <item quantity="other">Moderators warned you</item>
+    </plurals>
+    <string name="warning_message">The message</string>
+    <string name="warning_follow_rules">Please follow the forum’s rules.</string>
+    <string name="warning_read_rules">Read the rules</string>
+    <string name="warning_understand">I understand</string>
+    <string name="warning_offline">You’re offline.</string>
+    <string name="warning_failed">That did not work. Please try again.</string>
 </resources>

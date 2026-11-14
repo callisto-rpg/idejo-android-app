@@ -18,6 +18,7 @@ import org.idejo.app.core.data.SidebarSection
 import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
+import org.idejo.app.core.data.WarningsState
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
@@ -26,11 +27,13 @@ import org.idejo.app.core.model.CategoryGroup
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Role
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.Warning
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.Instant
 
 /** The forum's frame in the Garden sample's colours, light and dark (SH-10 to SH-38). */
 @RunWith(RobolectricTestRunner::class)
@@ -111,6 +114,24 @@ class ShellScreenshotTest {
                 tutorialBubbles = TutorialBubbles.All,
                 actions = NoActions,
                 onClose = {},
+            )
+        }
+
+    @Test
+    fun `TV-11 the warning card`() =
+        snapshots("Warning") {
+            WarningCard(
+                WarningsState(
+                    listOf(
+                        Warning(
+                            id = "w_1",
+                            reason = "Please keep it civil: no name-calling.",
+                            messageId = "m_1",
+                            createdAt = Instant.parse("2026-11-14T16:05:00Z"),
+                        ),
+                    ),
+                ),
+                WarningActions({}, {}, {}),
             )
         }
 

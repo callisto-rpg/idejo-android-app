@@ -275,6 +275,45 @@ class BrowseDataTest {
         }
 
     @Test
+    fun `TV-11 a waiting warning shows until I understand, and its message's topic`() =
+        runBlocking {
+            fake.warn(FakePeople.Ada, "Please keep it civil.", "m_1")
+            val session = signedIn()
+            val me = session.call { me() }.getOrNull()
+            assertEquals(true, me?.warningPending)
+            val warnings = Warnings(session, scope).also { it.start(pending = true) }
+
+            val shown = warnings.state.until { it.warnings.isNotEmpty() }
+            assertEquals(listOf("Please keep it civil."), shown.warnings.map { it.reason })
+            assertEquals("t_1", warnings.topicOf("m_1"))
+
+            warnings.acknowledge()
+            warnings.state.until { it.warnings.isEmpty() && !it.sending }
+            assertTrue(fake.warningsOf(FakePeople.Ada).isEmpty())
+            assertEquals(false, session.call { me() }.getOrNull()?.warningPending)
+            warnings.close()
+        }
+
+    @Test
+    fun `TV-11 a warning given now shows at once`() =
+        runBlocking {
+            val session = signedIn()
+            session.socket.connect()
+            withTimeout(5.seconds) { session.socket.state.first { it == SocketState.Connected } }
+            val warnings = Warnings(session, scope).also { it.start(pending = false) }
+            withTimeout(5.seconds) { while (!fake.joined("user:me")) delay(20) }
+            assertTrue(
+                warnings.state.value.warnings
+                    .isEmpty(),
+            )
+
+            fake.warn(FakePeople.Ada, "No selling here.")
+            val shown = warnings.state.until { it.warnings.isNotEmpty() }
+            assertEquals(listOf("No selling here."), shown.warnings.map { it.reason })
+            warnings.close()
+        }
+
+    @Test
     fun `BR-09 a user card, and Ignore then Stop ignoring`() =
         runBlocking {
             val session = signedIn()

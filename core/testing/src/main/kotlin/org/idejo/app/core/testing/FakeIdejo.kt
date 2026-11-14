@@ -52,6 +52,7 @@ import org.idejo.app.core.model.UnreadCounter
 import org.idejo.app.core.model.UnreadMark
 import org.idejo.app.core.model.UserCard
 import org.idejo.app.core.model.Vote
+import org.idejo.app.core.model.Warning
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
@@ -281,6 +282,39 @@ class FakeIdejo(
             if (!reader.introHidden) reader.introDue = true
         }
 
+    /**
+     * A moderator warns [person] about [messageId] (TV-11): waiting until acknowledged, and
+     * the `warning` notification on their user:me channels, as idejo's.
+     */
+    fun warn(
+        person: Person,
+        reason: String,
+        messageId: String? = null,
+    ): Warning =
+        synchronized(lock) {
+            val warning =
+                Warning(
+                    id = "w_" + nextId++,
+                    reason = reason,
+                    messageId = messageId,
+                    createdAt = clock.now,
+                )
+            reader(person).warnings += warning
+            val payload =
+                buildJsonObject {
+                    put("kind", "warning")
+                    put("message_id", messageId)
+                    put("reason", reason)
+                    put("warning_id", warning.id)
+                }
+            socketsOf(person).forEach { it.push("user:me", "notification", payload) }
+            warning
+        }
+
+    /** The warnings [person] has not acknowledged. */
+    fun warningsOf(person: Person): List<Warning> =
+        synchronized(lock) { reader(person).warnings.toList() }
+
     /** The self-select roles [person] holds, by id. */
     fun rolesOf(person: Person): Set<String> = synchronized(lock) { reader(person).roles.toSet() }
 
@@ -412,6 +446,15 @@ class FakeIdejo(
                 member(call) { it.roles -= call["id"] }
             },
             Route("GET", "me/communities") { ok(ListBody<Topic>(emptyList())) },
+            Route("GET", "me/warnings") { call ->
+                call.viewer?.let { ok(ListBody(reader(it).warnings.toList())) } ?: unauthenticated()
+            },
+            Route("POST", "me/warnings/acknowledge") { call ->
+                call.viewer?.let {
+                    reader(it).warnings.clear()
+                    status(HTTP_NO_CONTENT)
+                } ?: unauthenticated()
+            },
             Route("GET", "categories") { ok(ListBody(categories.filter { it.permissions.view })) },
             Route(
                 "GET",
@@ -747,6 +790,7 @@ class FakeIdejo(
             roles = settings.roles.filter { it.id in reader.roles },
             welcomed = reader.welcomed,
             introDue = reader.introDue && reader.welcomed && !reader.introHidden,
+            warningPending = reader.warnings.isNotEmpty(),
         )
     }
 

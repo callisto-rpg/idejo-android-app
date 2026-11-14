@@ -10,6 +10,7 @@ import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.Warning
 import java.time.Instant
 
 /** How the fake forum is set up. */
@@ -96,6 +97,9 @@ internal class Reader(
 
     /** Self-select roles held, by id. */
     val roles: MutableSet<String> = linkedSetOf()
+
+    /** Warnings not acknowledged yet, oldest first (TV-11). */
+    val warnings: MutableList<Warning> = mutableListOf()
 
     /** The people ignored, by id (AC-06). */
     val ignored: MutableSet<String> = mutableSetOf()

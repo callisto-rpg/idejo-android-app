@@ -75,6 +75,7 @@ private enum class Overlay { None, Sidebar, LogoMenu, UserMenu }
  * goes elsewhere; [onSignIn] starts the forum's sign-in (SI-05, SI-09).
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod") // The frame and its layers, over the page, in one place.
 @Composable
 fun ForumFrame(
     place: Place,
@@ -85,6 +86,7 @@ fun ForumFrame(
     content: @Composable () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val warnings by viewModel.warnings.collectAsStateWithLifecycle()
     val shell = state ?: return
     val context = LocalContext.current
     var overlay by rememberSaveable { mutableStateOf(Overlay.None) }
@@ -146,8 +148,23 @@ fun ForumFrame(
         }
 
         wholeTitle?.let { WholeTitle(it) { wholeTitle = null } }
+
+        // Over any page, as the web's (TV-11).
+        if (shell.signedIn && warnings.warnings.isNotEmpty()) {
+            WarningCard(warnings, warningActions(viewModel, go))
+        }
     }
 }
+
+/** The warning card's actions (TV-11). */
+private fun warningActions(
+    viewModel: ShellViewModel,
+    go: (Place) -> Unit,
+) = WarningActions(
+    onUnderstand = viewModel::acknowledgeWarnings,
+    onMessage = { viewModel.openWarned(it, go) },
+    onRules = { go(Place.Rules) },
+)
 
 /** The top bar's right end: **Sign in** for a visitor (SI-05), then the member's picture. */
 @Composable
