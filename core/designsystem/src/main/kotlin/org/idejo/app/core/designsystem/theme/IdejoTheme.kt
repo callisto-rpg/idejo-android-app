@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -34,6 +35,7 @@ fun IdejoTheme(
     CompositionLocalProvider(
         LocalIdejoColors provides extras,
         LocalReducedMotion provides reducedMotion,
+        LocalDarkTheme provides darkTheme,
     ) {
         MaterialTheme(colorScheme = scheme, typography = IdejoTypography, content = content)
     }
@@ -41,6 +43,11 @@ fun IdejoTheme(
 
 /** The theme's values in components: `IdejoTheme.colors.dot(…)`, `IdejoTheme.typography`. */
 object IdejoTheme {
+    /** True in the dark theme: pictures choose their dark version by it (TH-10). */
+    val dark: Boolean
+        @Composable @ReadOnlyComposable
+        get() = LocalDarkTheme.current
+
     val colors: IdejoColors
         @Composable @ReadOnlyComposable
         get() = LocalIdejoColors.current
@@ -97,3 +104,5 @@ private fun animateColorScheme(
         surfaceContainerLowest = animate(target.surfaceContainerLowest),
     )
 }
+
+private val LocalDarkTheme = staticCompositionLocalOf { false }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- The web's words (idejo's member guide and pages) wherever it has them. -->
+<resources>
+    <!-- Home (BR-01). -->
+    <string name="home_categories">Categories</string>
+    <string name="home_other">Other</string>
+    <string name="home_active">Active topics</string>
+    <plurals name="category_topics">
+        <item quantity="one">1 topic</item>
+        <item quantity="other">%1$d topics</item>
+    </plurals>
+
+    <!-- View (BR-03). -->
+    <string name="view_label">View</string>
+    <string name="view_compact">Compact</string>
+    <string name="view_expanded">Expanded</string>
+
+    <!-- Category page (BR-02). -->
+    <string name="category_empty">No topics yet.</string>
+
+    <!-- Lists (BR-10). -->
+    <string name="list_could_not_load">Couldn’t load this page.</string>
+    <string name="list_offline">You’re offline. Pull down to try again.</string>
+    <string name="list_try_again">Try again</string>
+</resources>

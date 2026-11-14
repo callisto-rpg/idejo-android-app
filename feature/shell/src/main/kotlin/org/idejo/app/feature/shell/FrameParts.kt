@@ -16,6 +16,8 @@ import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.designsystem.component.Crumb
 import org.idejo.app.core.designsystem.component.Unread
+import org.idejo.app.core.designsystem.component.dot
+import org.idejo.app.core.designsystem.component.unreadLevel
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Topic
 

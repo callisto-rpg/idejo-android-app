@@ -86,7 +86,9 @@ class ForumApi(
         limit: Int? = null,
     ): ApiResult<Page<Topic>> = call { categoryTopics(id, cursor, limit, expanded.takeIf { it }) }
 
-    suspend fun activeTopics(): ApiResult<List<Topic>> = call { activeTopics().data }
+    /** The home page's active topics; [expanded] adds previews (idejo 0.3.13, BR-03). */
+    suspend fun activeTopics(expanded: Boolean = false): ApiResult<List<Topic>> =
+        call { activeTopics(expanded.takeIf { it }).data }
 
     suspend fun topic(id: String): ApiResult<Topic> = call { topic(id) }
 

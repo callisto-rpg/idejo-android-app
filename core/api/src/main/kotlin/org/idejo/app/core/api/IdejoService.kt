@@ -64,7 +64,9 @@ internal interface IdejoService {
     ): Page<Topic>
 
     @GET("topics/active")
-    suspend fun activeTopics(): ListBody<Topic>
+    suspend fun activeTopics(
+        @Query("expanded") expanded: Boolean?,
+    ): ListBody<Topic>
 
     @GET("topics/{id}")
     suspend fun topic(

@@ -28,6 +28,17 @@ SPDX-License-Identifier: Apache-2.0
     <string name="topic_pinned">Pinned</string>
     <string name="topic_meta">%1$s · %2$s</string>
     <string name="topic_latest_message">%1$s: %2$s</string>
+    <!-- The unread marker, as the web's lists ("3 new"). -->
+    <plurals name="topic_new">
+        <item quantity="one">%1$d new</item>
+        <item quantity="other">%1$d new</item>
+    </plurals>
+    <string name="topic_inactive">Inactive</string>
+    <string name="topic_latest">Latest messages</string>
+    <plurals name="topic_more_images">
+        <item quantity="one">+%1$d image</item>
+        <item quantity="other">+%1$d images</item>
+    </plurals>
     <plurals name="topic_more_writers">
         <item quantity="one">+%1$d more</item>
         <item quantity="other">+%1$d more</item>

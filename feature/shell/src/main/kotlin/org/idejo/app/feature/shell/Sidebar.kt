@@ -53,6 +53,8 @@ import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.designsystem.component.CategoryMark
 import org.idejo.app.core.designsystem.component.CategoryMarkSize
 import org.idejo.app.core.designsystem.component.Dot
+import org.idejo.app.core.designsystem.component.dot
+import org.idejo.app.core.designsystem.component.unreadLevel
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Topic

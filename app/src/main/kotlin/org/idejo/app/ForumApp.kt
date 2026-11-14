@@ -3,7 +3,7 @@
 
 package org.idejo.app
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,6 +26,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import org.idejo.app.core.data.ForumSession
+import org.idejo.app.feature.browse.CategoryRoute
+import org.idejo.app.feature.browse.HomeRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
@@ -34,7 +36,7 @@ import org.idejo.app.feature.shell.ForumFrame
 import org.idejo.app.feature.shell.Place
 
 /**
- * The open forum: its pages in the frame (spec §6), one back stack per forum. The pages of
+ * The open forum: its pages in the frame (spec §6), one back stack per forum. The rest of
  * browsing (BR) and the topic page (TV) come with the next pull requests of M1.
  */
 @Composable
@@ -55,8 +57,20 @@ fun ForumApp(
         modifier = modifier,
     ) {
         NavHost(navigation, startDestination = Place.Home) {
-            composable<Place.Home> { Page(session, signIn) }
-            composable<Place.Category> { Page(session, signIn) }
+            composable<Place.Home> {
+                Page(session, signIn) {
+                    HomeRoute(
+                        onCategory = { navigation.go(Place.Category(it)) },
+                        onTopic = { navigation.go(Place.Topic(it)) },
+                    )
+                }
+            }
+            composable<Place.Category> {
+                Page(
+                    session,
+                    signIn,
+                ) { CategoryRoute(onTopic = { navigation.go(Place.Topic(it)) }) }
+            }
             composable<Place.Topic> { Page(session, signIn) }
             composable<Place.Unread> { Page(session, signIn) }
             composable<Place.Tags> { Page(session, signIn) }
@@ -95,18 +109,29 @@ private val SIMPLE =
         Place.AppSettings,
     )
 
-/** A page until browsing comes: the forum's SI-09 and SI-10 notices, and its name. */
+/**
+ * A page under the forum's SI-09 and SI-10 notices; without [content], a page still to come
+ * in M1.
+ */
 @Composable
 private fun Page(
     session: ForumSession,
     signIn: () -> Unit,
+    content: (@Composable () -> Unit)? = null,
 ) {
     val state by session.access.collectAsStateWithLifecycle()
-    Column(
-        Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        AccessNotice(state, session.name, onSignInAgain = signIn)
-        Text(stringResource(R.string.page_pending), style = MaterialTheme.typography.bodyLarge)
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.padding(horizontal = 16.dp)) {
+            AccessNotice(state, session.name, onSignInAgain = signIn)
+        }
+        if (content != null) {
+            Box(Modifier.weight(1f)) { content() }
+        } else {
+            Text(
+                stringResource(R.string.page_pending),
+                Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
     }
 }

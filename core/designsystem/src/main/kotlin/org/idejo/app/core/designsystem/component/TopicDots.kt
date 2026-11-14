@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package org.idejo.app.feature.shell
+package org.idejo.app.core.designsystem.component
 
 import org.idejo.app.core.designsystem.theme.DotKind
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Topic
 
 /** A topic's dot (SH-32): the strongest reason it has news, or none when it has none. */
-internal fun Topic.dot(): DotKind? =
+fun Topic.dot(): DotKind? =
     when (mentionState) {
         MentionState.Mention -> DotKind.Mention
         MentionState.Reply -> DotKind.Reply
@@ -18,7 +18,7 @@ internal fun Topic.dot(): DotKind? =
     }
 
 /** The **Unread** button's colour from the counter's `level` (SH-01). */
-internal fun unreadLevel(level: String?): DotKind? =
+fun unreadLevel(level: String?): DotKind? =
     when (level) {
         "mention" -> DotKind.Mention
         "reply" -> DotKind.Reply

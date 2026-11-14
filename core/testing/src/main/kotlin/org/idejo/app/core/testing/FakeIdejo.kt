@@ -28,6 +28,7 @@ import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.ErrorBody
+import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.MentionState
@@ -40,6 +41,7 @@ import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicPreview
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UnreadCounter
 import java.net.URLDecoder
@@ -337,7 +339,8 @@ class FakeIdejo(
                 "categories/{id}/topics",
             ) { call -> categoryTopics(call["id"], call.request) },
             Route("GET", "topics/active") { call ->
-                ok(ListBody(topics.values.map { it.topic.seenBy(call.viewer) }))
+                val expanded = call.request.expanded
+                ok(ListBody(topics.values.map { it.seen(call.viewer, expanded) }))
             },
             Route("GET", "unread") { call ->
                 call.viewer?.let { ok(unreadOf(it)) }
@@ -653,7 +656,7 @@ class FakeIdejo(
         val viewer = authenticatedViewer(request)
         val all =
             topics.values
-                .map { it.topic.seenBy(viewer) }
+                .map { it.seen(viewer, request.expanded) }
                 .filter { it.categoryId == id }
         val limit =
             request.url
@@ -666,6 +669,31 @@ class FakeIdejo(
         val next = (from + page.size).takeIf { it < all.size }?.let(::encodeCursor)
         return ok(Page(page, nextCursor = next, prevCursor = null))
     }
+
+    /** The topic as [viewer] sees it, with its preview when the list asked for one. */
+    private fun TopicRecord.seen(
+        viewer: Person?,
+        expanded: Boolean,
+    ): Topic {
+        val seen = topic.seenBy(viewer)
+        if (!expanded) return seen
+        val writers = messages.map { it.author }.distinctBy { it.id }
+        return seen.copy(
+            preview =
+                TopicPreview(
+                    firstExcerpt = messages.firstOrNull()?.bodyMd,
+                    latest =
+                        messages.drop(1).takeLast(PREVIEW_LATEST).map {
+                            LatestMessage(it.id, it.author.displayName, it.bodyMd)
+                        },
+                    writers = writers,
+                    writersCount = writers.size,
+                ),
+        )
+    }
+
+    private val RecordedRequest.expanded: Boolean
+        get() = url.queryParameter("expanded") == "true"
 
     private fun window(topicId: String): MockResponse {
         val record = topics[topicId] ?: return notFound()
@@ -1009,6 +1037,7 @@ class FakeIdejo(
         val CODE_LIFETIME: Duration = Duration.ofSeconds(60)
         const val DEFAULT_PAGE = 50
         const val MAX_PAGE = 100
+        const val PREVIEW_LATEST = 3
         const val ID_BYTES = 8
         const val HTTP_OK = 200
         const val HTTP_NO_CONTENT = 204
