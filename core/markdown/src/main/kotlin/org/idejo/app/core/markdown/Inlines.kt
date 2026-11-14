@@ -4,7 +4,9 @@
 package org.idejo.app.core.markdown
 
 import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -31,6 +33,17 @@ internal data class InlineColors(
     val linkHue: (LinkKind) -> Color,
 )
 
+/**
+ * The inline links that pulse, and how strongly now (0 to 1): the tags naming the reader in
+ * a mention that glows (TV-07). [strength] is read while drawing, so the text follows it.
+ */
+@Immutable
+class MentionPulse(
+    val matches: (Mention) -> Boolean,
+    val colour: Color,
+    val strength: () -> Float,
+)
+
 /** An inline image (a server emoji) to draw in a run, by its placeholder's id. */
 internal const val EMOJI_PREFIX = "emoji:"
 
@@ -40,6 +53,7 @@ internal class InlineBuilder(
     private val actions: MarkdownActions,
     private val revealed: Set<Int>,
     private val spoilerWord: String,
+    private val pulse: MentionPulse? = null,
 ) {
     /** The images (server emoji) the string holds, to give `Text` as inline content. */
     val images = mutableMapOf<String, Emoji>()
@@ -155,13 +169,19 @@ internal class InlineBuilder(
             return
         }
         val hue = colors.linkHue(kind)
+        val mention = link.mention
+        val tint = hue.copy(alpha = TINT)
+        val background =
+            pulse
+                ?.takeIf { it.matches(mention) }
+                ?.let { lerp(tint, it.colour.copy(alpha = PULSE), it.strength().coerceIn(0f, 1f)) }
+                ?: tint
         val style =
             SpanStyle(
                 color = colors.linkText(kind),
-                background = hue.copy(alpha = TINT),
+                background = background,
                 fontWeight = FontWeight.SemiBold,
             )
-        val mention = link.mention
         pushLink(
             LinkAnnotation.Clickable(
                 "${mention.type}:${mention.id ?: mention.slug}",
@@ -219,6 +239,7 @@ internal class InlineBuilder(
         const val SMALLER = 0.75f
         const val TINT = 0.10f
         const val PRESSED = 0.22f
+        const val PULSE = 0.65f
     }
 }
 

@@ -3,16 +3,23 @@
 
 package org.idejo.app.feature.topic
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.data.TopicState
+import org.idejo.app.core.data.namesMember
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.markdown.MentionPulse
 import org.idejo.app.core.model.Continuation
 import org.idejo.app.core.model.Forwarded
+import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.Mention
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MovedAway
@@ -85,6 +92,37 @@ class TopicScreenshotTest {
                 ),
                 TopicActions(),
             )
+        }
+
+    @Test
+    fun `TV-07 mentions of the member glow, red for them, blue for their role`() =
+        snapshots("TopicGlow") {
+            val ada =
+                Me(
+                    "u_ada",
+                    "Ada Lovelace",
+                    roles = listOf(Role("Gardener", slug = "gardener")),
+                )
+            val context = MessageContext("https://garden.example.org", me = ada)
+            Column {
+                GLOWS.forEachIndexed { index, (message, kind) ->
+                    val colour =
+                        if (index ==
+                            0
+                        ) {
+                            IdejoTheme.colors.dotMention
+                        } else {
+                            IdejoTheme.colors.dotRoleMention
+                        }
+                    MessageItem(
+                        message,
+                        context,
+                        Modifier.glow(colour) { 1f },
+                        pulse = MentionPulse({ it.namesMember(ada) }, colour) { 1f },
+                    )
+                    if (kind) HorizontalDivider()
+                }
+            }
         }
 
     @Test
@@ -209,6 +247,25 @@ class TopicScreenshotTest {
                 "Planning this year's beds. **Cherokee Purple** and Sungold first.",
                 600,
             )
+        val GLOWS =
+            listOf(
+                message("g1", MINA, "@ada can you check the seed tray?", 6).copy(
+                    mentions = listOf(Mention("user", "@Ada Lovelace", "@ada", id = "u_ada")),
+                ) to true,
+                message("g2", LEO, "+gardener the frost is coming tonight.", 3).copy(
+                    mentions =
+                        listOf(
+                            Mention(
+                                "role",
+                                "+Gardener",
+                                "+gardener",
+                                id = "gardener",
+                                slug = "gardener",
+                            ),
+                        ),
+                ) to false,
+            )
+
         val MESSAGES =
             listOf(
                 message("m1", MINA, "Sungold every year. Pinch the suckers early.", 30).copy(

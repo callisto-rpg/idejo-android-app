@@ -108,6 +108,12 @@ class TopicDataTest {
             assertEquals(first.id, state.landing)
             assertTrue(state.messages.any { it.id == first.id })
             assertTrue(state.atEnd)
+
+            // TV-07: mentions glow from there on, after the line has faded too.
+            assertEquals(first.id, state.glowFrom)
+            reader.unreadShown()
+            val faded = reader.state.until { it.unread == null }
+            assertEquals(first.id, faded.glowFrom)
         }
 
     @Test

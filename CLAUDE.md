@@ -267,6 +267,11 @@ Docker image) are added with them.
   to idejo, callisto-rpg/Idejo#364; `moved_after`, IX-11). A poll's emoji shows when the
   forum names it (`GET /server`'s `emoji` and `default_reactions`); the full emoji list
   comes with reactions (MA-03).
+- 2026-11-14 — Mentions glow (TV-07) as the web's: unread messages from the first unread
+  on, by others, @mentioning the member (red) or +mentioning one of their roles (blue),
+  each once per page when half of it, or a third of the screen, is shown; the tags naming
+  the member pulse. Roles are matched by slug: idejo gives `GET /me`'s roles theirs
+  (IX-12, callisto-rpg/Idejo#368).
 
 ## Milestones (spec §26)
 
@@ -282,8 +287,8 @@ Docker image) are added with them.
 Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card; topic: the page, its window, live
-changes and catch-up, the read position, replies, forwards, banners, polls; warnings). The
-app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359 (the
-home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
-window's counts), #363 (tags' categories) and #364 (banners) (Steward decisions,
-2026-11-14).
+changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
+mention glows). The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline
+links), #359 (the home page's Expanded view), #360 (Getting started), #361 (Help's
+commands), #362 (the window's counts), #363 (tags' categories), #364 (banners) and #368
+(roles' slugs) (Steward decisions, 2026-11-14).

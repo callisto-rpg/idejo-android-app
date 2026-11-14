@@ -55,7 +55,9 @@ import org.idejo.app.core.markdown.IdejoMarkdown
 import org.idejo.app.core.markdown.MarkdownActions
 import org.idejo.app.core.markdown.MarkdownBody
 import org.idejo.app.core.markdown.MdInline
+import org.idejo.app.core.markdown.MentionPulse
 import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.Reaction
@@ -79,6 +81,8 @@ data class MessageContext(
     val mayVote: Boolean = false,
     /** Polls whose vote is being sent. */
     val voting: Set<String> = emptySet(),
+    /** The member, whose tags pulse in a glowing message (TV-07). */
+    val me: Me? = null,
 )
 
 /**
@@ -91,6 +95,7 @@ fun MessageItem(
     message: Message,
     context: MessageContext,
     modifier: Modifier = Modifier,
+    pulse: MentionPulse? = null,
 ) {
     val open = stringResource(R.string.message_open)
     Column(
@@ -106,7 +111,7 @@ fun MessageItem(
         when {
             message.state == MessageState.Deleted -> Deleted(message)
             message.author.ignoredByMe -> Ignored(message, context)
-            else -> Shown(message, context)
+            else -> Shown(message, context, pulse)
         }
         Banners(message, context)
     }
@@ -180,7 +185,7 @@ private fun Ignored(
 ) {
     var shown by rememberSaveable(message.id) { mutableStateOf(false) }
     if (shown) {
-        Shown(message, context)
+        Shown(message, context, pulse = null)
     } else {
         TextButton(onClick = { shown = true }) {
             Text(stringResource(R.string.message_ignored, message.author.displayName))
@@ -192,6 +197,7 @@ private fun Ignored(
 private fun Shown(
     message: Message,
     context: MessageContext,
+    pulse: MentionPulse?,
 ) {
     var revealed by rememberSaveable(message.id) { mutableStateOf(message.spoiler == null) }
     Box {
@@ -202,7 +208,11 @@ private fun Shown(
             message.repliesTo.filterNot { it.inline }.forEach { ReplyQuote(it, context) }
             message.forwardedFrom?.let { ForwardBox(it, context) }
             // A poll posted on its own: its question is the message (the web's poll_only).
-            if (message.poll?.question?.trim() != message.bodyMd?.trim()) Body(message, context)
+            if (message.poll?.question?.trim() !=
+                message.bodyMd?.trim()
+            ) {
+                Body(message, context, pulse)
+            }
             message.poll?.let { PollView(message.id, it, context) }
             MetaLine(message)
             if (message.reactions.isNotEmpty()) Reactions(message.reactions, context)
@@ -235,6 +245,7 @@ private fun SpoilerCover(
 private fun Body(
     message: Message,
     context: MessageContext,
+    pulse: MentionPulse?,
 ) {
     val markdown = message.bodyMd ?: return
     val document =
@@ -260,6 +271,7 @@ private fun Body(
                         emoji = { name -> context.emoji.firstOrNull { it.name == name } },
                     ),
                 revealed = spoilers,
+                pulse = pulse,
                 image = { MessageImage(it, message, context) },
                 emojiImage = { emoji ->
                     emoji.imageUrl?.let { url ->

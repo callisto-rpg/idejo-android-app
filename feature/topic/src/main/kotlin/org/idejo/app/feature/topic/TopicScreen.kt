@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -46,6 +47,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.data.Glow
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Tag
@@ -160,7 +162,9 @@ private fun Messages(
             onVote = actions.onVote,
             mayVote = open && state.signedIn,
             voting = topic.voting,
+            me = state.me,
         )
+    val glowing = rememberGlowing(list, state.glows)
     LazyColumn(
         Modifier.fillMaxSize(),
         state = list,
@@ -182,7 +186,14 @@ private fun Messages(
             if (message.id == topic.unread?.messageId) {
                 item(key = "unread") { UnreadLine(topic.unread!!.count) }
             }
-            item(key = message.id) { MessageItem(message, context) }
+            item(key = message.id) {
+                val glow = glowing[message.id]
+                if (glow == null) {
+                    MessageItem(message, context)
+                } else {
+                    GlowingMessage(message, context, glow) { glowing.remove(message.id) }
+                }
+            }
         }
         if (topic.later > 0 || topic.loadingLater) {
             item(
