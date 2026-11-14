@@ -42,6 +42,11 @@ data class TopicState(
     val glowFrom: String? = null,
     /** New messages that came while the window does not reach the end (TV-05). */
     val newBelow: Int = 0,
+    /**
+     * The ids counted in [newBelow]: a message that comes both live and in a catch-up (it
+     * was posted while the topic was being joined) is counted once.
+     */
+    val countedBelow: Set<String> = emptySet(),
     /** The message the window was loaded around, to scroll to. */
     val landing: String? = null,
     val loading: Boolean = true,
@@ -165,6 +170,14 @@ class TopicReader(
                                 messages = state.messages + more,
                                 later = if (after == null) 0 else later,
                                 newBelow = if (after == null) 0 else state.newBelow,
+                                countedBelow =
+                                    if (after ==
+                                        null
+                                    ) {
+                                        emptySet()
+                                    } else {
+                                        state.countedBelow
+                                    },
                                 loadingLater = false,
                             )
                         }
@@ -400,8 +413,16 @@ class TopicReader(
                     state.copy(messages = state.messages + message)
                 }
 
+                message.id in state.countedBelow -> {
+                    state
+                }
+
                 isNew(state, message) -> {
-                    state.copy(later = state.later + 1, newBelow = state.newBelow + 1)
+                    state.copy(
+                        later = state.later + 1,
+                        newBelow = state.newBelow + 1,
+                        countedBelow = state.countedBelow + message.id,
+                    )
                 }
 
                 else -> {
