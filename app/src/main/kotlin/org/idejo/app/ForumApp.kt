@@ -21,6 +21,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,6 +46,7 @@ import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
 import org.idejo.app.feature.shell.Place
 import org.idejo.app.feature.shell.UserCardDialog
+import org.idejo.app.feature.topic.TopicRoute
 
 /**
  * The open forum: its pages in the frame (spec §6), one back stack per forum, and the cards
@@ -85,7 +87,7 @@ fun ForumApp(
             composable<Place.Category> {
                 Page(session, signIn) { CategoryRoute(onTopic = topic, onTag = tag) }
             }
-            composable<Place.Topic> { Page(session, signIn) }
+            topicPage(navigation, link) { content -> Page(session, signIn, content) }
             composable<Place.Unread> {
                 Page(session, signIn) { UnreadRoute(onTopic = topic, onTag = tag) }
             }
@@ -103,7 +105,7 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
-            // A user card (BR-09): names in messages open it, with the topic page (TV).
+            // A user card (BR-09): a name in a topic opens it.
             dialog<UserCardDialog>(
                 dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
             ) {
@@ -114,6 +116,21 @@ fun ForumApp(
         MemberCards(
             onLink = link,
             viewModel = hiltViewModel(key = "cards:${System.identityHashCode(session)}"),
+        )
+    }
+}
+
+/** The topic page (TV); a name opens its user card, a tag Filter by tag. */
+private fun NavGraphBuilder.topicPage(
+    navigation: NavHostController,
+    link: (String) -> Unit,
+    page: @Composable (@Composable () -> Unit) -> Unit,
+) = composable<Place.Topic> {
+    page {
+        TopicRoute(
+            onUser = { navigation.navigate(UserCardDialog(it)) },
+            onTag = { navigation.go(Place.Tags(it)) },
+            onLink = link,
         )
     }
 }

@@ -276,7 +276,8 @@ Docker image) are added with them.
 
 Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
-welcome and getting-started cards, the user card). The app needs idejo with callisto-rpg/Idejo#357 (the
+welcome and getting-started cards, the user card; topic: the page, its window, live
+changes and catch-up, the read position). The app needs idejo with callisto-rpg/Idejo#357 (the
 socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting started),
 #361 (Help's commands), #362 (the window's counts) and #363 (tags' categories) (Steward
 decisions, 2026-11-14).
