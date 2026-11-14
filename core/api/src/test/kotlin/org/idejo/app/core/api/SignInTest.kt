@@ -23,7 +23,7 @@ import org.junit.Test
 
 class SignInTest {
     private val server = MockWebServer()
-    private val http = IdejoHttp.forTesting()
+    private val http = IdejoHttp.forLocalTesting()
     private val oauth =
         OAuthInfo(
             authorize = "/app/authorize",

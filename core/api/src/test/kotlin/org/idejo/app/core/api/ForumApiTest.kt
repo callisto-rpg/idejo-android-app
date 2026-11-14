@@ -24,7 +24,7 @@ import java.time.Instant
 class ForumApiTest {
     private val server = MockWebServer()
     private val other = MockWebServer()
-    private val http = IdejoHttp.forTesting()
+    private val http = IdejoHttp.forLocalTesting()
     private var token: AccessToken? = AccessToken("idj_garden")
     private lateinit var api: ForumApi
 

@@ -36,4 +36,4 @@ internal fun error(
         *headers,
     )
 
-internal fun MockWebServer.address(): ForumAddress = ForumAddress.forTesting(url("/"))
+internal fun MockWebServer.address(): ForumAddress = ForumAddress.forLocalTesting(url("/"))

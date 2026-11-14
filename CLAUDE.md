@@ -219,6 +219,12 @@ end-to-end tests are added with them.
   `#fdfcf6`, inside the adaptive icon's safe zone; the monochrome icon is the same path.
 - 2026-11-14 — Backups: none until SY-02 (`allowBackup="false"`, and every domain excluded
   in `data_extraction_rules.xml` and `backup_rules.xml`).
+- 2026-11-14 — The socket's token travels as Phoenix's `auth_token`, in
+  `Sec-WebSocket-Protocol: phoenix, base64url.bearer.phx.<token, base64url unpadded>`, never
+  in the address (SI-04, API guide §7). idejo's `ApiSocket` still reads the token from the
+  connect params, which over a real WebSocket only come from the query string: idejo needs
+  `auth_token: true` on the socket and `connect/3` reading `connect_info.auth_token` (its
+  DV-06 review) before the app's socket can connect.
 
 ## Milestones (spec §26)
 

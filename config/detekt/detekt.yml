@@ -18,6 +18,8 @@ naming:
 style:
   MaxLineLength:
     maxLineLength: 100
+    # Test payloads are JSON written out; ktlint keeps the code at 100.
+    excludes: ['**/test/**']
   MagicNumber:
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true

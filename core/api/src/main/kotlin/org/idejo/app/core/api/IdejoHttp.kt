@@ -45,8 +45,8 @@ object IdejoHttp {
                 },
             )
 
-    /** A client for tests against MockWebServer, which speaks http. */
-    internal fun forTesting(): OkHttpClient = builder("idejo-test", allowCleartext = true).build()
+    /** A client for tests and the fake server, which speak http. Never in the app. */
+    fun forLocalTesting(): OkHttpClient = builder("idejo-test", allowCleartext = true).build()
 
     private const val CONNECT_SECONDS = 15L
     private const val READ_SECONDS = 30L

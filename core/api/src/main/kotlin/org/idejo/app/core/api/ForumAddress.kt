@@ -78,8 +78,11 @@ class ForumAddress private constructor(
             )
         }
 
-        /** A forum at [url] as it is, for tests against a local server only. */
-        internal fun forTesting(url: HttpUrl): ForumAddress =
+        /**
+         * A forum at [url] as it is, http included: for tests and the fake server only. The
+         * app's client refuses cleartext whatever the address (IdejoHttp, SY-01).
+         */
+        fun forLocalTesting(url: HttpUrl): ForumAddress =
             ForumAddress(
                 url
                     .newBuilder()

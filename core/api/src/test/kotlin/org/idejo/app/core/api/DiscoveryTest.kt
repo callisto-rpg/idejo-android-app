@@ -14,7 +14,7 @@ import org.junit.Test
 
 class DiscoveryTest {
     private val server = MockWebServer()
-    private val client = DiscoveryClient(IdejoHttp.forTesting())
+    private val client = DiscoveryClient(IdejoHttp.forLocalTesting())
 
     @Before
     fun start() = server.start()
