@@ -50,6 +50,7 @@ import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.data.Glow
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.model.Mention
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 
@@ -58,6 +59,7 @@ data class TopicActions(
     val onUser: (String) -> Unit = {},
     val onTag: (String) -> Unit = {},
     val onLink: (String) -> Unit = {},
+    val onInlineLink: (Mention) -> Unit = {},
     val onRetry: () -> Unit = {},
     val onEarlier: () -> Unit = {},
     val onLater: () -> Unit = {},
@@ -79,6 +81,7 @@ fun TopicRoute(
     onUser: (String) -> Unit,
     onTag: (String) -> Unit,
     onLink: (String) -> Unit,
+    onInlineLink: (Mention) -> Unit,
     onTopic: (String, String?) -> Unit,
     viewModel: TopicViewModel = hiltViewModel(),
 ) {
@@ -91,6 +94,7 @@ fun TopicRoute(
             onUser = onUser,
             onTag = onTag,
             onLink = onLink,
+            onInlineLink = onInlineLink,
             onRetry = { viewModel.retry() },
             onEarlier = { viewModel.earlier() },
             onLater = { viewModel.later() },
@@ -157,6 +161,7 @@ private fun Messages(
             state.emoji,
             onUser = actions.onUser,
             onLink = actions.onLink,
+            onInlineLink = actions.onInlineLink,
             onMessage = actions.onMessage,
             onTopic = actions.onTopic,
             onVote = actions.onVote,

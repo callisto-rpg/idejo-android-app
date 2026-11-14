@@ -23,6 +23,7 @@ import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.Tag
@@ -134,9 +135,10 @@ class ForumApi(
         tags: List<String>,
         any: Boolean = false,
         cursor: String? = null,
+        limit: Int? = null,
     ): ApiResult<Page<Topic>> =
         call {
-            tagged(tags.joinToString(","), if (any) "or" else null, cursor, null)
+            tagged(tags.joinToString(","), if (any) "or" else null, cursor, limit)
         }
 
     suspend fun unread(cursor: String? = null): ApiResult<Unread> = call { unread(cursor) }
@@ -148,6 +150,9 @@ class ForumApi(
     ): ApiResult<Page<SearchHit>> = call { search(query, categoryId, cursor) }
 
     suspend fun user(id: String): ApiResult<UserCard> = call { user(id) }
+
+    /** A role, its member count and members, by slug (TV-22). */
+    suspend fun roleCard(slug: String): ApiResult<RoleCard> = call { role(slug) }
 
     suspend fun ignore(
         id: String,

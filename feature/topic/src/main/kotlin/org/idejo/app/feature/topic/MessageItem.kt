@@ -58,6 +58,7 @@ import org.idejo.app.core.markdown.MdInline
 import org.idejo.app.core.markdown.MentionPulse
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.Mention
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.Reaction
@@ -71,6 +72,8 @@ data class MessageContext(
     val onUser: (String) -> Unit = {},
     /** A link in a body, as written. */
     val onLink: (String) -> Unit = {},
+    /** An inline link idejo resolved: its card, or the user card (TV-22). */
+    val onInlineLink: (Mention) -> Unit = {},
     /** A quote or forward tapped: the message it shows (TV-02). */
     val onMessage: (String) -> Unit = {},
     /** A banner's button: another topic (TP-09, TP-15). */
@@ -267,6 +270,7 @@ private fun Body(
                 actions =
                     MarkdownActions(
                         onLink = context.onLink,
+                        onInlineLink = context.onInlineLink,
                         onReveal = { spoilers = spoilers + it },
                         emoji = { name -> context.emoji.firstOrNull { it.name == name } },
                     ),

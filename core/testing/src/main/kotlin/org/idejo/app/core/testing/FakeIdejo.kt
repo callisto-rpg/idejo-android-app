@@ -40,6 +40,7 @@ import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
@@ -428,6 +429,7 @@ class FakeIdejo(
                 }
             },
             Route("GET", "users/{id}") { call -> card(call.viewer, call["id"]) },
+            Route("GET", "roles/{id}") { call -> roleCard(call["id"]) },
             Route("PUT", "users/{id}/ignore") { call ->
                 val viewer = call.viewer
                 if (viewer != null && viewer.id != call["id"]) reader(viewer).ignored += call["id"]
@@ -479,7 +481,13 @@ class FakeIdejo(
                     ?: unauthenticated()
             },
             Route("GET", "topics/{id}") { call ->
-                topics[call["id"]]?.let { ok(it.topic.seenBy(call.viewer)) }
+                topics[call["id"]]?.let { record ->
+                    ok(
+                        record.topic
+                            .seenBy(call.viewer)
+                            .copy(firstMessageId = record.messages.firstOrNull()?.id),
+                    )
+                }
                     ?: notFound()
             },
             Route("PUT", "topics/{id}/follow") { call ->
@@ -792,6 +800,13 @@ class FakeIdejo(
             introDue = reader.introDue && reader.welcomed && !reader.introHidden,
             warningPending = reader.warnings.isNotEmpty(),
         )
+    }
+
+    /** `GET /roles/{slug}`: a self-select role and the people holding it (TV-22). */
+    private fun roleCard(slug: String): MockResponse {
+        val role = settings.roles.firstOrNull { it.slug == slug } ?: return notFound()
+        val members = FakePeople.all.filter { role.id in reader(it).roles }
+        return ok(RoleCard(role.id, role.name, role.slug, role.colour, members, members.size))
     }
 
     /** `GET /users/{id}`: [viewer] may ignore anyone but themselves (AC-06). */

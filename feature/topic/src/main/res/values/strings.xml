@@ -93,4 +93,31 @@
         <item quantity="one">%1$d voter</item>
         <item quantity="other">%1$d voters</item>
     </plurals>
+    <!-- An inline link's card (TV-22), as the web's. -->
+    <string name="card_close">Close</string>
+    <string name="card_open_topic">Open topic</string>
+    <string name="card_open_category">Open category</string>
+    <string name="card_filter_by_tag">Filter by tag</string>
+    <string name="card_started_by">Started by %1$s</string>
+    <string name="card_latest_topics">Latest topics</string>
+    <string name="card_tag_everywhere">A tag for every category</string>
+    <string name="card_tag_of">A tag of %1$s</string>
+    <string name="card_tag_empty">No topics carry it yet.</string>
+    <plurals name="card_messages">
+        <item quantity="one">%1$d message</item>
+        <item quantity="other">%1$d messages</item>
+    </plurals>
+    <plurals name="card_topics">
+        <item quantity="one">%1$d topic</item>
+        <item quantity="other">%1$d topics</item>
+    </plurals>
+    <plurals name="card_members">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+    <!-- Another forum (TV-22, TV-26): Join and Open come with idejo ID mode (M4). -->
+    <string name="forum_join">Join</string>
+    <string name="forum_join_named">Join %1$s</string>
+    <string name="forum_open">Open</string>
+    <string name="forum_later">Joining and opening other forums comes with idejo ID mode.</string>
 </resources>

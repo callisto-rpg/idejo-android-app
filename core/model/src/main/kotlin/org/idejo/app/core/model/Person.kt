@@ -36,6 +36,17 @@ data class Person(
     @SerialName("ignored_by_me") val ignoredByMe: Boolean = false,
 )
 
+/** A role and its members (`GET /roles/{slug}`): a +role link's card (TV-22). */
+@Serializable
+data class RoleCard(
+    val id: String? = null,
+    val name: String,
+    val slug: String? = null,
+    val colour: String? = null,
+    val members: List<Person> = emptyList(),
+    @SerialName("members_count") val membersCount: Int = 0,
+)
+
 /** The signed-in member (`GET /me`): their card, email and rights. */
 @Serializable
 data class Me(

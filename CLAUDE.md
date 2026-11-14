@@ -272,6 +272,11 @@ Docker image) are added with them.
   each once per page when half of it, or a third of the screen, is shown; the tags naming
   the member pulse. Roles are matched by slug: idejo gives `GET /me`'s roles theirs
   (IX-12, callisto-rpg/Idejo#368).
+- 2026-11-14 — Inline links' cards (TV-22) as the web's, from API calls the app already
+  has (`GET /roles/{slug}`, a topic's `first_message_id`). In M1 a role's card has no
+  **Open** (no role page in the app; its members open their user cards), a category's no
+  **New topic** (M2). Another forum (`&forum` links, TV-26's `forum` blocks) shows as idejo
+  ID mode will, with **Join** and **Open** disabled until M4.
 
 ## Milestones (spec §26)
 
@@ -288,7 +293,7 @@ Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, 
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card; topic: the page, its window, live
 changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
-mention glows). The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline
-links), #359 (the home page's Expanded view), #360 (Getting started), #361 (Help's
-commands), #362 (the window's counts), #363 (tags' categories), #364 (banners) and #368
-(roles' slugs) (Steward decisions, 2026-11-14).
+mention glows, inline cards). The app needs idejo with callisto-rpg/Idejo#357 (the
+socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting
+started), #361 (Help's commands), #362 (the window's counts), #363 (tags' categories),
+#364 (banners) and #368 (roles' slugs) (Steward decisions, 2026-11-14).

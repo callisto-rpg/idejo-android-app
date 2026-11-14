@@ -18,6 +18,7 @@ import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.Tag
@@ -145,6 +146,11 @@ internal interface IdejoService {
     suspend fun user(
         @Path("id") id: String,
     ): UserCard
+
+    @GET("roles/{id}")
+    suspend fun role(
+        @Path("id") slug: String,
+    ): RoleCard
 
     @PUT("users/{id}/ignore")
     suspend fun ignore(

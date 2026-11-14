@@ -51,6 +51,8 @@ data class Topic(
     val inactive: Boolean = false,
     @SerialName("followed_by_everyone") val followedByEveryone: Boolean = false,
     @SerialName("continues_from") val continuesFrom: MessageRef? = null,
+    /** The opening message, for its first words (TV-22's topic card). */
+    @SerialName("first_message_id") val firstMessageId: String? = null,
     /** With `expanded=true` (BR-03). */
     val preview: TopicPreview? = null,
 )
