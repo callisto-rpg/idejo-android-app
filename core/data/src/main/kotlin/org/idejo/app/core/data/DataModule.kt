@@ -64,6 +64,19 @@ object DataModule {
 
     @Provides
     @Singleton
+    fun signIn(
+        sessions: SessionManager,
+        http: OkHttpClient,
+    ): SignInCoordinator = SignInCoordinator(sessions, http)
+
+    @Provides
+    @Singleton
+    fun discovery(http: OkHttpClient): org.idejo.app.core.api.DiscoveryClient =
+        org.idejo.app.core.api
+            .DiscoveryClient(http)
+
+    @Provides
+    @Singleton
     fun foreground(
         sessions: SessionManager,
         @AppScope scope: CoroutineScope,

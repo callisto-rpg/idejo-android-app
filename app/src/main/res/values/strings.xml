@@ -5,4 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 <resources>
     <string name="app_name" translatable="false">idejo</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_out">Sign out</string>
+    <string name="remove_forum">Remove this forum</string>
 </resources>

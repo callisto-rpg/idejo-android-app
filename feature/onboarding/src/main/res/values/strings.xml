@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- MD-01 -->
+    <string name="welcome_title">Welcome to idejo</string>
+    <string name="welcome_text">Forums where every topic is a live conversation.</string>
+    <string name="welcome_enter_address">Enter a forum address</string>
+    <string name="welcome_enter_address_line">Your forum\'s administrators can tell you its address.</string>
+
+    <!-- SI-01, SI-02 -->
+    <string name="add_title">Add a forum</string>
+    <string name="add_address_label">Forum address</string>
+    <string name="add_address_hint">forum.example.org</string>
+    <string name="add_continue">Continue</string>
+    <string name="add_back">Back</string>
+    <string name="add_looking">Looking for the forum…</string>
+    <string name="add_sign_in">Sign in</string>
+    <string name="add_visitor">Read as a visitor</string>
+    <string name="add_visitor_line">Only public categories, without writing.</string>
+    <string name="add_other">Another address</string>
+    <string name="error_empty">Enter the forum\'s address.</string>
+    <string name="error_not_https">The app only connects to forums over https.</string>
+    <string name="error_malformed">This is not a web address.</string>
+    <string name="error_not_idejo">This is not an idejo forum, or its version is too old for the app.</string>
+    <string name="error_app_off">The administrators of %1$s have turned off the app.</string>
+    <string name="error_newer_app">This forum needs a newer version of the app.</string>
+    <string name="error_unreachable">The forum did not answer. Check the address and your connection, then try again.</string>
+
+    <!-- SI-03, SI-04 -->
+    <string name="sign_in_waiting">Signing in to %1$s in your browser…</string>
+    <string name="sign_in_exchanging">Signing in to %1$s…</string>
+    <string name="sign_in_no_sign_in">%1$s does not offer signing in to the app.</string>
+    <string name="sign_in_refused">%1$s did not sign you in. Try again.</string>
+    <string name="sign_in_unreachable">%1$s did not answer. Try again.</string>
+    <string name="sign_in_expired">Signing in took too long. Try again.</string>
+    <string name="sign_in_no_browser">Signing in needs a web browser on this device.</string>
+    <string name="sign_in_ok">OK</string>
+
+    <!-- SI-09, SI-10, SI-11 -->
+    <string name="signed_out_title">You were signed out of %1$s</string>
+    <string name="signed_out_text">Pages already open stay readable.</string>
+    <string name="sign_in_again">Sign in again</string>
+    <string name="barred_until">Until %1$s.</string>
+</resources>

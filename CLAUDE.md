@@ -253,5 +253,5 @@ Docker image) are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M1 — Read a forum** (in progress: core/data). The app's socket needs
+Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding). The app's socket needs
 idejo with callisto-rpg/Idejo#357 (Steward decisions, 2026-11-14).
