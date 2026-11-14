@@ -34,6 +34,7 @@ import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageRef
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
@@ -210,6 +211,28 @@ class FakeIdejo(
         val index = record.messages.indexOfFirst { it.id == messageId }
         record.messages[index] = record.messages[index].copy(poll = poll)
     }
+
+    /** Topic [topicId] was started from message [messageId] (idejo TP-09). */
+    fun continueFrom(
+        topicId: String,
+        messageId: String,
+    ) = synchronized(lock) {
+        val record = requireNotNull(topics[topicId])
+        record.topic = record.topic.copy(continuesFrom = MessageRef(messageId))
+    }
+
+    /** Message [messageId] deleted by a moderator: it keeps its place, without its text. */
+    fun deleteByModerator(messageId: String) =
+        synchronized(lock) {
+            val record = topics.values.first { r -> r.messages.any { it.id == messageId } }
+            val index = record.messages.indexOfFirst { it.id == messageId }
+            record.messages[index] =
+                record.messages[index].copy(
+                    state = MessageState.Deleted,
+                    deletedBy = "moderator",
+                    bodyMd = null,
+                )
+        }
 
     /** What [person] chose in poll [pollId]. */
     fun votesOf(

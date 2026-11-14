@@ -159,7 +159,7 @@ private fun ForwardedBody(
 
 /** The web's quote box: a line at its start, the text beside it. */
 @Composable
-private fun QuoteBox(
+internal fun QuoteBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) = Row(modifier.fillMaxWidth().height(IntrinsicSize.Min)) {

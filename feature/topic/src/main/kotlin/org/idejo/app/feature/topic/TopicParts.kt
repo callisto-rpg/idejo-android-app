@@ -44,17 +44,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.data.ContinuedFrom
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 
-/** Title, tags, state and **Follow** / **Unfollow** (TV-10). */
+/**
+ * Title, tags, state and **Follow** / **Unfollow** (TV-10); then where the topic continues
+ * from, when it was started from a message (idejo TP-09).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun Header(
     topic: Topic,
     actions: TopicActions,
+    continuedFrom: ContinuedFrom? = null,
 ) = Column(
     Modifier.fillMaxWidth().padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -95,6 +100,7 @@ internal fun Header(
             ) { Text(stringResource(R.string.topic_follow)) }
         }
     }
+    continuedFrom?.let { ContinuedFromQuote(it, actions.onMessage) }
 }
 
 @Composable
