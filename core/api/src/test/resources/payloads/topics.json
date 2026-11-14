@@ -1,0 +1,86 @@
+{
+  "data": [
+    {
+      "id": "t_1",
+      "uri": "https://garden.example.org/t/t_1",
+      "title": "Tomato plans for spring",
+      "slug": "tomato-plans-for-spring",
+      "url": "https://garden.example.org/t/t_1/tomato-plans-for-spring",
+      "category_id": "c_veg",
+      "private": false,
+      "tags": [
+        {
+          "id": "g_1",
+          "name": "Seeds",
+          "slug": "seeds"
+        }
+      ],
+      "author": {
+        "id": "u_ada",
+        "uri": "https://garden.example.org/u/ada",
+        "username": "ada",
+        "display_name": "Ada Lovelace",
+        "user_tag": "ada",
+        "avatar_url": "https://garden.example.org/uploads/a.png",
+        "avatar_dark_url": null,
+        "role": {
+          "name": "Moderator",
+          "colour": "#6a3e8e"
+        },
+        "colour": "#6a3e8e",
+        "deleted": false,
+        "system": false,
+        "ignored_by_me": false
+      },
+      "topical": false,
+      "icon": null,
+      "created_at": "2026-03-01T08:00:00Z",
+      "last_activity_at": "2026-11-13T09:43:00Z",
+      "messages_count": 24,
+      "unread_count": 3,
+      "mention_state": "a_state_from_a_later_version",
+      "followed": true,
+      "muted": false,
+      "locked": false,
+      "archived": false,
+      "pinned": false,
+      "inactive": false,
+      "followed_by_everyone": false,
+      "continues_from": null,
+      "preview": {
+        "first_excerpt": "Planning this year's beds.",
+        "images": [],
+        "images_count": 0,
+        "latest": [
+          {
+            "message_id": "m_1",
+            "author_name": "Ada Lovelace",
+            "excerpt": "Sungold every year."
+          }
+        ],
+        "writers": [
+          {
+            "id": "u_ada",
+            "uri": "https://garden.example.org/u/ada",
+            "username": "ada",
+            "display_name": "Ada Lovelace",
+            "user_tag": "ada",
+            "avatar_url": "https://garden.example.org/uploads/a.png",
+            "avatar_dark_url": null,
+            "role": {
+              "name": "Moderator",
+              "colour": "#6a3e8e"
+            },
+            "colour": "#6a3e8e",
+            "deleted": false,
+            "system": false,
+            "ignored_by_me": false
+          }
+        ],
+        "writers_count": 6
+      }
+    }
+  ],
+  "next_cursor": "c_next_signed",
+  "prev_cursor": null
+}

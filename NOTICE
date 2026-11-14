@@ -1,0 +1,21 @@
+idejo for Android
+Copyright 2026 Mariano Pictet and contributors
+
+Licensed under the Apache License, Version 2.0 (LICENSE).
+
+This product includes:
+
+- The Gradle wrapper (gradlew, gradlew.bat, gradle/wrapper/), copyright 2015 the
+  original authors, Apache-2.0.
+- The idejo logo (the launcher icon in app/src/main/res/drawable/ic_launcher_*.xml),
+  copyright Mariano Pictet, CC-BY-4.0 (LICENSES/CC-BY-4.0.txt). "idejo" and its logo are
+  used under idejo's trademark policy.
+- Fraunces 1.000 (core/designsystem/src/main/res/font/fraunces.ttf), copyright 2020 The
+  Fraunces Project Authors (github.com/undercasetype/Fraunces), designed by Phaedra
+  Charles and Flavia Zimbardi, SIL Open Font License 1.1 (LICENSES/OFL-1.1.txt).
+- Rubik 2.300 (core/designsystem/src/main/res/font/rubik.ttf), copyright 2015 The Rubik
+  Project Authors (https://github.com/googlefonts/rubik), SIL Open Font License 1.1.
+- Material Symbols icons (core/designsystem/src/main/res/drawable/ic_*.xml), copyright
+  Google LLC, Apache-2.0 (github.com/google/material-design-icons).
+
+The licence of every file is given by its SPDX header or by REUSE.toml.

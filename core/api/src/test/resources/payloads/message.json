@@ -1,0 +1,115 @@
+{
+  "id": "m_1",
+  "uri": "https://garden.example.org/m/m_1",
+  "topic_id": "t_1",
+  "url": "https://garden.example.org/m/m_1",
+  "author": {
+    "id": "u_ada",
+    "uri": "https://garden.example.org/u/ada",
+    "username": "ada",
+    "display_name": "Ada Lovelace",
+    "user_tag": "ada",
+    "avatar_url": "https://garden.example.org/uploads/a.png",
+    "avatar_dark_url": null,
+    "role": {
+      "name": "Moderator",
+      "colour": "#6a3e8e"
+    },
+    "colour": "#6a3e8e",
+    "deleted": false,
+    "system": false,
+    "ignored_by_me": false
+  },
+  "state": "closed",
+  "deleted_by": null,
+  "spoiler": null,
+  "reactions": [
+    {
+      "emoji": ":agree:",
+      "name": "agree",
+      "char": null,
+      "image_url": "https://garden.example.org/emoji/agree.png",
+      "count": 2,
+      "mine": true
+    }
+  ],
+  "edited": true,
+  "moderator_edited": false,
+  "pinned_at": "2026-11-13T09:41:00Z",
+  "versions_count": null,
+  "scheduled": false,
+  "held": true,
+  "anonymous": false,
+  "continues_topic_id": null,
+  "continued_in": [],
+  "cursor": 4182,
+  "opened_at": "2026-11-13T09:40:12.123456Z",
+  "closed_at": "2026-11-13T09:41:00Z",
+  "updated_at": "2026-11-13T09:41:00Z",
+  "body_md": "Sungold every year, @rob. ||Pinch the suckers|| early.",
+  "mentions": [
+    {
+      "type": "user",
+      "text": "@rob",
+      "id": "u_rob",
+      "slug": null,
+      "name": "Rob Bauer"
+    }
+  ],
+  "images": [
+    {
+      "upload_id": "up_1",
+      "url": "https://garden.example.org/uploads/tomato.jpg",
+      "alt": "Tomatoes",
+      "width": 1200,
+      "height": 800
+    }
+  ],
+  "inline_spoilers": true,
+  "replies_to": [
+    {
+      "message_id": "m_0",
+      "author_name": "Leo Moreau",
+      "excerpt": "Which tomatoes this year?",
+      "inline": false
+    }
+  ],
+  "forwarded_from": null,
+  "poll": {
+    "id": "p_1",
+    "question": "Stake or cage?",
+    "multiple": false,
+    "hidden_until_closed": true,
+    "closes_at": null,
+    "closed": false,
+    "results_shown": false,
+    "total": null,
+    "my_votes": [],
+    "options": [
+      {
+        "id": "o_1",
+        "text": "Stake",
+        "emoji": null,
+        "colour": null,
+        "count": null
+      },
+      {
+        "id": "o_2",
+        "text": "Cage",
+        "emoji": null,
+        "colour": null,
+        "count": null
+      }
+    ]
+  },
+  "plugins": [
+    {
+      "command": "youtube",
+      "block": true,
+      "params": {
+        "id": "abc"
+      }
+    }
+  ],
+  "a_field_from_a_later_version": true
+}

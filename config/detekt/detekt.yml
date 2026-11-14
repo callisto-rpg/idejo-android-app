@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Only what differs from detekt's defaults (run with --build-upon-default-config).
+
+config:
+  validation: true
+
+naming:
+  FunctionNaming:
+    # Composables are PascalCase; tests are named after requirement IDs in backticks
+    # (CLAUDE.md → Conventions).
+    ignoreAnnotated: ['Composable']
+    excludes: ['**/test/**', '**/androidTest/**', '**/testFixtures/**']
+  MatchingDeclarationName:
+    active: false
+
+style:
+  MaxLineLength:
+    maxLineLength: 100
+    # Test payloads are JSON written out; ktlint keeps the code at 100.
+    excludes: ['**/test/**']
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    # Colour values belong in the design system's theme (CLAUDE.md → Conventions); previews
+    # and samples are made of examples.
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/*.gradle.kts'
+      - '**/core/designsystem/src/main/kotlin/**/theme/**'
+      - '**/Samples.kt'
+  # Parsers read best as a run of early returns, one per refusal.
+  ReturnCount:
+    active: false
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview', 'PreviewLightDark']
+
+complexity:
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    # One test per requirement ID; samples are a gallery; the API client has one function
+    # per endpoint.
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/Samples.kt'
+      - '**/core/api/**/ForumApi.kt'
+      - '**/core/api/**/IdejoService.kt'
