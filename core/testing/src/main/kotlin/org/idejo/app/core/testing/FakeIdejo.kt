@@ -38,6 +38,7 @@ import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
@@ -47,6 +48,7 @@ import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicPreview
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UnreadCounter
+import org.idejo.app.core.model.UnreadMark
 import org.idejo.app.core.model.UserCard
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -277,6 +279,9 @@ class FakeIdejo(
     fun joined(channel: String): Boolean =
         synchronized(lock) { sockets.any { it.isJoined(channel) } }
 
+    /** Every socket of the app cut, as a network change would: the app connects again. */
+    fun dropSockets() = synchronized(lock) { sockets.toList() }.forEach { it.close() }
+
     /** A topic's messages as the server has them. */
     fun messages(topicId: String): List<Message> =
         synchronized(lock) { topics.getValue(topicId).messages.toList() }
@@ -437,7 +442,16 @@ class FakeIdejo(
                     reader.unread[id] = reader.unread[id] ?: Unseen(1, MentionState.New)
                 }
             },
-            Route("GET", "topics/{id}/messages") { call -> window(call["id"]) },
+            Route("GET", "topics/{id}/messages") { call ->
+                window(call["id"], call.viewer, call.request)
+            },
+            Route("PUT", "topics/{id}/read") { call ->
+                val upTo =
+                    IdejoJson
+                        .decodeFromString<ReadPosition>(call.request.body?.utf8() ?: "{}")
+                        .messageId
+                reading(call) { reader, id -> readTo(reader, id, upTo) }
+            },
             Route("GET", "topics/{id}/changes") { call -> changes(call["id"], call.request) },
             Route("GET", "topics/{id}/pins") { call -> pins(call["id"]) },
             Route(
@@ -880,16 +894,98 @@ class FakeIdejo(
     private val RecordedRequest.expanded: Boolean
         get() = url.queryParameter("expanded") == "true"
 
-    private fun window(topicId: String): MockResponse {
+    /**
+     * `GET /topics/{id}/messages` as idejo answers it: the end, `around` a message, the first
+     * unread (`first_unread=true`), or a page from a cursor (`before:<id>`, `after:<id>`;
+     * idejo's are opaque and signed), with `earlier` and `later` counted (IX-09).
+     */
+    private fun window(
+        topicId: String,
+        viewer: Person?,
+        request: RecordedRequest,
+    ): MockResponse {
         val record = topics[topicId] ?: return notFound()
+        val all = record.messages.toList()
+        val query = request.url
+        val limit = query.queryParameter("limit")?.toIntOrNull()?.coerceIn(1, MAX_PAGE)
+        val unseen = viewer?.let { reader(it).unread[topicId] }
+        val firstUnread =
+            unseen?.let { all.getOrNull((all.size - it.count).coerceAtLeast(0)) }
+        val cursor = query.queryParameter("cursor")
+        val around =
+            query.queryParameter("around")
+                ?: firstUnread?.id?.takeIf { query.queryParameter("first_unread") == "true" }
+        val range: IntRange =
+            when {
+                cursor != null -> {
+                    val (side, id) = cursor.split(":", limit = 2)
+                    val at = all.indexOfFirst { it.id == id }
+                    if (at < 0) return error(HTTP_BAD_REQUEST, "bad_cursor", "Bad cursor.")
+                    val n = limit ?: DEFAULT_PAGE
+                    if (side ==
+                        "before"
+                    ) {
+                        (at - n).coerceAtLeast(0) until at
+                    } else {
+                        at + 1..minOf(at + n, all.lastIndex)
+                    }
+                }
+
+                around != null -> {
+                    val at = all.indexOfFirst { it.id == around }
+                    if (at < 0) return notFound()
+                    (at - WINDOW_BEFORE).coerceAtLeast(0)..minOf(at + WINDOW_AFTER, all.lastIndex)
+                }
+
+                else -> {
+                    (all.size - (limit ?: DEFAULT_PAGE)).coerceAtLeast(0)..all.lastIndex
+                }
+            }
+        val data = all.slice(range)
+        val first = all.firstOrNull()
+        val earlier = if (data.isEmpty()) 0 else (range.first - 1).coerceAtLeast(0)
         return ok(
             MessageWindow(
-                data = record.messages.toList(),
-                firstMessage = record.messages.firstOrNull(),
+                data = data,
+                firstMessage = first,
+                firstUnread = firstUnread?.let { UnreadMark(it.id, unseen.count) },
+                nextCursor =
+                    data
+                        .lastOrNull()
+                        ?.takeIf {
+                            it != all.last()
+                        }?.let { "after:${it.id}" },
+                prevCursor =
+                    data
+                        .firstOrNull()
+                        ?.takeIf {
+                            it != first
+                        }?.let { "before:${it.id}" },
                 cursor = record.changeSeq,
-                total = record.messages.size,
+                total = all.size,
+                earlier = earlier,
+                later = if (data.isEmpty()) 0 else all.lastIndex - range.last,
             ),
         )
+    }
+
+    /** `PUT /topics/{id}/read`: read up to [messageId], or the whole topic. */
+    private fun readTo(
+        reader: Reader,
+        topicId: String,
+        messageId: String?,
+    ) {
+        val unseen = reader.unread[topicId] ?: return
+        val all = topics.getValue(topicId).messages
+        val at = messageId?.let { id -> all.indexOfFirst { it.id == id } } ?: all.lastIndex
+        val left = minOf(unseen.count, all.lastIndex - at)
+        if (left <=
+            0
+        ) {
+            reader.unread.remove(topicId)
+        } else {
+            reader.unread[topicId] = unseen.copy(count = left)
+        }
     }
 
     private fun changes(
@@ -1222,6 +1318,10 @@ class FakeIdejo(
         val CODE_LIFETIME: Duration = Duration.ofSeconds(60)
         const val DEFAULT_PAGE = 50
         const val MAX_PAGE = 100
+
+        /** idejo's Normal sizes: messages before and after the landing one. */
+        const val WINDOW_BEFORE = 10
+        const val WINDOW_AFTER = 30
         const val PREVIEW_LATEST = 3
         const val ID_BYTES = 8
         const val HTTP_OK = 200

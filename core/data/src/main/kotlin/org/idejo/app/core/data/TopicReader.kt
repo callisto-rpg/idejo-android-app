@@ -1,0 +1,416 @@
+// SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package org.idejo.app.core.data
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.api.ApiResult
+import org.idejo.app.core.model.ApiError
+import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageWindow
+import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.UnreadMark
+import org.idejo.app.core.realtime.IdejoEvent
+import org.idejo.app.core.realtime.TopicStream
+
+/** A topic page's messages (TV-01 to TV-06). */
+data class TopicState(
+    val topic: Topic? = null,
+    /** The opening message, on top, when [messages] does not start with it (TV-01). */
+    val opening: Message? = null,
+    /** The window, in order. */
+    val messages: List<Message> = emptyList(),
+    /** Messages before and after the window, the opening one left out (IX-09). */
+    val earlier: Int = 0,
+    val later: Int = 0,
+    /** Where the member left off: the red **N unread messages** line (TV-01). */
+    val unread: UnreadMark? = null,
+    /** New messages that came while the window does not reach the end (TV-05). */
+    val newBelow: Int = 0,
+    /** The message the window was loaded around, to scroll to. */
+    val landing: String? = null,
+    val loading: Boolean = true,
+    val loadingEarlier: Boolean = false,
+    val loadingLater: Boolean = false,
+    /** Why the last read failed; what was shown stays. */
+    val problem: ApiProblem? = null,
+    /** The member may no longer view the topic (`forbidden` on its channel). */
+    val gone: Boolean = false,
+) {
+    /** The window reaches the topic's last message. */
+    val atEnd: Boolean get() = later == 0
+}
+
+/**
+ * Reads topic [topicId] of [session]'s forum: the window (landing on [landing], else the first
+ * unread, else the end), more of it both ways, and its channel while [start]ed, catching up
+ * after a reconnect (TV-03, TV-04, TV-12). [seen] moves the read position (TV-06).
+ */
+class TopicReader(
+    private val session: ForumSession,
+    private val topicId: String,
+    private val scope: CoroutineScope,
+    private val landing: String? = null,
+) {
+    private val mutableState = MutableStateFlow(TopicState())
+    val state: StateFlow<TopicState> = mutableState.asStateFlow()
+
+    // Loads and live changes take turns, so a change never lands on a window being replaced.
+    private val turns = Mutex()
+    private var before: String? = null
+    private var after: String? = null
+    private var stream: TopicStream? = null
+    private var listening: Job? = null
+    private var reading: Job? = null
+    private var readUpTo: Int = -1
+
+    /** Loads the window and joins the topic's channel; [stop] leaves it. */
+    fun start() {
+        load(landing)
+        if (stream != null) return
+        val topic = session.events.topic(topicId)
+        stream = topic
+        listening = scope.launch { topic.events.collect { turns.withLock { live(it, topic) } } }
+        topic.join()
+    }
+
+    /** Leaves the channel: the member gets pushes for the topic again (TV-12). */
+    fun stop() {
+        listening?.cancel()
+        listening = null
+        stream?.leave()
+        stream = null
+    }
+
+    /** Loads the window around [messageId], or where the member left off. */
+    fun load(messageId: String? = landing) {
+        mutableState.update { it.copy(loading = true, problem = null) }
+        scope.launch { turns.withLock { loadNow(messageId) } }
+    }
+
+    /** The window at the topic's end: **Jump to the end to write**, **N new messages**. */
+    fun end() {
+        mutableState.update { it.copy(loading = true, problem = null) }
+        scope.launch { turns.withLock { loadNow(null, end = true) } }
+    }
+
+    /** The messages before the window (TV-05). */
+    fun earlier() {
+        val cursor = before ?: return
+        if (state.value.loadingEarlier) return
+        mutableState.update { it.copy(loadingEarlier = true, problem = null) }
+        scope.launch {
+            turns.withLock {
+                when (val result = session.call { messages(topicId, cursor = cursor) }) {
+                    is ApiResult.Success -> {
+                        val window = result.value
+                        before = window.prevCursor
+                        mutableState.update { state ->
+                            val known = state.messages.map { it.id }.toSet()
+                            val more = window.data.filter { it.id !in known }
+                            state.copy(
+                                messages = more + state.messages,
+                                earlier =
+                                    window.earlier ?: (state.earlier - more.size).coerceAtLeast(0),
+                                opening = openingOf(window, more + state.messages),
+                                loadingEarlier = false,
+                            )
+                        }
+                    }
+
+                    is ApiResult.Failure -> {
+                        mutableState.update {
+                            it.copy(loadingEarlier = false, problem = result.problem)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** The messages after the window (TV-05). */
+    fun later() {
+        val cursor = after ?: return
+        if (state.value.loadingLater) return
+        mutableState.update { it.copy(loadingLater = true, problem = null) }
+        scope.launch {
+            turns.withLock {
+                when (val result = session.call { messages(topicId, cursor = cursor) }) {
+                    is ApiResult.Success -> {
+                        val window = result.value
+                        after = window.nextCursor
+                        mutableState.update { state ->
+                            val known = state.messages.map { it.id }.toSet()
+                            val more = window.data.filter { it.id !in known }
+                            val later = window.later ?: (state.later - more.size).coerceAtLeast(0)
+                            state.copy(
+                                messages = state.messages + more,
+                                later = if (after == null) 0 else later,
+                                newBelow = if (after == null) 0 else state.newBelow,
+                                loadingLater = false,
+                            )
+                        }
+                    }
+
+                    is ApiResult.Failure -> {
+                        mutableState.update {
+                            it.copy(loadingLater = false, problem = result.problem)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * The member saw [messageId] on screen: the read position moves there, once the scrolling
+     * settles, and never back (TV-06).
+     */
+    fun seen(messageId: String) {
+        val index = state.value.messages.indexOfFirst { it.id == messageId }
+        if (index <= readUpTo) return
+        readUpTo = index
+        reading?.cancel()
+        reading =
+            scope.launch {
+                delay(READ_SETTLE_MS)
+                session.call { read(topicId, messageId) }.let { result ->
+                    if (result is ApiResult.Success) viewed(result.value)
+                }
+            }
+    }
+
+    /** The unread line has faded (TV-01). */
+    fun unreadShown() = mutableState.update { it.copy(unread = null) }
+
+    /** **Follow** / **Unfollow** (TV-10). */
+    fun follow(followed: Boolean) {
+        scope.launch {
+            when (val result = session.call { follow(topicId, followed) }) {
+                is ApiResult.Success -> viewed(result.value)
+                is ApiResult.Failure -> mutableState.update { it.copy(problem = result.problem) }
+            }
+        }
+    }
+
+    private suspend fun loadNow(
+        messageId: String?,
+        end: Boolean = false,
+    ) {
+        val topic = session.call { topic(topicId) }
+        val window =
+            session.call {
+                when {
+                    end -> messages(topicId)
+                    messageId != null -> messages(topicId, around = messageId)
+                    else -> messages(topicId, firstUnread = true)
+                }
+            }
+        if (topic is ApiResult.Failure) return failed(topic.problem)
+        if (window is ApiResult.Failure) return failed(window.problem)
+        val loaded = (window as ApiResult.Success).value
+        before = loaded.prevCursor
+        after = loaded.nextCursor
+        readUpTo = -1
+        stream?.caughtUp(loaded.cursor)
+        val unread = loaded.firstUnread?.takeIf { !end && messageId == null }
+        mutableState.value =
+            TopicState(
+                topic = (topic as ApiResult.Success).value,
+                opening = openingOf(loaded, loaded.data),
+                messages = loaded.data,
+                earlier = loaded.earlier ?: if (before == null) 0 else loaded.total,
+                later = loaded.later ?: if (after == null) 0 else loaded.total,
+                unread = unread,
+                landing = messageId ?: unread?.messageId,
+                loading = false,
+            )
+    }
+
+    private fun failed(problem: ApiProblem) {
+        val gone = (problem as? ApiProblem.Server)?.error?.code == ApiError.NOT_FOUND
+        mutableState.update { it.copy(loading = false, problem = problem, gone = gone) }
+    }
+
+    private suspend fun live(
+        event: IdejoEvent,
+        topic: TopicStream,
+    ) {
+        when (event) {
+            is IdejoEvent.MessageChanged -> {
+                changed(event.message)
+            }
+
+            is IdejoEvent.ReactionsChanged -> {
+                edit(event.messageId) { it.copy(reactions = event.reactions) }
+            }
+
+            is IdejoEvent.PollUpdated -> {
+                edit(event.messageId) { it.copy(poll = event.poll) }
+            }
+
+            is IdejoEvent.TopicChanged -> {
+                keepViewerFields(event.topic)
+            }
+
+            is IdejoEvent.MessagesMoved -> {
+                loadNow(
+                    state.value.messages
+                        .firstOrNull()
+                        ?.id,
+                )
+            }
+
+            is IdejoEvent.Forbidden -> {
+                mutableState.update { it.copy(gone = true) }
+                stop()
+            }
+
+            is IdejoEvent.CatchUp -> {
+                catchUp(event.since, topic)
+            }
+
+            else -> {}
+        }
+    }
+
+    /** `GET /changes?since=` until `more` is false; an expired cursor loads again (TV-04). */
+    private suspend fun catchUp(
+        since: Long?,
+        topic: TopicStream,
+    ) {
+        var cursor =
+            since ?: return loadNow(
+                state.value.messages
+                    .firstOrNull()
+                    ?.id,
+            )
+        while (true) {
+            when (val result = session.call { changes(topicId, cursor) }) {
+                is ApiResult.Success -> {
+                    result.value.data.forEach(::changed)
+                    result.value.topic?.let(::keepViewerFields)
+                    cursor = result.value.cursor
+                    topic.caughtUp(cursor)
+                    if (!result.value.more) return
+                }
+
+                is ApiResult.Failure -> {
+                    val expired =
+                        (result.problem as? ApiProblem.Server)?.error?.code ==
+                            ApiError.CURSOR_EXPIRED
+                    if (expired) {
+                        loadNow(
+                            state.value.messages
+                                .firstOrNull()
+                                ?.id,
+                        )
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    /** A message changed in place, or a new one: at the end, or counted below (TV-03, TV-05). */
+    private fun changed(message: Message) {
+        mutableState.update { state ->
+            when {
+                state.opening?.id == message.id -> {
+                    state.copy(opening = message)
+                }
+
+                state.messages.any { it.id == message.id } -> {
+                    state.copy(
+                        messages =
+                            state.messages.map {
+                                if (it.id ==
+                                    message.id
+                                ) {
+                                    message
+                                } else {
+                                    it
+                                }
+                            },
+                    )
+                }
+
+                state.loading -> {
+                    state
+                }
+
+                // Only a message the window does not hold yet; one before it is not shown.
+                isNew(state, message) && state.atEnd && after == null -> {
+                    state.copy(messages = state.messages + message)
+                }
+
+                isNew(state, message) -> {
+                    state.copy(later = state.later + 1, newBelow = state.newBelow + 1)
+                }
+
+                else -> {
+                    state
+                }
+            }
+        }
+    }
+
+    private fun isNew(
+        state: TopicState,
+        message: Message,
+    ): Boolean {
+        val last = state.messages.lastOrNull() ?: return true
+        val at = message.openedAt ?: return false
+        return last.openedAt?.let { at >= it } ?: true
+    }
+
+    private fun edit(
+        id: String,
+        change: (Message) -> Message,
+    ) = mutableState.update { state ->
+        state.copy(
+            opening = state.opening?.let { if (it.id == id) change(it) else it },
+            messages = state.messages.map { if (it.id == id) change(it) else it },
+        )
+    }
+
+    /** The topic as the server answered the member: their own follow and read state. */
+    private fun viewed(topic: Topic) = mutableState.update { it.copy(topic = topic) }
+
+    /** A topic from an event: what the member follows or has read stays as the page had it. */
+    private fun keepViewerFields(topic: Topic) =
+        mutableState.update { state ->
+            val old = state.topic
+            state.copy(
+                topic =
+                    old?.let {
+                        topic.copy(
+                            followed = it.followed,
+                            muted = it.muted,
+                            unreadCount = it.unreadCount,
+                            mentionState = it.mentionState,
+                        )
+                    } ?: topic,
+            )
+        }
+
+    private fun openingOf(
+        window: MessageWindow,
+        messages: List<Message>,
+    ): Message? = window.firstMessage?.takeIf { first -> messages.firstOrNull()?.id != first.id }
+
+    private companion object {
+        /** The read position moves once scrolling has stopped this long (TV-06). */
+        const val READ_SETTLE_MS = 1_000L
+    }
+}

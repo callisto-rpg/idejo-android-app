@@ -167,6 +167,10 @@ data class MessageWindow(
     @SerialName("prev_cursor") val prevCursor: String? = null,
     val cursor: Long = 0,
     val total: Int = 0,
+    /** Messages before the window, [firstMessage] left out (IX-09); null on older servers. */
+    val earlier: Int? = null,
+    /** Messages after the window (IX-09); null on older servers. */
+    val later: Int? = null,
 )
 
 @Serializable

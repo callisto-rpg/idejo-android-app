@@ -256,6 +256,8 @@ Docker image) are added with them.
   (callisto-rpg/Idejo#358). `core/markdown` draws a mention's `text` wherever its `source`
   stands as a word, ignoring case, outside code and links; on older servers it falls back
   to `text`. The app never reads the signs `@ + # / $ &` itself.
+- 2026-11-14 — Long topics (TV-05) show "N earlier / N later messages" as the web: idejo's
+  message window counts them, `earlier` and `later` (IX-09, callisto-rpg/Idejo#362).
 
 ## Milestones (spec §26)
 
@@ -271,5 +273,5 @@ Docker image) are added with them.
 Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card). The app needs idejo with callisto-rpg/Idejo#357 (the
-socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting started)
-and #361 (Help's commands) (Steward decisions, 2026-11-14).
+socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting started),
+#361 (Help's commands) and #362 (the window's counts) (Steward decisions, 2026-11-14).

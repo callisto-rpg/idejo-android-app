@@ -459,6 +459,7 @@ falls back as stated.
 | IX-06 | Inbox mode serves API v1 for its own pages (`/me/communities`, `/conversations`, settings) — to confirm on idejo 0.3.x | SI-06, IB-06 | — (blocking for M4) |
 | IX-07 | `GET /me` says `intro_due`; `POST /me/intro` (`hide`) closes the getting-started card as the web's `POST /intro` (callisto-rpg/Idejo#360) | BR-11 | No Getting started card |
 | IX-08 | `GET /server` lists `commands` (name, detail, help) as the Help page words them, and each plugin's `help` (callisto-rpg/Idejo#361) | BR-08 | Help without its list of commands |
+| IX-09 | `GET /topics/{id}/messages` counts the messages before and after the window, `earlier` and `later`, the opening message left out (callisto-rpg/Idejo#362) | TV-05 | Earlier and later links without a number |
 
 ## 23. Non-functional requirements
 
