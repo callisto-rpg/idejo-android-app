@@ -5,6 +5,7 @@ package org.idejo.app.feature.topic
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.pluralStringResource
@@ -67,6 +69,16 @@ data class MessageContext(
     val onUser: (String) -> Unit = {},
     /** A link in a body, as written. */
     val onLink: (String) -> Unit = {},
+    /** A quote or forward tapped: the message it shows (TV-02). */
+    val onMessage: (String) -> Unit = {},
+    /** A banner's button: another topic (TP-09, TP-15). */
+    val onTopic: (String) -> Unit = {},
+    /** The member's answers to a poll: message, poll, options (TV-27). */
+    val onVote: (String, String, List<String>) -> Unit = { _, _, _ -> },
+    /** Polls may take votes here (signed in, the topic open). */
+    val mayVote: Boolean = false,
+    /** Polls whose vote is being sent. */
+    val voting: Set<String> = emptySet(),
 )
 
 /**
@@ -96,6 +108,7 @@ fun MessageItem(
             message.author.ignoredByMe -> Ignored(message, context)
             else -> Shown(message, context)
         }
+        Banners(message, context)
     }
 }
 
@@ -107,10 +120,21 @@ private fun Author(
     val author = message.author
     val picture = pictureUrl(author.avatarUrl, author.avatarDarkUrl, IdejoTheme.dark)
     val tap = author.id?.let { id -> Modifier.clickable { context.onUser(id) } } ?: Modifier
+    val android = LocalContext.current
+    val copy = stringResource(R.string.message_copy_link)
+    val permalink =
+        message.url?.let { url ->
+            Modifier.combinedClickable(
+                onLongClickLabel = copy,
+                onLongClick = { android.copyLink(url) },
+                onClick = {},
+            )
+        } ?: Modifier
     MessageHeader(
         displayName = author.displayName,
         time = relativeTime(message.openedAt),
-        modifier = tap,
+        nameModifier = tap,
+        timeModifier = permalink,
         userTag = author.userTag,
         role = author.role?.name,
         roleColor = parseHexColor(author.role?.colour ?: author.colour),
@@ -175,14 +199,12 @@ private fun Shown(
             Modifier.then(if (revealed) Modifier else Modifier.blur(8.dp).clearAndSetSemantics {}),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Body(message, context)
-            if (message.moderatorEdited) {
-                Text(
-                    stringResource(R.string.message_moderator_edited),
-                    style = IdejoTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            message.repliesTo.filterNot { it.inline }.forEach { ReplyQuote(it, context) }
+            message.forwardedFrom?.let { ForwardBox(it, context) }
+            // A poll posted on its own: its question is the message (the web's poll_only).
+            if (message.poll?.question?.trim() != message.bodyMd?.trim()) Body(message, context)
+            message.poll?.let { PollView(message.id, it, context) }
+            MetaLine(message)
             if (message.reactions.isNotEmpty()) Reactions(message.reactions, context)
         }
         if (!revealed) {

@@ -21,6 +21,7 @@ import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
@@ -29,6 +30,7 @@ import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UserCard
+import org.idejo.app.core.model.Vote
 import org.idejo.app.core.model.Warning
 import retrofit2.HttpException
 import retrofit2.Retrofit
@@ -179,6 +181,12 @@ class ForumApi(
         topicId: String,
         messageId: String? = null,
     ): ApiResult<Topic> = call { read(topicId, ReadPosition(messageId)) }
+
+    /** Votes, changes or takes back (no [optionIds]) a vote (TV-27). */
+    suspend fun vote(
+        pollId: String,
+        optionIds: List<String>,
+    ): ApiResult<Poll> = call { vote(pollId, Vote(optionIds)) }
 
     suspend fun follow(
         topicId: String,

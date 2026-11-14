@@ -11,10 +11,16 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.model.Continuation
+import org.idejo.app.core.model.Forwarded
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
+import org.idejo.app.core.model.MovedAway
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.Poll
+import org.idejo.app.core.model.PollOption
 import org.idejo.app.core.model.Reaction
+import org.idejo.app.core.model.ReplyTo
 import org.idejo.app.core.model.Role
 import org.idejo.app.core.model.Spoiler
 import org.idejo.app.core.model.Tag
@@ -64,6 +70,18 @@ class TopicScreenshotTest {
                         newBelow = 2,
                         loading = false,
                     ),
+                ),
+                TopicActions(),
+            )
+        }
+
+    @Test
+    fun `TV-02 TV-27 TP-09 TP-15 replies, forwards, banners and polls`() =
+        snapshots("TopicExtras") {
+            TopicScreen(
+                TopicUi(
+                    TopicState(topic = TOPIC, messages = EXTRAS, loading = false),
+                    signedIn = true,
                 ),
                 TopicActions(),
             )
@@ -128,6 +146,62 @@ class TopicScreenshotTest {
             openedAt = NOW.minusSeconds(minutes * 60),
         )
 
+        val EXTRAS =
+            listOf(
+                message("e1", LEO, "Which twine do you use?", 40).copy(
+                    repliesTo =
+                        listOf(
+                            ReplyTo(
+                                "m1",
+                                "Mina Kader",
+                                "Sungold every year. Pinch the suckers early.",
+                            ),
+                        ),
+                    continuedIn = listOf(Continuation("t_9", "Garden twine")),
+                    movedAfter = listOf(MovedAway("t_8", "Off topic: bees", 3, newTopic = true)),
+                ),
+                message("e2", MINA, "Look at this one.", 30).copy(
+                    forwardedFrom =
+                        Forwarded(
+                            "m9",
+                            visible = true,
+                            authorName = "Ada Lovelace",
+                            bodyMd = "Jute is **soft** on the stems.",
+                            topicId = "t_7",
+                            topicTitle = "Tools we love",
+                        ),
+                    movedAfter = listOf(MovedAway("t_6", "Weather talk", 1)),
+                ),
+                message("e3", LEO, "Which first?", 20).copy(
+                    poll =
+                        Poll(
+                            "p_1",
+                            "Which first?",
+                            closesAt = NOW.plusSeconds(3_600),
+                            resultsShown = true,
+                            total = 5,
+                            myVotes = listOf("o_1"),
+                            options =
+                                listOf(
+                                    PollOption("o_1", "Sungold", colour = "#c9a227", count = 3),
+                                    PollOption("o_2", "Brandywine", count = 2),
+                                    PollOption("o_3", "Cherokee", count = 0),
+                                ),
+                        ),
+                    scheduled = true,
+                ),
+                message("e4", MINA, "Pick any.", 10).copy(
+                    poll =
+                        Poll(
+                            "p_2",
+                            "Which beds this year?",
+                            multiple = true,
+                            hiddenUntilClosed = true,
+                            closesAt = NOW.plusSeconds(7_200),
+                            options = (1..6).map { PollOption("b_$it", "Bed number $it") },
+                        ),
+                ),
+            )
         val OPENING =
             message(
                 "m0",

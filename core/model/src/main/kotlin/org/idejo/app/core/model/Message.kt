@@ -46,6 +46,8 @@ data class Message(
     val anonymous: Boolean = false,
     @SerialName("continues_topic_id") val continuesTopicId: String? = null,
     @SerialName("continued_in") val continuedIn: List<Continuation> = emptyList(),
+    /** Messages moved away from below this one (TP-15, IX-11; idejo 0.3.13). */
+    @SerialName("moved_after") val movedAfter: List<MovedAway> = emptyList(),
     /** The change cursor (catch-up, API guide §7). */
     val cursor: Long = 0,
     @SerialName("opened_at") val openedAt: Time? = null,
@@ -70,6 +72,15 @@ data class Spoiler(
 data class Continuation(
     @SerialName("topic_id") val topicId: String,
     val title: String,
+)
+
+/** [count] messages a moderator moved to topic [topicId], a new one when [newTopic]. */
+@Serializable
+data class MovedAway(
+    @SerialName("topic_id") val topicId: String,
+    val title: String,
+    val count: Int = 0,
+    @SerialName("new_topic") val newTopic: Boolean = false,
 )
 
 /**

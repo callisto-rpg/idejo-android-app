@@ -131,6 +131,7 @@ private fun NavGraphBuilder.topicPage(
             onUser = { navigation.navigate(UserCardDialog(it)) },
             onTag = { navigation.go(Place.Tags(it)) },
             onLink = link,
+            onTopic = { id, messageId -> navigation.go(Place.Topic(id, messageId)) },
         )
     }
 }

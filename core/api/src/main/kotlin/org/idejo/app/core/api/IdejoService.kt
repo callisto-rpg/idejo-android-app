@@ -16,6 +16,7 @@ import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
@@ -24,6 +25,7 @@ import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UserCard
+import org.idejo.app.core.model.Vote
 import org.idejo.app.core.model.Warning
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -188,6 +190,12 @@ internal interface IdejoService {
         @Path("id") id: String,
         @Body position: ReadPosition,
     ): Topic
+
+    @PUT("polls/{id}/vote")
+    suspend fun vote(
+        @Path("id") id: String,
+        @Body vote: Vote,
+    ): Poll
 
     @PUT("topics/{id}/follow")
     suspend fun follow(

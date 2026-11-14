@@ -262,6 +262,11 @@ Docker image) are added with them.
   then each category's in the home page's order, a tag of several categories under each.
   idejo lets a tag belong to several categories and `GET /tags` gives `category_ids`
   (IX-10, callisto-rpg/Idejo#363); tag names stay unique across the server.
+- 2026-11-14 — A message's topics started from it and messages moved away from below it
+  show as the web's thin banners, with **Continue topic** / **Open topic** (steward request
+  to idejo, callisto-rpg/Idejo#364; `moved_after`, IX-11). A poll's emoji shows when the
+  forum names it (`GET /server`'s `emoji` and `default_reactions`); the full emoji list
+  comes with reactions (MA-03).
 
 ## Milestones (spec §26)
 
@@ -277,7 +282,7 @@ Docker image) are added with them.
 Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card; topic: the page, its window, live
-changes and catch-up, the read position). The app needs idejo with callisto-rpg/Idejo#357 (the
-socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting started),
-#361 (Help's commands), #362 (the window's counts) and #363 (tags' categories) (Steward
-decisions, 2026-11-14).
+changes and catch-up, the read position, replies, forwards, banners, polls). The app needs
+idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359 (the home page's
+Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the window's counts),
+#363 (tags' categories) and #364 (banners) (Steward decisions, 2026-11-14).

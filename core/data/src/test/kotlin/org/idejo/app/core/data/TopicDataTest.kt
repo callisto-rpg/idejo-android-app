@@ -17,6 +17,8 @@ import org.idejo.app.core.api.DiscoveryClient
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
 import org.idejo.app.core.api.IdejoHttp
+import org.idejo.app.core.model.Poll
+import org.idejo.app.core.model.PollOption
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.realtime.SocketState
 import org.idejo.app.core.testing.FakeIdejo
@@ -255,4 +257,64 @@ class TopicDataTest {
             reader.load()
             assertTrue(reader.state.until { !it.loading }.gone)
         }
+
+    @Test
+    fun `TV-27 a vote is sent, changed and shown as the server answers`() =
+        runBlocking {
+            val id = longTopic(3)
+            val asked = fake.messages(id)[1]
+            val poll =
+                Poll(
+                    "p_1",
+                    "Which first?",
+                    options = listOf(PollOption("o_1", "Sungold"), PollOption("o_2", "Brandywine")),
+                )
+            fake.attachPoll(asked.id, poll)
+            val reader = TopicReader(signedIn(), id, scope)
+            reader.load(asked.id)
+            reader.state.until { !it.loading }
+
+            reader.vote(asked.id, "p_1", listOf("o_2"))
+            val voted =
+                reader.state.until {
+                    it.voting.isEmpty() && pollOf(
+                        it,
+                        asked.id,
+                    )?.total == 1
+                }
+            assertEquals(listOf("o_2"), pollOf(voted, asked.id)?.myVotes)
+            assertEquals(listOf(0, 1), pollOf(voted, asked.id)?.options?.map { it.count })
+
+            reader.vote(asked.id, "p_1", listOf("o_1"))
+            reader.state.until { pollOf(it, asked.id)?.myVotes == listOf("o_1") }
+            assertEquals(listOf("o_1"), fake.votesOf(ada, "p_1"))
+        }
+
+    @Test
+    fun `TV-02 a quote leads to its message, here or in the topic it is in now`() =
+        runBlocking {
+            val id = longTopic(60)
+            val other = longTopic(2)
+            val reader = TopicReader(signedIn(), id, scope)
+            reader.load()
+            reader.state.until { !it.loading }
+            val shown =
+                reader.state.value.messages
+                    .last()
+
+            assertEquals(id, reader.reach(shown.id))
+
+            val far = fake.messages(id)[3]
+            assertEquals(id, reader.reach(far.id))
+            val around = reader.state.until { !it.loading && it.landing == far.id }
+            assertTrue(around.messages.any { it.id == far.id })
+
+            assertEquals(other, reader.reach(fake.messages(other)[1].id))
+            assertNull(reader.reach("m_missing"))
+        }
+
+    private fun pollOf(
+        state: TopicState,
+        messageId: String,
+    ) = state.messages.firstOrNull { it.id == messageId }?.poll
 }

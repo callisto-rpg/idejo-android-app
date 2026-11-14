@@ -173,6 +173,32 @@ internal fun Floating(
     )
 }
 
+/** Why the last action failed, over the page, with **Try again** (it reads the page again). */
+@Composable
+internal fun ProblemBar(
+    problem: ApiProblem,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) = Surface(
+    modifier.padding(16.dp),
+    shape = RoundedCornerShape(12.dp),
+    color = MaterialTheme.colorScheme.errorContainer,
+    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+) {
+    Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(problemText(problem), Modifier.weight(1f, fill = false))
+        TextButton(onClick = onRetry) { Text(stringResource(R.string.topic_retry)) }
+    }
+}
+
+@Composable
+private fun problemText(problem: ApiProblem): String =
+    when (problem) {
+        is ApiProblem.Server -> problem.error.message
+        is ApiProblem.Network -> stringResource(R.string.topic_offline)
+        is ApiProblem.Malformed -> stringResource(R.string.topic_could_not_load)
+    }
+
 @Composable
 internal fun Gone() =
     Text(
@@ -190,13 +216,6 @@ internal fun Problem(
     problem: ApiProblem,
     onRetry: () -> Unit,
 ) = Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-    Text(
-        when (problem) {
-            is ApiProblem.Server -> problem.error.message
-            is ApiProblem.Network -> stringResource(R.string.topic_offline)
-            is ApiProblem.Malformed -> stringResource(R.string.topic_could_not_load)
-        },
-        style = IdejoTheme.typography.bodyLarge,
-    )
+    Text(problemText(problem), style = IdejoTheme.typography.bodyLarge)
     TextButton(onClick = onRetry) { Text(stringResource(R.string.topic_retry)) }
 }

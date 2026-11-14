@@ -38,6 +38,7 @@ import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
@@ -50,6 +51,7 @@ import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UnreadCounter
 import org.idejo.app.core.model.UnreadMark
 import org.idejo.app.core.model.UserCard
+import org.idejo.app.core.model.Vote
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
@@ -82,6 +84,9 @@ class FakeIdejo(
     private val categories = seedCategories().toMutableList()
     private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
     private val readers = mutableMapOf<String, Reader>()
+
+    /** Each poll's votes: poll id, then person id, then their answers (TV-27). */
+    private val votes = mutableMapOf<String, MutableMap<String, List<String>>>()
     private val composers = mutableMapOf<Pair<String, String>, ComposerRecord>()
     private val tokens = mutableMapOf<String, Person>()
     private val codes = mutableMapOf<String, PendingCode>()
@@ -193,6 +198,22 @@ class FakeIdejo(
             news(record, person)
             message
         }
+
+    /** [poll] put under message [messageId], as its author's `!poll` would (TV-27). */
+    fun attachPoll(
+        messageId: String,
+        poll: Poll,
+    ) = synchronized(lock) {
+        val record = topics.values.first { r -> r.messages.any { it.id == messageId } }
+        val index = record.messages.indexOfFirst { it.id == messageId }
+        record.messages[index] = record.messages[index].copy(poll = poll)
+    }
+
+    /** What [person] chose in poll [pollId]. */
+    fun votesOf(
+        person: Person,
+        pollId: String,
+    ): List<String> = synchronized(lock) { votes[pollId]?.get(person.id).orEmpty() }
 
     /** A category added to the forum, as an administrator would. */
     fun addCategory(category: Category) = synchronized(lock) { categories += category }
@@ -458,6 +479,7 @@ class FakeIdejo(
                 "GET",
                 "messages/{id}",
             ) { call -> findMessage(call["id"])?.let(::ok) ?: notFound() },
+            Route("PUT", "polls/{id}/vote") { call -> vote(call) },
             Route(
                 "GET",
                 "topics/{id}/composer",
@@ -1026,6 +1048,36 @@ class FakeIdejo(
         val page = changed.take(limit)
         val cursor = page.lastOrNull()?.cursor ?: since
         return ok(Changes(page, cursor, more = changed.size > page.size, topic = record.topic))
+    }
+
+    /** `PUT /polls/{id}/vote`: the poll as the voter now sees it; none after it closed. */
+    private fun vote(call: Call): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val poll =
+            topics.values
+                .flatMap { it.messages }
+                .firstNotNullOfOrNull { m -> m.poll?.takeIf { it.id == call["id"] } }
+                ?: return notFound()
+        if (poll.closed) return error(HTTP_CONFLICT, "poll_closed", "This poll is closed.")
+        val chosen =
+            IdejoJson.decodeFromString<Vote>(call.request.body?.utf8() ?: "{}").optionIds
+        val ballots = votes.getOrPut(poll.id) { mutableMapOf() }
+        val voter = requireNotNull(person.id)
+        if (chosen.isEmpty()) ballots.remove(voter) else ballots[voter] = chosen
+        val shown = !poll.hiddenUntilClosed
+        return ok(
+            poll.copy(
+                myVotes = chosen,
+                resultsShown = shown,
+                total = if (shown) ballots.size else null,
+                options =
+                    poll.options.map { option ->
+                        option.copy(
+                            count = if (shown) ballots.values.count { option.id in it } else null,
+                        )
+                    },
+            ),
+        )
     }
 
     private fun findMessage(id: String): Message? =

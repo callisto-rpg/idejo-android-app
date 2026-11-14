@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -43,6 +44,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
@@ -61,17 +63,26 @@ data class TopicActions(
     val onSeen: (String) -> Unit = {},
     val onUnreadShown: () -> Unit = {},
     val onFollow: (Boolean) -> Unit = {},
+    val onMessage: (String) -> Unit = {},
+    val onTopic: (String) -> Unit = {},
+    val onVote: (String, String, List<String>) -> Unit = { _, _, _ -> },
 )
 
-/** The topic page (TV-01 to TV-12); [onUser] opens a user card, [onTag] Filter by tag. */
+/**
+ * The topic page (TV-01 to TV-12); [onUser] opens a user card, [onTag] Filter by tag,
+ * [onTopic] another topic, at a message when one is given.
+ */
 @Composable
 fun TopicRoute(
     onUser: (String) -> Unit,
     onTag: (String) -> Unit,
     onLink: (String) -> Unit,
+    onTopic: (String, String?) -> Unit,
     viewModel: TopicViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val here = state.topic.topic?.id
     TopicScreen(
         state,
         TopicActions(
@@ -85,6 +96,13 @@ fun TopicRoute(
             onSeen = { viewModel.seen(it) },
             onUnreadShown = { viewModel.unreadShown() },
             onFollow = { viewModel.follow(it) },
+            onMessage = { id ->
+                scope.launch {
+                    viewModel.reach(id)?.takeIf { it != here }?.let { onTopic(it, id) }
+                }
+            },
+            onTopic = { onTopic(it, null) },
+            onVote = { message, poll, options -> viewModel.vote(message, poll, options) },
         ),
     )
 }
@@ -109,8 +127,16 @@ fun TopicScreen(
             topic.topic == null -> topic.problem?.let { Problem(it, actions.onRetry) }
             else -> Messages(state, actions, list)
         }
-        if (!topic.atEnd && !topic.loading) {
-            Floating(topic.newBelow, actions.onEnd, Modifier.align(Alignment.BottomCenter))
+        val bottom = Modifier.align(Alignment.BottomCenter)
+        val problem = topic.problem
+        when {
+            topic.topic != null && problem != null -> {
+                ProblemBar(problem, actions.onRetry, bottom)
+            }
+
+            !topic.atEnd && !topic.loading -> {
+                Floating(topic.newBelow, actions.onEnd, bottom)
+            }
         }
     }
 }
@@ -122,8 +148,19 @@ private fun Messages(
     list: LazyListState,
 ) {
     val topic = state.topic
+    val open = topic.topic?.let { !it.locked && !it.archived } == true
     val context =
-        MessageContext(state.origin, state.emoji, onUser = actions.onUser, onLink = actions.onLink)
+        MessageContext(
+            state.origin,
+            state.emoji,
+            onUser = actions.onUser,
+            onLink = actions.onLink,
+            onMessage = actions.onMessage,
+            onTopic = actions.onTopic,
+            onVote = actions.onVote,
+            mayVote = open && state.signedIn,
+            voting = topic.voting,
+        )
     LazyColumn(
         Modifier.fillMaxSize(),
         state = list,

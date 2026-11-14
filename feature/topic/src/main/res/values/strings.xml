@@ -52,4 +52,45 @@
         <item quantity="one">%2$s 1 reaction, yours</item>
         <item quantity="other">%2$s %1$d reactions, including yours</item>
     </plurals>
+
+    <!-- Around a message (TV-02): replies, forwards, links, banners (TP-09, TP-15). -->
+    <string name="message_in_reply_to">In reply to %1$s</string>
+    <string name="message_forwarded_from">%1$s message forwarded from</string>
+    <string name="message_forwarded_from_hidden">%1$s message forwarded from a topic you cannot view</string>
+    <string name="message_forwarded_hidden">A message forwarded from a topic you cannot view</string>
+    <string name="message_show_full">Show full message</string>
+    <string name="message_scheduled">scheduled message</string>
+    <string name="message_copy_link">Copy link</string>
+    <string name="message_link_copied">Link copied</string>
+    <string name="message_continued_in">A new topic continues from this message:</string>
+    <string name="message_continue_topic">Continue topic</string>
+    <string name="message_continue_topic_named">Continue topic: %1$s</string>
+    <string name="message_open_topic">Open topic</string>
+    <string name="message_open_topic_named">Open topic: %1$s</string>
+    <plurals name="message_moved_new">
+        <item quantity="one">1 message was moved to a new topic:</item>
+        <item quantity="other">%1$d messages were moved to a new topic:</item>
+    </plurals>
+    <plurals name="message_moved_other">
+        <item quantity="one">1 message was moved to another topic:</item>
+        <item quantity="other">%1$d messages were moved to another topic:</item>
+    </plurals>
+
+    <!-- Polls (TV-27). -->
+    <string name="poll_vote">Vote</string>
+    <string name="poll_change_vote">Change vote</string>
+    <string name="poll_any_number">Choose any number of answers.</string>
+    <string name="poll_closes">Closes %1$s</string>
+    <string name="poll_closed">Closed</string>
+    <string name="poll_results_at_close">Results show when the poll closes.</string>
+    <string name="poll_results_after_vote">Results show once you vote.</string>
+    <string name="poll_percent">%1$d%%</string>
+    <plurals name="poll_votes">
+        <item quantity="one">%1$d vote</item>
+        <item quantity="other">%1$d votes</item>
+    </plurals>
+    <plurals name="poll_voters">
+        <item quantity="one">%1$d voter</item>
+        <item quantity="other">%1$d voters</item>
+    </plurals>
 </resources>

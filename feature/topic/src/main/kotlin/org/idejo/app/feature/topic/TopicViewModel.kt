@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.TopicReader
 import org.idejo.app.core.data.TopicState
@@ -23,6 +24,8 @@ data class TopicUi(
     val topic: TopicState = TopicState(),
     val origin: String = "",
     val emoji: List<Emoji> = emptyList(),
+    /** A member is signed in (polls take votes). */
+    val signedIn: Boolean = false,
 )
 
 /**
@@ -51,8 +54,14 @@ class TopicViewModel
             combine(
                 reader?.state ?: flowOf(TopicState(loading = false, gone = true)),
                 session?.server ?: flowOf(null),
-            ) { topic, server ->
-                TopicUi(topic, session?.origin.orEmpty(), server?.emoji.orEmpty())
+                session?.access ?: flowOf(null),
+            ) { topic, server, access ->
+                TopicUi(
+                    topic,
+                    session?.origin.orEmpty(),
+                    server?.emoji.orEmpty() + server?.defaultReactions.orEmpty(),
+                    signedIn = access == Access.SignedIn,
+                )
             }.stateIn(viewModelScope, SharingStarted.Eagerly, TopicUi())
 
         init {
@@ -72,6 +81,15 @@ class TopicViewModel
         fun unreadShown() = reader?.unreadShown()
 
         fun follow(followed: Boolean) = reader?.follow(followed)
+
+        fun vote(
+            messageId: String,
+            pollId: String,
+            optionIds: List<String>,
+        ) = reader?.vote(messageId, pollId, optionIds)
+
+        /** Where message [messageId] is: this topic, another one, or null (not readable). */
+        suspend fun reach(messageId: String): String? = reader?.reach(messageId)
 
         override fun onCleared() {
             reader?.stop()

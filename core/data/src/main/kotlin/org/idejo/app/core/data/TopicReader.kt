@@ -46,6 +46,8 @@ data class TopicState(
     val problem: ApiProblem? = null,
     /** The member may no longer view the topic (`forbidden` on its channel). */
     val gone: Boolean = false,
+    /** The polls whose vote is being sent, by poll id (TV-27). */
+    val voting: Set<String> = emptySet(),
 ) {
     /** The window reaches the topic's last message. */
     val atEnd: Boolean get() = later == 0
@@ -202,6 +204,43 @@ class TopicReader(
                 is ApiResult.Failure -> mutableState.update { it.copy(problem = result.problem) }
             }
         }
+    }
+
+    /**
+     * The member's answers to the poll under [messageId] (TV-27): sent, then the poll as the
+     * server answers it. A refusal shows its message; the poll stays as it was.
+     */
+    fun vote(
+        messageId: String,
+        pollId: String,
+        optionIds: List<String>,
+    ) {
+        mutableState.update { it.copy(voting = it.voting + pollId) }
+        scope.launch {
+            val result = session.call { vote(pollId, optionIds) }
+            if (result is ApiResult.Success) edit(messageId) { it.copy(poll = result.value) }
+            mutableState.update {
+                it.copy(
+                    voting = it.voting - pollId,
+                    problem = (result as? ApiResult.Failure)?.problem ?: it.problem,
+                )
+            }
+        }
+    }
+
+    /**
+     * Where message [messageId] is, for a quote or a banner leading to it: in this topic
+     * (the window loads around it unless it is shown), or in another topic, whose id comes
+     * back for the app to open. Null when the member may not read it.
+     */
+    suspend fun reach(messageId: String): String? {
+        val shown =
+            state.value.messages.any { it.id == messageId } || state.value.opening?.id == messageId
+        if (shown) return topicId
+        val message = session.call { message(messageId) } as? ApiResult.Success ?: return null
+        val home = message.value.topicId
+        if (home == topicId) load(messageId)
+        return home
     }
 
     private suspend fun loadNow(
