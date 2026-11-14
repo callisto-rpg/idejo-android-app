@@ -56,6 +56,7 @@ data class TopicState(
  * unread, else the end), more of it both ways, and its channel while [start]ed, catching up
  * after a reconnect (TV-03, TV-04, TV-12). [seen] moves the read position (TV-06).
  */
+@Suppress("TooManyFunctions") // One per thing the page does or hears.
 class TopicReader(
     private val session: ForumSession,
     private val topicId: String,

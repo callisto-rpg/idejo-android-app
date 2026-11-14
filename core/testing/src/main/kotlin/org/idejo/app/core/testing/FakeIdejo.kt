@@ -918,55 +918,67 @@ class FakeIdejo(
         val range: IntRange =
             when {
                 cursor != null -> {
-                    val (side, id) = cursor.split(":", limit = 2)
-                    val at = all.indexOfFirst { it.id == id }
-                    if (at < 0) return error(HTTP_BAD_REQUEST, "bad_cursor", "Bad cursor.")
-                    val n = limit ?: DEFAULT_PAGE
-                    if (side ==
-                        "before"
-                    ) {
-                        (at - n).coerceAtLeast(0) until at
-                    } else {
-                        at + 1..minOf(at + n, all.lastIndex)
-                    }
+                    pageRange(all, cursor, limit ?: DEFAULT_PAGE)
+                        ?: return error(HTTP_BAD_REQUEST, "bad_cursor", "Bad cursor.")
                 }
 
                 around != null -> {
-                    val at = all.indexOfFirst { it.id == around }
-                    if (at < 0) return notFound()
-                    (at - WINDOW_BEFORE).coerceAtLeast(0)..minOf(at + WINDOW_AFTER, all.lastIndex)
+                    aroundRange(all, around) ?: return notFound()
                 }
 
                 else -> {
                     (all.size - (limit ?: DEFAULT_PAGE)).coerceAtLeast(0)..all.lastIndex
                 }
             }
+        return ok(windowOf(record, range, firstUnread?.let { UnreadMark(it.id, unseen.count) }))
+    }
+
+    /** The window over [range] of [record]'s messages, cursors and counts with it. */
+    private fun windowOf(
+        record: TopicRecord,
+        range: IntRange,
+        firstUnread: UnreadMark?,
+    ): MessageWindow {
+        val all = record.messages.toList()
         val data = all.slice(range)
-        val first = all.firstOrNull()
-        val earlier = if (data.isEmpty()) 0 else (range.first - 1).coerceAtLeast(0)
-        return ok(
-            MessageWindow(
-                data = data,
-                firstMessage = first,
-                firstUnread = firstUnread?.let { UnreadMark(it.id, unseen.count) },
-                nextCursor =
-                    data
-                        .lastOrNull()
-                        ?.takeIf {
-                            it != all.last()
-                        }?.let { "after:${it.id}" },
-                prevCursor =
-                    data
-                        .firstOrNull()
-                        ?.takeIf {
-                            it != first
-                        }?.let { "before:${it.id}" },
-                cursor = record.changeSeq,
-                total = all.size,
-                earlier = earlier,
-                later = if (data.isEmpty()) 0 else all.lastIndex - range.last,
-            ),
+        if (data.isEmpty()) return MessageWindow(cursor = record.changeSeq)
+        return MessageWindow(
+            data = data,
+            firstMessage = all.first(),
+            firstUnread = firstUnread,
+            nextCursor = data.last().takeIf { it != all.last() }?.let { "after:${it.id}" },
+            prevCursor = data.first().takeIf { it != all.first() }?.let { "before:${it.id}" },
+            cursor = record.changeSeq,
+            total = all.size,
+            earlier = (range.first - 1).coerceAtLeast(0),
+            later = all.lastIndex - range.last,
         )
+    }
+
+    /** The page a cursor names: [n] messages `before:<id>` or `after:<id>`. */
+    private fun pageRange(
+        all: List<Message>,
+        cursor: String,
+        n: Int,
+    ): IntRange? {
+        val (side, id) = cursor.split(":", limit = 2).takeIf { it.size == 2 } ?: return null
+        val at = all.indexOfFirst { it.id == id }.takeIf { it >= 0 } ?: return null
+        return if (side ==
+            "before"
+        ) {
+            (at - n).coerceAtLeast(0) until at
+        } else {
+            at + 1..minOf(at + n, all.lastIndex)
+        }
+    }
+
+    /** idejo's window around a message: [WINDOW_BEFORE] before it, [WINDOW_AFTER] after. */
+    private fun aroundRange(
+        all: List<Message>,
+        id: String,
+    ): IntRange? {
+        val at = all.indexOfFirst { it.id == id }.takeIf { it >= 0 } ?: return null
+        return (at - WINDOW_BEFORE).coerceAtLeast(0)..minOf(at + WINDOW_AFTER, all.lastIndex)
     }
 
     /** `PUT /topics/{id}/read`: read up to [messageId], or the whole topic. */
