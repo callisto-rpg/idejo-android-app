@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":core:markdown"))
     implementation(libs.androidx.hilt.viewmodel.compose)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.activity.compose)
 
     testImplementation(project(":core:testing"))
 }

@@ -7,16 +7,22 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
+import org.idejo.app.core.data.Glow
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.TopicReader
 import org.idejo.app.core.data.TopicState
+import org.idejo.app.core.data.mentionGlows
 import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.Me
 import javax.inject.Inject
 
 /** The topic page: its messages, and what draws them (the forum's address and emoji). */
@@ -26,7 +32,12 @@ data class TopicUi(
     val emoji: List<Emoji> = emptyList(),
     /** A member is signed in (polls take votes). */
     val signedIn: Boolean = false,
-)
+    /** The member, whose mentions glow and pulse (TV-07). */
+    val me: Me? = null,
+) {
+    /** The unread messages naming the member, glowing once reached (TV-07). */
+    val glows: Map<String, Glow> by lazy { mentionGlows(topic.messages, topic.glowFrom, me) }
+}
 
 /**
  * The topic page (TV-01 to TV-12): the route's `id` is the topic, its `messageId` the message
@@ -50,22 +61,29 @@ class TopicViewModel
                 )
             }
 
+        private val me = MutableStateFlow<Me?>(null)
+
         val state: StateFlow<TopicUi> =
             combine(
                 reader?.state ?: flowOf(TopicState(loading = false, gone = true)),
                 session?.server ?: flowOf(null),
                 session?.access ?: flowOf(null),
-            ) { topic, server, access ->
+                me,
+            ) { topic, server, access, me ->
                 TopicUi(
                     topic,
                     session?.origin.orEmpty(),
                     server?.emoji.orEmpty() + server?.defaultReactions.orEmpty(),
                     signedIn = access == Access.SignedIn,
+                    me = me.takeIf { access == Access.SignedIn },
                 )
             }.stateIn(viewModelScope, SharingStarted.Eagerly, TopicUi())
 
         init {
             reader?.start()
+            if (session?.access?.value == Access.SignedIn) {
+                viewModelScope.launch { me.value = session.call { me() }.getOrNull() }
+            }
         }
 
         fun retry() = reader?.load()

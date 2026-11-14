@@ -98,7 +98,7 @@ internal fun Header(
 }
 
 @Composable
-private fun TagChip(
+internal fun TagChip(
     tag: Tag,
     onTag: (String) -> Unit,
 ) {
@@ -192,11 +192,19 @@ internal fun ProblemBar(
 }
 
 @Composable
-private fun problemText(problem: ApiProblem): String =
+internal fun problemText(problem: ApiProblem): String =
     when (problem) {
-        is ApiProblem.Server -> problem.error.message
-        is ApiProblem.Network -> stringResource(R.string.topic_offline)
-        is ApiProblem.Malformed -> stringResource(R.string.topic_could_not_load)
+        is ApiProblem.Server -> {
+            problem.error.message.ifBlank { stringResource(R.string.topic_could_not_load) }
+        }
+
+        is ApiProblem.Network -> {
+            stringResource(R.string.topic_offline)
+        }
+
+        is ApiProblem.Malformed -> {
+            stringResource(R.string.topic_could_not_load)
+        }
     }
 
 @Composable

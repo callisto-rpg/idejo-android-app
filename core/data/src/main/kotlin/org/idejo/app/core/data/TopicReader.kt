@@ -35,6 +35,11 @@ data class TopicState(
     val later: Int = 0,
     /** Where the member left off: the red **N unread messages** line (TV-01). */
     val unread: UnreadMark? = null,
+    /**
+     * The first unread message when the page opened, kept after the line fades: mentions
+     * from there on glow as they are reached (TV-07).
+     */
+    val glowFrom: String? = null,
     /** New messages that came while the window does not reach the end (TV-05). */
     val newBelow: Int = 0,
     /** The message the window was loaded around, to scroll to. */
@@ -272,6 +277,7 @@ class TopicReader(
                 earlier = loaded.earlier ?: if (before == null) 0 else loaded.total,
                 later = loaded.later ?: if (after == null) 0 else loaded.total,
                 unread = unread,
+                glowFrom = unread?.messageId ?: mutableState.value.glowFrom,
                 landing = messageId ?: unread?.messageId,
                 loading = false,
             )

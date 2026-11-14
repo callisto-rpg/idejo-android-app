@@ -56,3 +56,16 @@ sealed interface Place {
 data class UserCardDialog(
     val id: String,
 )
+
+/**
+ * An inline link's card over the page (TV-22): the mention as the API gives it. A dialog,
+ * as the user card, so the breadcrumbs stay.
+ */
+@Serializable
+data class InlineCardDialog(
+    val type: String,
+    val text: String,
+    val id: String? = null,
+    val slug: String? = null,
+    val name: String? = null,
+)
