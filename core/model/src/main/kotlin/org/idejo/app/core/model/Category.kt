@@ -11,6 +11,11 @@ data class Tag(
     val id: String,
     val name: String,
     val slug: String? = null,
+    /**
+     * `GET /tags` only: the categories it belongs to that the member may view, empty for a
+     * tag of every category (IX-10); null on older servers and elsewhere.
+     */
+    @SerialName("category_ids") val categoryIds: List<String>? = null,
 )
 
 @Serializable

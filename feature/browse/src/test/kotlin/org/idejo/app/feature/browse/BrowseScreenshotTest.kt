@@ -68,9 +68,9 @@ class BrowseScreenshotTest {
                 TagsUi(
                     tags =
                         listOf(
-                            SEEDS,
-                            Tag("g_indoor", "Indoor", "indoor"),
-                            Tag("g_trees", "Trees", "trees"),
+                            Tag("g_indoor", "Indoor", "indoor", categoryIds = emptyList()),
+                            SEEDS.copy(categoryIds = listOf("c_veg", "c_fruit")),
+                            Tag("g_trees", "Trees", "trees", categoryIds = listOf("c_fruit")),
                         ),
                     tagsLoading = false,
                     choice = TagChoice(setOf("seeds", "indoor"), any = true),

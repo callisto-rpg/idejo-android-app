@@ -457,6 +457,7 @@ falls back as stated.
 | IX-04 | Discovery says whether the forum uses a chat service (`community.chat_url`, `community.inbox_url`), and the inbox's API can start a conversation with an idejo ID subject (the web's `/chat/new?with=`); `GET /users/{id}` gives a linked member's subject to that end | PC-02, IB-07 | **Private Message** opens the web's link in a Custom Tab |
 | IX-05 | Presence on the topic channel (idejo TP-16) | RS-03 | Not shown |
 | IX-06 | Inbox mode serves API v1 for its own pages (`/me/communities`, `/conversations`, settings) — to confirm on idejo 0.3.x | SI-06, IB-06 | — (blocking for M4) |
+| IX-10 | A tag may belong to several categories; `GET /tags` gives each tag its `category_ids` (empty: every category), as the web groups Filter by tag (callisto-rpg/Idejo#363) | BR-04 | One list of tags, without categories |
 
 ## 23. Non-functional requirements
 
