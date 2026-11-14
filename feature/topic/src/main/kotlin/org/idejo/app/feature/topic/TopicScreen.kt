@@ -181,7 +181,7 @@ private fun Messages(
         state = list,
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
-        item(key = "header") { Header(topic.topic!!, actions) }
+        item(key = "header") { Header(topic.topic!!, actions, state.continuedFrom) }
         topic.opening?.let { opening ->
             item(key = opening.id) {
                 MessageItem(opening, context)

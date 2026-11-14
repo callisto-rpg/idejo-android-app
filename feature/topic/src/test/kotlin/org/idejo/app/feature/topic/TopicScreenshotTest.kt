@@ -13,6 +13,7 @@ import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import org.idejo.app.core.data.ContinuedFrom
 import org.idejo.app.core.data.InlineCard
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.data.namesMember
@@ -241,6 +242,23 @@ class TopicScreenshotTest {
                 ).copy(plugins = blocks)
             TopicScreen(
                 TopicUi(TopicState(topic = TOPIC, messages = listOf(withBlocks), loading = false)),
+                TopicActions(),
+            )
+        }
+
+    @Test
+    fun `TP-09 a topic continued from a message`() =
+        snapshots("TopicContinued") {
+            val source =
+                message("m_s", MINA, "We could save seeds from the **best** plants this year.", 60)
+            val from = ContinuedFrom(source, "Tomato plans for spring")
+            val topic = TOPIC.copy(id = "t_2", title = "Saving seeds")
+            val opening = message("m_o", LEO, "Starting here: which plants?", 5)
+            TopicScreen(
+                TopicUi(
+                    TopicState(topic = topic, messages = listOf(opening), loading = false),
+                    continuedFrom = from,
+                ),
                 TopicActions(),
             )
         }

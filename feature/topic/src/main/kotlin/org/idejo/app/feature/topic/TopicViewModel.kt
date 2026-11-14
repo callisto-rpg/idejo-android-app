@@ -11,15 +11,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
+import org.idejo.app.core.data.ContinuedFrom
 import org.idejo.app.core.data.Glow
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.TopicReader
 import org.idejo.app.core.data.TopicState
+import org.idejo.app.core.data.continuedFrom
 import org.idejo.app.core.data.mentionGlows
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Me
@@ -34,6 +38,8 @@ data class TopicUi(
     val signedIn: Boolean = false,
     /** The member, whose mentions glow and pulse (TV-07). */
     val me: Me? = null,
+    /** The message the topic was started from (idejo TP-09), when the member may view it. */
+    val continuedFrom: ContinuedFrom? = null,
 ) {
     /** The unread messages naming the member, glowing once reached (TV-07). */
     val glows: Map<String, Glow> by lazy { mentionGlows(topic.messages, topic.glowFrom, me) }
@@ -62,6 +68,7 @@ class TopicViewModel
             }
 
         private val me = MutableStateFlow<Me?>(null)
+        private val continuedFrom = MutableStateFlow<ContinuedFrom?>(null)
 
         val state: StateFlow<TopicUi> =
             combine(
@@ -69,18 +76,26 @@ class TopicViewModel
                 session?.server ?: flowOf(null),
                 session?.access ?: flowOf(null),
                 me,
-            ) { topic, server, access, me ->
+                continuedFrom,
+            ) { topic, server, access, me, from ->
                 TopicUi(
                     topic,
                     session?.origin.orEmpty(),
                     server?.emoji.orEmpty() + server?.defaultReactions.orEmpty(),
                     signedIn = access == Access.SignedIn,
                     me = me.takeIf { access == Access.SignedIn },
+                    continuedFrom = from,
                 )
             }.stateIn(viewModelScope, SharingStarted.Eagerly, TopicUi())
 
         init {
             reader?.start()
+            reader?.let { topics ->
+                viewModelScope.launch {
+                    val topic = topics.state.mapNotNull { it.topic }.first()
+                    continuedFrom.value = session?.continuedFrom(topic)
+                }
+            }
             if (session?.access?.value == Access.SignedIn) {
                 viewModelScope.launch { me.value = session.call { me() }.getOrNull() }
             }

@@ -286,6 +286,10 @@ Docker image) are added with them.
   file or content access, no new windows, third-party cookies off and https only; whatever
   the member follows from it opens outside the app. A message's `plugins` give `block` as
   the kind of block (a string), as idejo sends it.
+- 2026-11-15 — A topic started from a message shows the web's "Continued from {name} in
+  “{topic}”" under its header, with the message's first words, from `GET /messages/{id}`
+  and `GET /topics/{id}` (no new endpoint); hidden when the member may not view it or a
+  moderator deleted it, as on the web.
 
 ## Milestones (spec §26)
 
@@ -302,8 +306,8 @@ Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, 
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card; topic: the page, its window, live
 changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
-mention glows, inline cards, the image viewer, plugin blocks). The app needs idejo with
-callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359 (the home page's Expanded
-view), #360 (Getting started), #361 (Help's commands), #362 (the window's counts), #363
-(tags' categories), #364 (banners) and #368 (roles' slugs) (Steward decisions,
-2026-11-14).
+mention glows, inline cards, the image viewer, plugin blocks, "Continued from").
+The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
+(the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
+window's counts), #363 (tags' categories), #364 (banners) and #368 (roles' slugs)
+(Steward decisions, 2026-11-14).
