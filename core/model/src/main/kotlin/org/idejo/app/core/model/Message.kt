@@ -6,6 +6,7 @@ package org.idejo.app.core.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
 enum class MessageState {
@@ -151,12 +152,20 @@ data class PollOption(
     val count: Int? = null,
 )
 
+/**
+ * A plugin's block under a message (TV-26): [block] is what draws it (`video`, `iframe`,
+ * `button`, `card`, `forum`; others are skipped), [params] its checked data.
+ */
 @Serializable
 data class PluginBlock(
     val command: String,
-    val block: Boolean = true,
+    val block: String = "",
     val params: JsonObject = JsonObject(emptyMap()),
-)
+) {
+    /** A text parameter, or null. */
+    fun text(name: String): String? =
+        (params[name] as? JsonPrimitive)?.takeIf { it.isString }?.content
+}
 
 @Serializable
 data class Reaction(

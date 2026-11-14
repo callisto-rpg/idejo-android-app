@@ -105,9 +105,10 @@
   "plugins": [
     {
       "command": "youtube",
-      "block": true,
+      "block": "video",
       "params": {
-        "id": "abc"
+        "src": "https://www.youtube-nocookie.com/embed/abc",
+        "link": "https://www.youtube.com/watch?v=abc"
       }
     }
   ],

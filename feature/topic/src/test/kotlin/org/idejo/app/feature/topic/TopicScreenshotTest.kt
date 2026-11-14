@@ -11,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.idejo.app.core.data.InlineCard
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.data.namesMember
@@ -26,6 +28,7 @@ import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MovedAway
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PluginBlock
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollOption
 import org.idejo.app.core.model.Reaction
@@ -187,6 +190,59 @@ class TopicScreenshotTest {
         snapshots("CardForum") {
             val card = InlineCard.Forum("Bees", "bees.example.org")
             InlineCardScreen(InlineCardUi(card, loading = false), InlineCardActions())
+        }
+
+    @Test
+    fun `TV-26 plugin blocks, videos and pages loaded only on a tap`() =
+        snapshots("TopicPlugins") {
+            fun block(
+                command: String,
+                kind: String,
+                vararg params: Pair<String, Any>,
+            ) = PluginBlock(
+                command,
+                kind,
+                JsonObject(
+                    params.associate { (k, v) ->
+                        k to if (v is Int) JsonPrimitive(v) else JsonPrimitive(v.toString())
+                    },
+                ),
+            )
+            val blocks =
+                listOf(
+                    block(
+                        "youtube",
+                        "video",
+                        "src" to "https://www.youtube-nocookie.com/embed/abc",
+                        "link" to "https://www.youtube.com/watch?v=abc",
+                    ),
+                    block(
+                        "button",
+                        "button",
+                        "label" to "Seed swap sign-up",
+                        "url" to "https://seeds.example/",
+                    ),
+                    block(
+                        "rules",
+                        "card",
+                        "label" to "Swap rules",
+                        "body_md" to "Bring **labelled** seeds.",
+                    ),
+                    block("forum", "forum", "name" to "Bees", "url" to "https://bees.example.org/"),
+                    block("map", "iframe", "src" to "https://maps.example/garden", "height" to 200),
+                    block("unknown", "hologram"),
+                )
+            val withBlocks =
+                message(
+                    "m_p",
+                    LEO,
+                    "Here is everything for Saturday.",
+                    3,
+                ).copy(plugins = blocks)
+            TopicScreen(
+                TopicUi(TopicState(topic = TOPIC, messages = listOf(withBlocks), loading = false)),
+                TopicActions(),
+            )
         }
 
     @Test

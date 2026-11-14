@@ -129,4 +129,12 @@
     <string name="image_save">Save</string>
     <string name="image_saved">Image saved.</string>
     <string name="image_failed">The image could not be loaded.</string>
+    <!-- Plugin blocks (TV-26): videos and pages load only when tapped. -->
+    <string name="frame_video_from">Video from %1$s</string>
+    <string name="frame_page_from">Page from %1$s</string>
+    <string name="frame_watch_on">Watch on %1$s</string>
+    <string name="frame_open">Open %1$s</string>
+    <string name="frame_loads_from">Shown here only when you ask: it loads from %1$s.</string>
+    <string name="frame_play">Play video</string>
+    <string name="frame_show">Show page</string>
 </resources>

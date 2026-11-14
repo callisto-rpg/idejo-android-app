@@ -219,6 +219,7 @@ private fun Shown(
                 Body(message, context, pulse)
             }
             message.poll?.let { PollView(message.id, it, context) }
+            if (message.plugins.isNotEmpty()) PluginBlocks(message.plugins, context)
             MetaLine(message)
             if (message.reactions.isNotEmpty()) Reactions(message.reactions, context)
         }

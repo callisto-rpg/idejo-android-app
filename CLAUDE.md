@@ -281,6 +281,11 @@ Docker image) are added with them.
   client without a token). **Share** hands a copy through a FileProvider limited to the
   cache's `shared/` folder; **Save** writes where the member picks in the system's file
   picker, so the app asks for no storage permission.
+- 2026-11-14 — Plugin blocks (TV-26): `video` and `iframe` load only on a tap, in a
+  WebView with JavaScript on (players need it; steward decision), no JavaScript bridge, no
+  file or content access, no new windows, third-party cookies off and https only; whatever
+  the member follows from it opens outside the app. A message's `plugins` give `block` as
+  the kind of block (a string), as idejo sends it.
 
 ## Milestones (spec §26)
 
@@ -297,7 +302,7 @@ Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, 
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card; topic: the page, its window, live
 changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
-mention glows, inline cards, the image viewer). The app needs idejo with
+mention glows, inline cards, the image viewer, plugin blocks). The app needs idejo with
 callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359 (the home page's Expanded
 view), #360 (Getting started), #361 (Help's commands), #362 (the window's counts), #363
 (tags' categories), #364 (banners) and #368 (roles' slugs) (Steward decisions,
