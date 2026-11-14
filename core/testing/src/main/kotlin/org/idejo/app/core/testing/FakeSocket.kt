@@ -66,6 +66,8 @@ internal class FakeSocket(
             }
         }
 
+    fun isJoined(topic: String): Boolean = joined.containsKey(topic)
+
     fun push(
         topic: String,
         event: String,
@@ -145,6 +147,10 @@ internal class FakeSocket(
 
                 topic.startsWith("topic:") -> {
                     fake.joinTopic(topic.removePrefix("topic:"))
+                }
+
+                topic.startsWith("category:") -> {
+                    fake.joinCategory(topic.removePrefix("category:"))
                 }
 
                 else -> {

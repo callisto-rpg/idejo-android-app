@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<resources>
+    <!-- Read by TalkBack in place of an inline spoiler's hidden words (TV-23). -->
+    <string name="markdown_spoiler">spoiler</string>
+    <string name="markdown_task_done">Done</string>
+    <string name="markdown_task_open">Not done</string>
+    <!-- The whole-message spoiler cover (TV-23), as the web. -->
+    <string name="reveal_spoiler">Reveal spoiler</string>
+</resources>

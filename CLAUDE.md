@@ -90,7 +90,8 @@ core/data/               Repositories, Room database per forum, DataStore, Keyst
                          ForumRegistry (forums held, mode, tokens), drafts
 core/markdown/           idejo dialect parser + Compose renderer (TV-20 to TV-24)
 core/designsystem/       IdejoTheme (forum colours → M3 scheme, TH-02), fonts, components:
-                         TopBar, Breadcrumbs, CategoryMark, Dot, Bubble, TopicRow, Message
+                         TopBar, Breadcrumbs, CategoryMark, Dot, Bubble, TopicRow, Message;
+                         depends on core/model to draw its resources (TopicItem, dots)
 feature/onboarding/      welcome, add forum, sign-in, connect forums (MD, SI)
 feature/shell/           forum frame, logo menu, user menu, left sidebar, right sidebar (SH, RS)
 feature/browse/          home, category, tags, search, unread, rules, help (BR)
@@ -145,7 +146,8 @@ These come from idejo GM-01 to GM-15 and the API guide section 6:
 - **Strings**: every visible string in `res/values/strings.xml` (plurals in `<plurals>`),
   the web's wording from the member guide wherever the web has one. Never hard-coded text.
 - **Colours**: only `MaterialTheme.colorScheme` roles and `IdejoTheme` extras (category,
-  role, dot and bubble colours). Never a literal colour in a feature module (TH-02).
+  role, dot, bubble and inline-link colours, `LinkKind`). Never a literal colour in a
+  feature module (TH-02).
 - **Typography**: Fraunces for titles, Rubik for text, via `IdejoTheme.typography`.
 - **Accessibility**: content descriptions on every icon button, headings marked, 48 dp
   targets, every gesture has a button (AX-04), reduced motion respected.
@@ -241,6 +243,30 @@ Docker image) are added with them.
   loaded stay on screen after signing out; nothing else persists across launches.
 - 2026-11-14 — idejo's socket change goes first in the M1 stack. M1's live features are
   tested against FakeIdejo, which reads the token as idejo does.
+- 2026-11-14 — Getting started (BR-11) is the web's getting-started card, not the welcome
+  card: idejo adds `intro_due` to `GET /me` and `POST /me/intro` (`hide`) (IX-07,
+  callisto-rpg/Idejo#360). `POST /me/welcome` marks the welcome card (Rules & Roles, BR-07).
+- 2026-11-14 — Help (BR-08) reads the `!` commands from `GET /server`'s `commands`, and
+  plugins' `help` (IX-08, callisto-rpg/Idejo#361); the keys, signs and formats are the app's
+  own strings in the web's words.
+- 2026-11-14 — The home page's **View** works as on the web: idejo answers
+  `GET /topics/active?expanded=true` with previews (callisto-rpg/Idejo#359).
+- 2026-11-14 — Inline links (TV-21): idejo gives each mention `source`, how it is written in
+  `body_md`, lowercased, and lists `&forum` links as `forum` mentions
+  (callisto-rpg/Idejo#358). `core/markdown` draws a mention's `text` wherever its `source`
+  stands as a word, ignoring case, outside code and links; on older servers it falls back
+  to `text`. The app never reads the signs `@ + # / $ &` itself.
+- 2026-11-14 — Long topics (TV-05) show "N earlier / N later messages" as the web: idejo's
+  message window counts them, `earlier` and `later` (IX-09, callisto-rpg/Idejo#362).
+- 2026-11-14 — Filter by tag (BR-04) groups the tags as the web: those of every category,
+  then each category's in the home page's order, a tag of several categories under each.
+  idejo lets a tag belong to several categories and `GET /tags` gives `category_ids`
+  (IX-10, callisto-rpg/Idejo#363); tag names stay unique across the server.
+- 2026-11-14 — A message's topics started from it and messages moved away from below it
+  show as the web's thin banners, with **Continue topic** / **Open topic** (steward request
+  to idejo, callisto-rpg/Idejo#364; `moved_after`, IX-11). A poll's emoji shows when the
+  forum names it (`GET /server`'s `emoji` and `default_reactions`); the full emoji list
+  comes with reactions (MA-03).
 
 ## Milestones (spec §26)
 
@@ -253,5 +279,11 @@ Docker image) are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding). The app's socket needs
-idejo with callisto-rpg/Idejo#357 (Steward decisions, 2026-11-14).
+Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
+markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
+welcome and getting-started cards, the user card; topic: the page, its window, live
+changes and catch-up, the read position, replies, forwards, banners, polls; warnings). The
+app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359 (the
+home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
+window's counts), #363 (tags' categories) and #364 (banners) (Steward decisions,
+2026-11-14).

@@ -10,6 +10,7 @@ import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.Warning
 import java.time.Instant
 
 /** How the fake forum is set up. */
@@ -30,6 +31,30 @@ data class FakeSettings(
             tertiary = "#b5523b",
             lightBackground = "#f6f3ea",
             darkBackground = "#1d211b",
+        ),
+    val about: String = "A club for **everyone** who grows things.",
+    val rules: String = "1. Be kind.\n2. No selling.",
+    /** The roles members may give themselves (BR-07). */
+    val roles: List<org.idejo.app.core.model.Role> =
+        listOf(
+            org.idejo.app.core.model
+                .Role("Gardener", id = "r_gardener", colour = "#3f7d3a"),
+            org.idejo.app.core.model
+                .Role("Beekeeper", id = "r_bees", colour = "#b07a00"),
+        ),
+    /** `GET /server`'s `commands` (IX-08). */
+    val commands: List<org.idejo.app.core.model.ServerCommand> =
+        listOf(
+            org.idejo.app.core.model.ServerCommand(
+                "image",
+                "Add an image at the end of your message",
+                "Opens your files.",
+            ),
+            org.idejo.app.core.model.ServerCommand(
+                "poll",
+                "Add a poll under your message",
+                "Asks for a question and its answers.",
+            ),
         ),
 )
 
@@ -55,6 +80,35 @@ internal class TopicRecord(
     var topic: Topic,
     val messages: MutableList<Message> = mutableListOf(),
     var changeSeq: Long = 0,
+)
+
+/** What one member follows, muted and has not read, by topic id. */
+internal class Reader(
+    val followed: MutableSet<String> = linkedSetOf(),
+    val muted: MutableSet<String> = mutableSetOf(),
+    val unread: MutableMap<String, Unseen> = mutableMapOf(),
+) {
+    /** The welcome card seen (BR-07). */
+    var welcomed: Boolean = false
+
+    /** Getting started due (IX-07): set by [FakeIdejo.signedInOnWeb]. */
+    var introDue: Boolean = false
+    var introHidden: Boolean = false
+
+    /** Self-select roles held, by id. */
+    val roles: MutableSet<String> = linkedSetOf()
+
+    /** Warnings not acknowledged yet, oldest first (TV-11). */
+    val warnings: MutableList<Warning> = mutableListOf()
+
+    /** The people ignored, by id (AC-06). */
+    val ignored: MutableSet<String> = mutableSetOf()
+}
+
+/** Unread messages in a topic and the strongest reason (SH-32). */
+internal data class Unseen(
+    val count: Int,
+    val state: org.idejo.app.core.model.MentionState,
 )
 
 /** An author's composer in a topic (API guide §6). */

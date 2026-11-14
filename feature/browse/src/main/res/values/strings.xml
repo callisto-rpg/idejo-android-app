@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- The web's words (idejo's member guide and pages) wherever it has them. -->
+<resources>
+    <!-- Home (BR-01). -->
+    <string name="home_categories">Categories</string>
+    <string name="home_other">Other</string>
+    <string name="home_active">Active topics</string>
+    <plurals name="category_topics">
+        <item quantity="one">1 topic</item>
+        <item quantity="other">%1$d topics</item>
+    </plurals>
+
+    <!-- View (BR-03). -->
+    <string name="view_label">View</string>
+    <string name="view_compact">Compact</string>
+    <string name="view_expanded">Expanded</string>
+
+    <!-- Category page (BR-02). -->
+    <string name="category_empty">No topics yet.</string>
+
+    <!-- Filter by tag (BR-04). -->
+    <string name="tags_title">Filter by tag</string>
+    <string name="tags_intro">Choose one or more tags: the topics carrying all of them (And) or any of them (Or) are listed.</string>
+    <string name="tags_none">No tags yet.</string>
+    <string name="tags_every_category">All categories</string>
+    <string name="tags_show">Show topics</string>
+    <string name="tags_operator">Operator</string>
+    <string name="tags_and">And</string>
+    <string name="tags_or">Or</string>
+    <string name="tags_one">Topics tagged</string>
+    <string name="tags_all">Topics carrying all of these tags</string>
+    <string name="tags_any">Topics carrying any of these tags</string>
+    <string name="tags_none_all">No topics carry all these tags.</string>
+    <string name="tags_none_any">No topics carry any of these tags.</string>
+
+    <!-- Search (BR-05). -->
+    <string name="search_title">Search</string>
+    <string name="search_words">Words to find</string>
+    <string name="search_category">Category</string>
+    <string name="search_all_categories">All categories</string>
+    <string name="search_nothing">Nothing found.</string>
+
+    <!-- Unread (BR-06). -->
+    <string name="unread_title">Unread</string>
+    <string name="unread_following">Following</string>
+    <string name="unread_others">Other topics</string>
+    <string name="unread_nothing">Nothing new since your last visit.</string>
+
+    <!-- Rules & Roles and the welcome card (BR-07). -->
+    <string name="rules_title">Rules &amp; Roles</string>
+    <string name="rules_nothing">Nothing here yet.</string>
+    <string name="rules_about">About</string>
+    <string name="rules_rules">Rules</string>
+    <string name="rules_add_roles">Add roles</string>
+    <string name="rules_roles_hint">Pick the roles that fit you. You can change them later.</string>
+    <string name="rules_save">Save my roles</string>
+    <string name="rules_saved">Welcome! Your roles are saved.</string>
+    <string name="welcome_title">Welcome to %1$s</string>
+    <string name="welcome_continue">Continue</string>
+
+    <!-- Getting started (BR-11). -->
+    <string name="intro_title">Getting started</string>
+    <string name="intro_sidebar">The sidebar</string>
+    <string name="intro_sidebar_follow">Topics you write in are followed automatically and appear in the sidebar.</string>
+    <string name="intro_sidebar_unfollow">To stop following a topic, tap the ×.</string>
+    <string name="intro_sidebar_swipe">Swipe right to reveal the sidebar.</string>
+    <string name="intro_close">Close</string>
+    <string name="intro_hide">Close and hide this in the future</string>
+
+    <!-- Help (BR-08). -->
+    <string name="help_title">Help</string>
+    <string name="help_sending">Sending</string>
+    <string name="help_sending_intro">What you send with Enter joins one growing message, live for everyone, until you start a new one.</string>
+    <string name="help_enter">Sends what you wrote. Keep typing and press Enter again: it joins the same message.</string>
+    <string name="help_new_line_keys">Shift + Enter, or New line</string>
+    <string name="help_new_line">A new line in the box. Nothing is sent.</string>
+    <string name="help_finish_keys">Ctrl + Enter, or Enter ×3</string>
+    <string name="help_finish_brief">Finishes your current message and starts a new one.</string>
+    <string name="help_finish">Finishes your current message and starts a new one. If nobody has replied to your message yet, there will be a longer delay before you are allowed to create a new message.</string>
+    <string name="help_signs">Links and suggestions</string>
+    <string name="help_signs_intro">At the start of a word, these signs open a list of suggestions while you type: tap one.</string>
+    <string name="help_sign_user">username</string>
+    <string name="help_sign_user_text">Mentions someone: they are notified and follow the topic, unless they unfollowed it.</string>
+    <string name="help_sign_role">role</string>
+    <string name="help_sign_role_text">Notifies everyone with that role who can read the topic. Which roles you may tag is set by the administrators.</string>
+    <string name="help_sign_topic">topic</string>
+    <string name="help_sign_topic_text">Links to a topic; once sent, it reads the topic\'s title.</string>
+    <string name="help_sign_category">category</string>
+    <string name="help_sign_category_text">Links to a category.</string>
+    <string name="help_sign_tag">tag</string>
+    <string name="help_sign_tag_text">Links to the topics with that tag.</string>
+    <string name="help_sign_forum">forum</string>
+    <string name="help_sign_forum_text">Links to another forum you joined, when the forums directory lists it; once sent, it reads the forum\'s name.</string>
+    <string name="help_sign_command">command</string>
+    <string name="help_sign_command_text">Runs a command, listed below. What you typed for it leaves the box.</string>
+    <string name="help_commands">Commands</string>
+    <string name="help_commands_intro">Type ! at the start of a word in the box under a topic, then pick a command. The list shows the ones you may use there.</string>
+    <string name="help_plugins">Plugins on this server</string>
+    <string name="help_plugins_intro">Administrators choose which roles may use each one.</string>
+    <string name="help_spoilers">Hiding part of a message</string>
+    <string name="help_spoiler_syntax">||text||</string>
+    <string name="help_spoiler_text">Hides those words until each reader taps them. Quotes, search results and notifications show (spoiler) instead. To hide the whole message, use !spoiler.</string>
+    <string name="help_formatting">Formatting text</string>
+    <string name="help_formatting_intro">Messages are written in Markdown: type these signs around or before your words. They show as below once sent; @, +, #, /, $ and &amp; links are above.</string>
+    <string name="format_bold">Bold.</string>
+    <string name="format_bold_word">bold</string>
+    <string name="format_italics">Italics. One underscore on each side works too.</string>
+    <string name="format_italics_word">italics</string>
+    <string name="format_strike">Struck through.</string>
+    <string name="format_strike_word">struck through</string>
+    <string name="format_highlight">Highlighted.</string>
+    <string name="format_highlight_word">highlighted</string>
+    <string name="format_superscript">Superscript: everything between the two ^ is raised, spaces included.</string>
+    <string name="format_small">Small text, greyed out: at the start of a line, with a space after the #.</string>
+    <string name="format_small_word">small text</string>
+    <string name="format_spoiler">A spoiler: hidden in a topic until each reader taps it. To hide the whole message, use !spoiler.</string>
+    <string name="format_spoiler_word">hidden words</string>
+    <string name="format_code">Code, kept exactly as typed.</string>
+    <string name="format_code_word">code</string>
+    <string name="format_code_block">A block of code: ``` on a line before it and after it.</string>
+    <string name="format_code_block_words">code on\nseveral lines</string>
+    <string name="format_quote">A quote, at the start of a line.</string>
+    <string name="format_quote_word">quoted text</string>
+    <string name="format_list">A list: - or * at the start of each line.</string>
+    <string name="format_list_words">one\ntwo</string>
+    <string name="format_numbered">A numbered list.</string>
+    <string name="format_numbered_words">first\nsecond</string>
+    <string name="format_link">A link. An address typed on its own becomes a link too.</string>
+    <string name="format_link_word">text</string>
+    <string name="format_heading">A heading: one to six # at the start of a line, then a space.</string>
+    <string name="format_heading_word">Heading</string>
+    <string name="format_table">A table: a line of names, a line of dashes, then the rows.</string>
+    <string name="format_emoji">An emoji, by its name between colons.</string>
+    <string name="format_escape">A \\ before a sign shows the sign itself.</string>
+    <string name="format_escape_word">not italics</string>
+
+    <!-- The user card (BR-09). -->
+    <string name="user_roles">Roles</string>
+    <string name="user_ignore">Ignore</string>
+    <string name="user_unignore">Stop ignoring</string>
+    <string name="user_close">Close</string>
+    <string name="user_picture">Picture of %1$s</string>
+
+    <!-- Lists (BR-10). -->
+    <string name="list_could_not_load">Couldn’t load this page.</string>
+    <string name="list_offline">You’re offline. Pull down to try again.</string>
+    <string name="list_try_again">Try again</string>
+</resources>

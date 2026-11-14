@@ -5,6 +5,7 @@
 plugins {
     id("idejo.android.library")
     id("idejo.android.compose")
+    id("idejo.android.screenshots")
 }
 
 android {
@@ -13,4 +14,10 @@ android {
 
 dependencies {
     api(project(":core:model"))
+    implementation(project(":core:designsystem"))
+    implementation(libs.commonmark)
+    implementation(libs.commonmark.gfm.tables)
+    implementation(libs.commonmark.gfm.strikethrough)
+    implementation(libs.commonmark.task.list.items)
+    implementation(libs.commonmark.autolink)
 }

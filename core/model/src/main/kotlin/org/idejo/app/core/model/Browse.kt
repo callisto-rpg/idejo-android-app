@@ -88,6 +88,12 @@ data class ReadPosition(
     @SerialName("message_id") val messageId: String? = null,
 )
 
+/** `PUT /polls/{id}/vote`: the member's answers; none takes the vote back (TV-27). */
+@Serializable
+data class Vote(
+    @SerialName("option_ids") val optionIds: List<String>,
+)
+
 /** `PATCH /topics/{id}`: a new title (TV-10). */
 @Serializable
 data class TopicUpdate(

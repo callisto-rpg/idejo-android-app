@@ -28,17 +28,31 @@ import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.ErrorBody
+import org.idejo.app.core.model.IntroClose
+import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.Poll
+import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
+import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicPreview
+import org.idejo.app.core.model.Unread
+import org.idejo.app.core.model.UnreadCounter
+import org.idejo.app.core.model.UnreadMark
+import org.idejo.app.core.model.UserCard
+import org.idejo.app.core.model.Vote
+import org.idejo.app.core.model.Warning
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
@@ -58,7 +72,7 @@ import java.time.Instant
  * }
  * ```
  */
-@Suppress("TooManyFunctions") // One handler per endpoint.
+@Suppress("TooManyFunctions", "LargeClass") // One handler per endpoint: the API, faked.
 class FakeIdejo(
     val clock: FakeClock = FakeClock(),
     val settings: FakeSettings = FakeSettings(),
@@ -68,8 +82,12 @@ class FakeIdejo(
     private val random = SecureRandom()
     private var nextId = 100L
 
-    private val categories = seedCategories()
+    private val categories = seedCategories().toMutableList()
     private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
+    private val readers = mutableMapOf<String, Reader>()
+
+    /** Each poll's votes: poll id, then person id, then their answers (TV-27). */
+    private val votes = mutableMapOf<String, MutableMap<String, List<String>>>()
     private val composers = mutableMapOf<Pair<String, String>, ComposerRecord>()
     private val tokens = mutableMapOf<String, Person>()
     private val codes = mutableMapOf<String, PendingCode>()
@@ -174,8 +192,150 @@ class FakeIdejo(
         synchronized(lock) {
             val record = requireNotNull(topics[topicId])
             // Through the same rules as the app's own Enters (the full stop included).
-            openMessage(record, person, punctuate(text)).let { close(record, it.id, held = false) }
+            val message =
+                openMessage(record, person, punctuate(text)).let {
+                    close(record, it.id, held = false)
+                }
+            news(record, person)
+            message
         }
+
+    /** [poll] put under message [messageId], as its author's `!poll` would (TV-27). */
+    fun attachPoll(
+        messageId: String,
+        poll: Poll,
+    ) = synchronized(lock) {
+        val record = topics.values.first { r -> r.messages.any { it.id == messageId } }
+        val index = record.messages.indexOfFirst { it.id == messageId }
+        record.messages[index] = record.messages[index].copy(poll = poll)
+    }
+
+    /** What [person] chose in poll [pollId]. */
+    fun votesOf(
+        person: Person,
+        pollId: String,
+    ): List<String> = synchronized(lock) { votes[pollId]?.get(person.id).orEmpty() }
+
+    /** A category added to the forum, as an administrator would. */
+    fun addCategory(category: Category) = synchronized(lock) { categories += category }
+
+    /** A topic [author] started in [categoryId], with its opening message. */
+    fun addTopic(
+        title: String,
+        categoryId: String = "c_veg",
+        author: Person = FakePeople.Leo,
+        tags: List<Tag> = emptyList(),
+    ): Topic =
+        synchronized(lock) {
+            val id = "t_" + nextId++
+            val topic =
+                Topic(
+                    id = id,
+                    title = title,
+                    slug = title.lowercase().replace(' ', '-'),
+                    url = url.resolve("/t/$id")?.toString(),
+                    categoryId = categoryId,
+                    author = author,
+                    createdAt = clock.now,
+                    lastActivityAt = clock.now,
+                    tags = tags,
+                )
+            topics[id] = TopicRecord(topic)
+            openMessage(topics.getValue(id), author, title).let {
+                close(topics.getValue(id), it.id, held = false)
+            }
+            topic
+        }
+
+    /** [person] follows [topicId], as after writing there. */
+    fun follow(
+        person: Person,
+        topicId: String,
+    ) = synchronized(lock) { reader(person).followed += topicId }
+
+    /** What [person] has not read in [topicId]: [count] messages, the strongest [state]. */
+    fun unread(
+        person: Person,
+        topicId: String,
+        count: Int,
+        state: MentionState = MentionState.New,
+    ) = synchronized(lock) {
+        val unread = reader(person).unread
+        if (count == 0) unread.remove(topicId) else unread[topicId] = Unseen(count, state)
+        pushUnread(person)
+    }
+
+    /** [person] new here: the welcome card not seen yet, nor Getting started. */
+    fun newMember(person: Person) =
+        synchronized(lock) {
+            reader(person).welcomed = false
+            reader(person).introDue = false
+        }
+
+    /** [person] has seen the welcome card. */
+    fun welcomed(person: Person) = synchronized(lock) { reader(person).welcomed = true }
+
+    /** [person] signed in on the web, as the app's Custom Tab does: Getting started is due. */
+    fun signedInOnWeb(person: Person) =
+        synchronized(lock) {
+            val reader = reader(person)
+            if (!reader.introHidden) reader.introDue = true
+        }
+
+    /**
+     * A moderator warns [person] about [messageId] (TV-11): waiting until acknowledged, and
+     * the `warning` notification on their user:me channels, as idejo's.
+     */
+    fun warn(
+        person: Person,
+        reason: String,
+        messageId: String? = null,
+    ): Warning =
+        synchronized(lock) {
+            val warning =
+                Warning(
+                    id = "w_" + nextId++,
+                    reason = reason,
+                    messageId = messageId,
+                    createdAt = clock.now,
+                )
+            reader(person).warnings += warning
+            val payload =
+                buildJsonObject {
+                    put("kind", "warning")
+                    put("message_id", messageId)
+                    put("reason", reason)
+                    put("warning_id", warning.id)
+                }
+            socketsOf(person).forEach { it.push("user:me", "notification", payload) }
+            warning
+        }
+
+    /** The warnings [person] has not acknowledged. */
+    fun warningsOf(person: Person): List<Warning> =
+        synchronized(lock) { reader(person).warnings.toList() }
+
+    /** The self-select roles [person] holds, by id. */
+    fun rolesOf(person: Person): Set<String> = synchronized(lock) { reader(person).roles.toSet() }
+
+    /** Whether [person] follows [topicId] on the server. */
+    fun follows(
+        person: Person,
+        topicId: String,
+    ): Boolean = synchronized(lock) { topicId in reader(person).followed }
+
+    /** Whether [person] muted [topicId] on the server. */
+    fun mutes(
+        person: Person,
+        topicId: String,
+    ): Boolean = synchronized(lock) { topicId in reader(person).muted }
+
+    /** Whether a socket of the app joined [channel] (`category:c_veg`, `user:me`…). */
+    fun joined(channel: String): Boolean =
+        synchronized(lock) { sockets.any { it.isJoined(channel) } }
+
+    /** Every socket of the app cut, as a network change would: the app connects again. */
+    fun dropSockets() = synchronized(lock) { sockets.toList() }.forEach { it.close() }
 
     /** A topic's messages as the server has them. */
     fun messages(topicId: String): List<Message> =
@@ -254,7 +414,47 @@ class FakeIdejo(
         listOf(
             Route("GET", "server") { ok(server()) },
             Route("GET", "me") { call -> call.viewer?.let { ok(me(it)) } ?: unauthenticated() },
+            Route("POST", "me/welcome") { call ->
+                member(call) { it.welcomed = true }
+            },
+            Route("POST", "me/intro") { call ->
+                val hide =
+                    IdejoJson
+                        .decodeFromString<IntroClose>(call.request.body?.utf8() ?: "{}")
+                        .hide
+                member(call) { reader ->
+                    reader.introDue = false
+                    if (hide) reader.introHidden = true
+                }
+            },
+            Route("GET", "users/{id}") { call -> card(call.viewer, call["id"]) },
+            Route("PUT", "users/{id}/ignore") { call ->
+                val viewer = call.viewer
+                if (viewer != null && viewer.id != call["id"]) reader(viewer).ignored += call["id"]
+                card(viewer, call["id"])
+            },
+            Route("DELETE", "users/{id}/ignore") { call ->
+                call.viewer?.let { reader(it).ignored -= call["id"] }
+                card(call.viewer, call["id"])
+            },
+            Route("PUT", "me/roles/{id}") { call ->
+                member(call) { reader ->
+                    if (settings.roles.any { it.id == call["id"] }) reader.roles += call["id"]
+                }
+            },
+            Route("DELETE", "me/roles/{id}") { call ->
+                member(call) { it.roles -= call["id"] }
+            },
             Route("GET", "me/communities") { ok(ListBody<Topic>(emptyList())) },
+            Route("GET", "me/warnings") { call ->
+                call.viewer?.let { ok(ListBody(reader(it).warnings.toList())) } ?: unauthenticated()
+            },
+            Route("POST", "me/warnings/acknowledge") { call ->
+                call.viewer?.let {
+                    reader(it).warnings.clear()
+                    status(HTTP_NO_CONTENT)
+                } ?: unauthenticated()
+            },
             Route("GET", "categories") { ok(ListBody(categories.filter { it.permissions.view })) },
             Route(
                 "GET",
@@ -264,18 +464,65 @@ class FakeIdejo(
                 "GET",
                 "categories/{id}/topics",
             ) { call -> categoryTopics(call["id"], call.request) },
-            Route("GET", "topics/active") { ok(ListBody(topics.values.map { it.topic })) },
+            Route("GET", "topics/active") { call ->
+                val expanded = call.request.expanded
+                ok(ListBody(topics.values.map { it.seen(call.viewer, expanded) }))
+            },
+            Route("GET", "tags") {
+                val all = topics.values.flatMap { it.topic.tags }.distinctBy { it.id }
+                ok(ListBody(all))
+            },
+            Route("GET", "topics") { call -> tagged(call.viewer, call.request) },
+            Route("GET", "search") { call -> search(call.viewer, call.request) },
+            Route("GET", "unread") { call ->
+                call.viewer?.let { ok(unreadOf(it)) }
+                    ?: unauthenticated()
+            },
             Route("GET", "topics/{id}") { call ->
-                topics[call["id"]]?.let { ok(it.topic) }
+                topics[call["id"]]?.let { ok(it.topic.seenBy(call.viewer)) }
                     ?: notFound()
             },
-            Route("GET", "topics/{id}/messages") { call -> window(call["id"]) },
+            Route("PUT", "topics/{id}/follow") { call ->
+                reading(call) { reader, id ->
+                    reader.followed += id
+                    reader.muted -= id
+                }
+            },
+            Route("DELETE", "topics/{id}/follow") { call ->
+                reading(call) { reader, id -> reader.followed -= id }
+            },
+            Route("PUT", "topics/{id}/mute") { call ->
+                reading(call) { reader, id ->
+                    reader.muted += id
+                    reader.followed -= id
+                    reader.unread -= id
+                }
+            },
+            Route("DELETE", "topics/{id}/mute") { call ->
+                reading(call) { reader, id -> reader.muted -= id }
+            },
+            Route("POST", "topics/{id}/mark-unread") { call ->
+                reading(call) { reader, id ->
+                    reader.unread[id] = reader.unread[id] ?: Unseen(1, MentionState.New)
+                }
+            },
+            Route("GET", "topics/{id}/messages") { call ->
+                window(call["id"], call.viewer, call.request)
+            },
+            Route("PUT", "topics/{id}/read") { call ->
+                val upTo =
+                    IdejoJson
+                        .decodeFromString<ReadPosition>(call.request.body?.utf8() ?: "{}")
+                        .messageId
+                reading(call) { reader, id -> readTo(reader, id, upTo) }
+            },
             Route("GET", "topics/{id}/changes") { call -> changes(call["id"], call.request) },
             Route("GET", "topics/{id}/pins") { call -> pins(call["id"]) },
             Route(
                 "GET",
                 "messages/{id}",
             ) { call -> findMessage(call["id"])?.let(::ok) ?: notFound() },
+            Route("PUT", "polls/{id}/vote") { call -> vote(call) },
             Route(
                 "GET",
                 "topics/{id}/composer",
@@ -288,6 +535,118 @@ class FakeIdejo(
                 composing(call) { record, person -> commit(record, person, call.request) }
             },
         )
+
+    /** A change to what the viewer follows, mutes or has read in a topic: the topic after. */
+    private fun reading(
+        call: Call,
+        change: (Reader, String) -> Unit,
+    ): MockResponse {
+        val record = topics[call["id"]] ?: return notFound()
+        val person = call.viewer ?: return unauthenticated()
+        change(reader(person), record.topic.id)
+        pushUnread(person)
+        return ok(record.topic.seenBy(person))
+    }
+
+    private fun reader(person: Person): Reader =
+        readers.getOrPut(requireNotNull(person.id)) {
+            Reader()
+        }
+
+    /** The topic as [viewer] sees it: followed, muted, unread. */
+    private fun Topic.seenBy(viewer: Person?): Topic {
+        val reader = viewer?.let(::reader) ?: return this
+        val unseen = reader.unread[id]
+        return copy(
+            followed = id in reader.followed,
+            muted = id in reader.muted,
+            unreadCount = unseen?.count ?: 0,
+            mentionState = unseen?.state ?: MentionState.None,
+        )
+    }
+
+    /** `GET /unread` (BR-06): followed topics with news, then the others. */
+    private fun unreadOf(person: Person): Unread {
+        val reader = reader(person)
+        val seen =
+            topics.values
+                .map { it.topic.seenBy(person) }
+                .filter { it.unreadCount > 0 && !it.muted }
+        val (following, others) = seen.partition { it.followed }
+        return Unread(following, Page(others), counterOf(reader))
+    }
+
+    /** The **Unread** button: replies and mentions counted, the strongest kind named. */
+    private fun counterOf(reader: Reader): UnreadCounter {
+        val strong = reader.unread.values.filter { it.state > MentionState.New }
+        val level =
+            reader.unread.values
+                .maxOfOrNull { it.state }
+                ?.takeIf { it > MentionState.None }
+        return UnreadCounter(strong.sumOf { it.count }, level?.let(::levelName))
+    }
+
+    private fun levelName(state: MentionState): String =
+        when (state) {
+            MentionState.None, MentionState.New -> "new"
+            MentionState.Role -> "role"
+            MentionState.Reply -> "reply"
+            MentionState.Mention -> "mention"
+        }
+
+    /**
+     * A message by [author] in [record]: new for those who follow the topic, and
+     * `topic.activity` on its category's channel (API guide §7).
+     */
+    private fun news(
+        record: TopicRecord,
+        author: Person,
+    ) {
+        readers.forEach { (id, reader) ->
+            if (id == author.id || record.topic.id !in reader.followed) return@forEach
+            val seen = reader.unread[record.topic.id]
+            reader.unread[record.topic.id] =
+                Unseen(
+                    (seen?.count ?: 0) + 1,
+                    maxOf(seen?.state ?: MentionState.New, MentionState.New),
+                )
+            FakePeople.all.firstOrNull { it.id == id }?.let(::pushUnread)
+        }
+        val payload =
+            buildJsonObject {
+                put("topic_id", record.topic.id)
+                put("last_activity_at", clock.now.toString())
+                put("messages_count", record.messages.size)
+            }
+        sockets.forEach {
+            it.push(
+                "category:" + record.topic.categoryId,
+                "topic.activity",
+                payload,
+            )
+        }
+    }
+
+    /** A category channel's join: the category must be visible. */
+    internal fun joinCategory(id: String): JsonObject? =
+        synchronized(lock) { category(id)?.let { JsonObject(emptyMap()) } }
+
+    /** `unread.changed` on [person]'s user:me channels. */
+    private fun pushUnread(person: Person) {
+        val counter = counterOf(reader(person))
+        val payload =
+            buildJsonObject {
+                put("count", counter.count)
+                put("level", counter.level)
+            }
+        socketsOf(person).forEach { it.push("user:me", "unread.changed", payload) }
+    }
+
+    private fun socketsOf(person: Person): List<FakeSocket> =
+        sockets.filter { tokens[it.token]?.id == person.id }
+
+    private fun authenticatedViewer(request: RecordedRequest): Person? =
+        request.headers["Authorization"]?.removePrefix("Bearer ")?.let { tokens[it] }
 
     private fun composing(
         call: Call,
@@ -409,6 +768,10 @@ class FakeIdejo(
             name = settings.name,
             url = url.toString(),
             theme = settings.theme,
+            aboutMd = settings.about,
+            rulesMd = settings.rules,
+            roles = settings.roles,
+            commands = settings.commands,
             settings =
                 ServerSettings(
                     windowSeconds = settings.windowSeconds,
@@ -417,13 +780,48 @@ class FakeIdejo(
                 ),
         )
 
-    private fun me(person: Person): Me =
-        Me(
+    private fun me(person: Person): Me {
+        val reader = reader(person)
+        return Me(
             id = requireNotNull(person.id),
             displayName = person.displayName,
             username = person.username,
             verified = true,
+            roles = settings.roles.filter { it.id in reader.roles },
+            welcomed = reader.welcomed,
+            introDue = reader.introDue && reader.welcomed && !reader.introHidden,
+            warningPending = reader.warnings.isNotEmpty(),
         )
+    }
+
+    /** `GET /users/{id}`: [viewer] may ignore anyone but themselves (AC-06). */
+    private fun card(
+        viewer: Person?,
+        id: String,
+    ): MockResponse {
+        val person = FakePeople.all.firstOrNull { it.id == id } ?: return notFound()
+        return ok(
+            UserCard(
+                id = id,
+                displayName = person.displayName,
+                username = person.username,
+                userTag = person.userTag,
+                colour = person.colour,
+                bioMd = "I grow *tomatoes* and ||secret|| peppers.",
+                ignoredByMe = viewer?.takeIf { it.id != id }?.let { id in reader(it).ignored },
+            ),
+        )
+    }
+
+    /** A change to the signed-in member, answered with `GET /me`. */
+    private fun member(
+        call: Call,
+        change: (Reader) -> Unit,
+    ): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        change(reader(person))
+        return ok(me(person))
+    }
 
     private fun category(id: String): Category? =
         categories.firstOrNull {
@@ -436,7 +834,95 @@ class FakeIdejo(
         request: RecordedRequest,
     ): MockResponse {
         category(id) ?: return notFound()
-        val all = topics.values.map { it.topic }.filter { it.categoryId == id }
+        val viewer = authenticatedViewer(request)
+        val all =
+            topics.values
+                .map { it.seen(viewer, request.expanded) }
+                .filter { it.categoryId == id }
+        return ok(paged(all, request))
+    }
+
+    /** `GET /topics?tags=a,b&operator=or` (BR-04): topics carrying all, or any, of the tags. */
+    private fun tagged(
+        viewer: Person?,
+        request: RecordedRequest,
+    ): MockResponse {
+        val wanted =
+            request.url
+                .queryParameter("tags")
+                .orEmpty()
+                .split(',')
+                .filter { it.isNotBlank() }
+                .toSet()
+        val any = request.url.queryParameter("operator") == "or"
+        val all =
+            topics.values.map { it.topic.seenBy(viewer) }.filter { topic ->
+                val carried = topic.tags.mapNotNull { it.slug }.toSet()
+                if (any) carried.any { it in wanted } else carried.containsAll(wanted)
+            }
+        return ok(paged(all, request))
+    }
+
+    /** `GET /search` (BR-05): messages whose words or topic title hold the query, marked. */
+    private fun search(
+        viewer: Person?,
+        request: RecordedRequest,
+    ): MockResponse {
+        val query =
+            request.url
+                .queryParameter("q")
+                .orEmpty()
+                .trim()
+        val category = request.url.queryParameter("category_id")
+        val hits =
+            topics.values
+                .map { it.topic.seenBy(viewer) to it.messages }
+                .filter { (topic, _) -> category == null || topic.categoryId == category }
+                .flatMap { (topic, messages) ->
+                    messages
+                        .filter {
+                            query.isNotEmpty() &&
+                                it.bodyMd.orEmpty().contains(
+                                    query,
+                                    ignoreCase = true,
+                                )
+                        }.map { message ->
+                            SearchHit(
+                                messageId = message.id,
+                                topicId = topic.id,
+                                topicTitle = topic.title,
+                                categoryId = topic.categoryId,
+                                authorName = message.author.displayName,
+                                excerpt = marked(message.bodyMd.orEmpty(), query),
+                            )
+                        }
+                }
+        return ok(paged(hits, request))
+    }
+
+    /** [text] cut where [query] stands, each match marked. */
+    private fun marked(
+        text: String,
+        query: String,
+    ): List<SearchHit.Segment> {
+        val segments = mutableListOf<SearchHit.Segment>()
+        var from = 0
+        while (true) {
+            val at = text.indexOf(query, from, ignoreCase = true)
+            if (at < 0) break
+            if (at > from) segments += SearchHit.Segment(text.substring(from, at))
+            segments += SearchHit.Segment(text.substring(at, at + query.length), match = true)
+            from = at + query.length
+        }
+        if (from < text.length) segments += SearchHit.Segment(text.substring(from))
+        return segments
+    }
+
+    /** One page of [all] after the request's cursor, at most its `limit`. */
+    private fun <T> paged(
+        all: List<T>,
+        request: RecordedRequest,
+    ): Page<T> {
         val limit =
             request.url
                 .queryParameter("limit")
@@ -446,19 +932,138 @@ class FakeIdejo(
         val from = request.url.queryParameter("cursor")?.let(::decodeCursor) ?: 0
         val page = all.drop(from).take(limit)
         val next = (from + page.size).takeIf { it < all.size }?.let(::encodeCursor)
-        return ok(Page(page, nextCursor = next, prevCursor = null))
+        return Page(page, nextCursor = next, prevCursor = null)
     }
 
-    private fun window(topicId: String): MockResponse {
-        val record = topics[topicId] ?: return notFound()
-        return ok(
-            MessageWindow(
-                data = record.messages.toList(),
-                firstMessage = record.messages.firstOrNull(),
-                cursor = record.changeSeq,
-                total = record.messages.size,
-            ),
+    /** The topic as [viewer] sees it, with its preview when the list asked for one. */
+    private fun TopicRecord.seen(
+        viewer: Person?,
+        expanded: Boolean,
+    ): Topic {
+        val seen = topic.seenBy(viewer)
+        if (!expanded) return seen
+        val writers = messages.map { it.author }.distinctBy { it.id }
+        return seen.copy(
+            preview =
+                TopicPreview(
+                    firstExcerpt = messages.firstOrNull()?.bodyMd,
+                    latest =
+                        messages.drop(1).takeLast(PREVIEW_LATEST).map {
+                            LatestMessage(it.id, it.author.displayName, it.bodyMd)
+                        },
+                    writers = writers,
+                    writersCount = writers.size,
+                ),
         )
+    }
+
+    private val RecordedRequest.expanded: Boolean
+        get() = url.queryParameter("expanded") == "true"
+
+    /**
+     * `GET /topics/{id}/messages` as idejo answers it: the end, `around` a message, the first
+     * unread (`first_unread=true`), or a page from a cursor (`before:<id>`, `after:<id>`;
+     * idejo's are opaque and signed), with `earlier` and `later` counted (IX-09).
+     */
+    private fun window(
+        topicId: String,
+        viewer: Person?,
+        request: RecordedRequest,
+    ): MockResponse {
+        val record = topics[topicId] ?: return notFound()
+        val all = record.messages.toList()
+        val query = request.url
+        val limit = query.queryParameter("limit")?.toIntOrNull()?.coerceIn(1, MAX_PAGE)
+        val unseen = viewer?.let { reader(it).unread[topicId] }
+        val firstUnread =
+            unseen?.let { all.getOrNull((all.size - it.count).coerceAtLeast(0)) }
+        val cursor = query.queryParameter("cursor")
+        val around =
+            query.queryParameter("around")
+                ?: firstUnread?.id?.takeIf { query.queryParameter("first_unread") == "true" }
+        val range: IntRange =
+            when {
+                cursor != null -> {
+                    pageRange(all, cursor, limit ?: DEFAULT_PAGE)
+                        ?: return error(HTTP_BAD_REQUEST, "bad_cursor", "Bad cursor.")
+                }
+
+                around != null -> {
+                    aroundRange(all, around) ?: return notFound()
+                }
+
+                else -> {
+                    (all.size - (limit ?: DEFAULT_PAGE)).coerceAtLeast(0)..all.lastIndex
+                }
+            }
+        return ok(windowOf(record, range, firstUnread?.let { UnreadMark(it.id, unseen.count) }))
+    }
+
+    /** The window over [range] of [record]'s messages, cursors and counts with it. */
+    private fun windowOf(
+        record: TopicRecord,
+        range: IntRange,
+        firstUnread: UnreadMark?,
+    ): MessageWindow {
+        val all = record.messages.toList()
+        val data = all.slice(range)
+        if (data.isEmpty()) return MessageWindow(cursor = record.changeSeq)
+        return MessageWindow(
+            data = data,
+            firstMessage = all.first(),
+            firstUnread = firstUnread,
+            nextCursor = data.last().takeIf { it != all.last() }?.let { "after:${it.id}" },
+            prevCursor = data.first().takeIf { it != all.first() }?.let { "before:${it.id}" },
+            cursor = record.changeSeq,
+            total = all.size,
+            earlier = (range.first - 1).coerceAtLeast(0),
+            later = all.lastIndex - range.last,
+        )
+    }
+
+    /** The page a cursor names: [n] messages `before:<id>` or `after:<id>`. */
+    private fun pageRange(
+        all: List<Message>,
+        cursor: String,
+        n: Int,
+    ): IntRange? {
+        val (side, id) = cursor.split(":", limit = 2).takeIf { it.size == 2 } ?: return null
+        val at = all.indexOfFirst { it.id == id }.takeIf { it >= 0 } ?: return null
+        return if (side ==
+            "before"
+        ) {
+            (at - n).coerceAtLeast(0) until at
+        } else {
+            at + 1..minOf(at + n, all.lastIndex)
+        }
+    }
+
+    /** idejo's window around a message: [WINDOW_BEFORE] before it, [WINDOW_AFTER] after. */
+    private fun aroundRange(
+        all: List<Message>,
+        id: String,
+    ): IntRange? {
+        val at = all.indexOfFirst { it.id == id }.takeIf { it >= 0 } ?: return null
+        return (at - WINDOW_BEFORE).coerceAtLeast(0)..minOf(at + WINDOW_AFTER, all.lastIndex)
+    }
+
+    /** `PUT /topics/{id}/read`: read up to [messageId], or the whole topic. */
+    private fun readTo(
+        reader: Reader,
+        topicId: String,
+        messageId: String?,
+    ) {
+        val unseen = reader.unread[topicId] ?: return
+        val all = topics.getValue(topicId).messages
+        val at = messageId?.let { id -> all.indexOfFirst { it.id == id } } ?: all.lastIndex
+        val left = minOf(unseen.count, all.lastIndex - at)
+        if (left <=
+            0
+        ) {
+            reader.unread.remove(topicId)
+        } else {
+            reader.unread[topicId] = unseen.copy(count = left)
+        }
     }
 
     private fun changes(
@@ -487,6 +1092,36 @@ class FakeIdejo(
         val page = changed.take(limit)
         val cursor = page.lastOrNull()?.cursor ?: since
         return ok(Changes(page, cursor, more = changed.size > page.size, topic = record.topic))
+    }
+
+    /** `PUT /polls/{id}/vote`: the poll as the voter now sees it; none after it closed. */
+    private fun vote(call: Call): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val poll =
+            topics.values
+                .flatMap { it.messages }
+                .firstNotNullOfOrNull { m -> m.poll?.takeIf { it.id == call["id"] } }
+                ?: return notFound()
+        if (poll.closed) return error(HTTP_CONFLICT, "poll_closed", "This poll is closed.")
+        val chosen =
+            IdejoJson.decodeFromString<Vote>(call.request.body?.utf8() ?: "{}").optionIds
+        val ballots = votes.getOrPut(poll.id) { mutableMapOf() }
+        val voter = requireNotNull(person.id)
+        if (chosen.isEmpty()) ballots.remove(voter) else ballots[voter] = chosen
+        val shown = !poll.hiddenUntilClosed
+        return ok(
+            poll.copy(
+                myVotes = chosen,
+                resultsShown = shown,
+                total = if (shown) ballots.size else null,
+                options =
+                    poll.options.map { option ->
+                        option.copy(
+                            count = if (shown) ballots.values.count { option.id in it } else null,
+                        )
+                    },
+            ),
+        )
     }
 
     private fun findMessage(id: String): Message? =
@@ -791,6 +1426,11 @@ class FakeIdejo(
         val CODE_LIFETIME: Duration = Duration.ofSeconds(60)
         const val DEFAULT_PAGE = 50
         const val MAX_PAGE = 100
+
+        /** idejo's Normal sizes: messages before and after the landing one. */
+        const val WINDOW_BEFORE = 10
+        const val WINDOW_AFTER = 30
+        const val PREVIEW_LATEST = 3
         const val ID_BYTES = 8
         const val HTTP_OK = 200
         const val HTTP_NO_CONTENT = 204

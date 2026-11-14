@@ -4,6 +4,8 @@
 // Home, category, tags, search, unread, rules, help (BR).
 plugins {
     id("idejo.android.feature")
+    id("idejo.android.hilt")
+    id("idejo.android.screenshots")
 }
 
 android {
@@ -12,4 +14,9 @@ android {
 
 dependencies {
     implementation(project(":core:data"))
+    implementation(project(":core:markdown"))
+    implementation(libs.androidx.hilt.viewmodel.compose)
+    implementation(libs.coil.compose)
+
+    testImplementation(project(":core:testing"))
 }

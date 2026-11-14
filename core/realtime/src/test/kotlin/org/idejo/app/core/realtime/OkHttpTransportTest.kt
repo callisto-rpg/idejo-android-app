@@ -36,6 +36,7 @@ class OkHttpTransportTest {
     @Test
     fun `SI-04 the token goes as Phoenix's auth_token, never in the address`() {
         val opened = CountDownLatch(1)
+        val closed = CountDownLatch(1)
         server.enqueue(
             MockResponse
                 .Builder()
@@ -46,6 +47,16 @@ class OkHttpTransportTest {
                             response: Response,
                         ) {
                             opened.countDown()
+                        }
+
+                        // Answers the client's close, so the server can shut down at once.
+                        override fun onClosing(
+                            webSocket: WebSocket,
+                            code: Int,
+                            reason: String,
+                        ) {
+                            webSocket.close(code, null)
+                            closed.countDown()
                         }
                     },
                 ).build(),
@@ -73,6 +84,7 @@ class OkHttpTransportTest {
         assertEquals("idj_~~~?", encoded.decodeBase64()?.utf8())
         assertTrue(encoded.contains('+') || encoded.contains('/'))
         connection?.close(1000, "bye")
+        assertTrue(closed.await(5, TimeUnit.SECONDS))
     }
 
     @Test

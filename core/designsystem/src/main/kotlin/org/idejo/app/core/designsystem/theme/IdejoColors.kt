@@ -41,6 +41,27 @@ enum class BubbleKind {
     Reaction,
 }
 
+/** What an inline link in a message leads to, each with its own hue (TV-22). */
+enum class LinkKind {
+    /** `@user`: the forum's primary. */
+    User,
+
+    /** `+role`: amber, the web's warning hue. */
+    Role,
+
+    /** `#topic`: the forum's tertiary (the web's accent). */
+    Topic,
+
+    /** `/category`: sky blue, the web's info hue. */
+    Category,
+
+    /** `$tag`: green, the web's success hue. */
+    Tag,
+
+    /** `&forum`: the forum's secondary. */
+    Forum,
+}
+
 /**
  * idejo's colours beyond Material's roles (CLAUDE.md → Conventions): the dots, the bubbles,
  * slow mode and the composer's unsent text, plus role and category colours made readable on
@@ -57,6 +78,7 @@ data class IdejoColors(
     val slowModeContainer: Color,
     val onSlowModeContainer: Color,
     val unsentHighlight: Color,
+    private val linkHues: Map<LinkKind, Color>,
     private val backgrounds: List<Color>,
     private val fallbackName: Color,
 ) {
@@ -76,6 +98,12 @@ data class IdejoColors(
             BubbleKind.Mention -> dotMention
             BubbleKind.Reaction -> bubbleReaction
         }
+
+    /** The hue of an inline link of [kind] (TV-22), for its tint and hairline. */
+    fun linkHue(kind: LinkKind): Color = linkHues.getValue(kind)
+
+    /** The text of an inline link of [kind]: its hue, readable on this forum's backgrounds. */
+    fun linkText(kind: LinkKind): Color = readableOn(linkHue(kind), backgrounds)
 
     /**
      * A display name in its role's colour (TH-05, TV-02), nudged until it reads at 4.5:1 on
@@ -109,6 +137,15 @@ fun idejoColors(
         slowModeContainer = if (dark) Color(0xFF4A2C10) else Color(0xFFFBE8D4),
         onSlowModeContainer = if (dark) Color(0xFFFFD3A6) else Color(0xFF8A4300),
         unsentHighlight = scheme.primary.copy(alpha = if (dark) UNSENT_DARK else UNSENT_LIGHT),
+        linkHues =
+            mapOf(
+                LinkKind.User to scheme.primary,
+                LinkKind.Role to if (dark) Color(0xFFF2B53A) else Color(0xFFB07A00),
+                LinkKind.Topic to scheme.tertiary,
+                LinkKind.Category to if (dark) Color(0xFF5CC3F0) else Color(0xFF0B7FB5),
+                LinkKind.Tag to if (dark) Color(0xFF55D29A) else Color(0xFF1E8A5A),
+                LinkKind.Forum to scheme.secondary,
+            ),
         backgrounds = listOf(scheme.background, scheme.surface, scheme.surfaceContainerHighest),
         fallbackName = scheme.onBackground,
     )

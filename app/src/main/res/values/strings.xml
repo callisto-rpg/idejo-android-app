@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 <resources>
     <string name="app_name" translatable="false">idejo</string>
-    <string name="sign_in">Sign in</string>
-    <string name="sign_out">Sign out</string>
-    <string name="remove_forum">Remove this forum</string>
+    <!-- The pages of browsing and the topic page come with the next pull requests of M1. -->
+    <string name="page_pending">This page comes with a later part of this version.</string>
+    <string name="no_browser">No browser can open this page.</string>
 </resources>

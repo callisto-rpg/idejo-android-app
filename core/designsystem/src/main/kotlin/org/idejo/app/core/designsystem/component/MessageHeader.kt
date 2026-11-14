@@ -25,6 +25,10 @@ fun MessageHeader(
     displayName: String,
     time: String,
     modifier: Modifier = Modifier,
+    /** The name's own actions (a tap opens the user card). */
+    nameModifier: Modifier = Modifier,
+    /** The time's own actions (a long press copies the permalink). */
+    timeModifier: Modifier = Modifier,
     userTag: String? = null,
     role: String? = null,
     roleColor: Color? = null,
@@ -44,7 +48,7 @@ fun MessageHeader(
         ) {
             Text(
                 displayName,
-                Modifier.weight(1f, fill = false),
+                nameModifier.weight(1f, fill = false),
                 color = IdejoTheme.colors.roleName(roleColor),
                 style = IdejoTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -58,6 +62,12 @@ fun MessageHeader(
                 Text(role, color = soft, style = IdejoTheme.typography.labelMedium, maxLines = 1)
             }
         }
-        Text(time, color = soft, style = IdejoTheme.typography.labelMedium, maxLines = 1)
+        Text(
+            time,
+            timeModifier,
+            color = soft,
+            style = IdejoTheme.typography.labelMedium,
+            maxLines = 1,
+        )
     }
 }

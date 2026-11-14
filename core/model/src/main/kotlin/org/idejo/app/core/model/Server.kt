@@ -20,6 +20,8 @@ data class Server(
     val emoji: List<Emoji> = emptyList(),
     @SerialName("default_reactions") val defaultReactions: List<Emoji> = emptyList(),
     val plugins: List<PluginInfo> = emptyList(),
+    /** Every built-in `!` command, for Help (IX-08); empty from older servers. */
+    val commands: List<ServerCommand> = emptyList(),
     /** The forum's colours (TH-01, idejo IX-01); null until the server sends them. */
     val theme: ServerTheme? = null,
 )
@@ -60,4 +62,14 @@ data class PluginInfo(
     val description: String? = null,
     val argument: String? = null,
     val block: Boolean = false,
+    /** What the Help page says of it (IX-08). */
+    val help: String? = null,
+)
+
+/** A built-in `!` command as the Help page words it (BR-08, IX-08). */
+@Serializable
+data class ServerCommand(
+    val name: String,
+    val detail: String? = null,
+    val help: String? = null,
 )

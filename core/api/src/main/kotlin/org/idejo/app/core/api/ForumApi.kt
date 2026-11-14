@@ -16,10 +16,12 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
@@ -28,6 +30,7 @@ import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UserCard
+import org.idejo.app.core.model.Vote
 import org.idejo.app.core.model.Warning
 import retrofit2.HttpException
 import retrofit2.Retrofit
@@ -86,7 +89,9 @@ class ForumApi(
         limit: Int? = null,
     ): ApiResult<Page<Topic>> = call { categoryTopics(id, cursor, limit, expanded.takeIf { it }) }
 
-    suspend fun activeTopics(): ApiResult<List<Topic>> = call { activeTopics().data }
+    /** The home page's active topics; [expanded] adds previews (idejo 0.3.13, BR-03). */
+    suspend fun activeTopics(expanded: Boolean = false): ApiResult<List<Topic>> =
+        call { activeTopics(expanded.takeIf { it }).data }
 
     suspend fun topic(id: String): ApiResult<Topic> = call { topic(id) }
 
@@ -156,8 +161,11 @@ class ForumApi(
             acknowledgeWarnings().let { if (!it.isSuccessful) throw HttpException(it) }
         }
 
-    /** Getting started closed for good (BR-11). */
+    /** The welcome card (About, Rules, roles) seen (BR-07). */
     suspend fun welcome(): ApiResult<Me> = call { welcome() }
+
+    /** Getting started closed: until the next sign-in, or with [hide] for good (BR-11). */
+    suspend fun intro(hide: Boolean): ApiResult<Me> = call { intro(IntroClose(hide)) }
 
     /** A self-select role taken or left (BR-07). */
     suspend fun role(
@@ -173,6 +181,12 @@ class ForumApi(
         topicId: String,
         messageId: String? = null,
     ): ApiResult<Topic> = call { read(topicId, ReadPosition(messageId)) }
+
+    /** Votes, changes or takes back (no [optionIds]) a vote (TV-27). */
+    suspend fun vote(
+        pollId: String,
+        optionIds: List<String>,
+    ): ApiResult<Poll> = call { vote(pollId, Vote(optionIds)) }
 
     suspend fun follow(
         topicId: String,

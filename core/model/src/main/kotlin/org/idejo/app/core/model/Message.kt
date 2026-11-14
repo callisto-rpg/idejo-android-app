@@ -46,6 +46,8 @@ data class Message(
     val anonymous: Boolean = false,
     @SerialName("continues_topic_id") val continuesTopicId: String? = null,
     @SerialName("continued_in") val continuedIn: List<Continuation> = emptyList(),
+    /** Messages moved away from below this one (TP-15, IX-11; idejo 0.3.13). */
+    @SerialName("moved_after") val movedAfter: List<MovedAway> = emptyList(),
     /** The change cursor (catch-up, API guide §7). */
     val cursor: Long = 0,
     @SerialName("opened_at") val openedAt: Time? = null,
@@ -72,11 +74,25 @@ data class Continuation(
     val title: String,
 )
 
-/** An inline link: `type` is `user`, `role`, `topic`, `category`, `tag` or one added later. */
+/** [count] messages a moderator moved to topic [topicId], a new one when [newTopic]. */
+@Serializable
+data class MovedAway(
+    @SerialName("topic_id") val topicId: String,
+    val title: String,
+    val count: Int = 0,
+    @SerialName("new_topic") val newTopic: Boolean = false,
+)
+
+/**
+ * An inline link: `type` is `user`, `role`, `topic`, `category`, `tag`, `forum` or one added
+ * later. [text] is what readers see; [source] how it is written in `body_md`, lowercased
+ * (idejo 0.3.13; null before, when the link reads as typed only for `@user`).
+ */
 @Serializable
 data class Mention(
     val type: String,
     val text: String,
+    val source: String? = null,
     val id: String? = null,
     val slug: String? = null,
     val name: String? = null,
@@ -162,6 +178,10 @@ data class MessageWindow(
     @SerialName("prev_cursor") val prevCursor: String? = null,
     val cursor: Long = 0,
     val total: Int = 0,
+    /** Messages before the window, [firstMessage] left out (IX-09); null on older servers. */
+    val earlier: Int? = null,
+    /** Messages after the window (IX-09); null on older servers. */
+    val later: Int? = null,
 )
 
 @Serializable

@@ -17,7 +17,7 @@ max_line_length = 100
 # Composables are named like types (PascalCase).
 ktlint_function_naming_ignore_when_annotated_with = Composable
 # Compose rules (io.nlopez.compose.rules): the theme object is IdejoTheme.
-compose_allowed_composition_locals = LocalIdejoColors,LocalReducedMotion
+compose_allowed_composition_locals = LocalIdejoColors,LocalReducedMotion,LocalDarkTheme
 
 [*.{yml,yaml,toml,xml,json}]
 indent_size = 2
