@@ -460,6 +460,7 @@ falls back as stated.
 | IX-07 | `GET /me` says `intro_due`; `POST /me/intro` (`hide`) closes the getting-started card as the web's `POST /intro` (callisto-rpg/Idejo#360) | BR-11 | No Getting started card |
 | IX-08 | `GET /server` lists `commands` (name, detail, help) as the Help page words them, and each plugin's `help` (callisto-rpg/Idejo#361) | BR-08 | Help without its list of commands |
 | IX-09 | `GET /topics/{id}/messages` counts the messages before and after the window, `earlier` and `later`, the opening message left out (callisto-rpg/Idejo#362) | TV-05 | Earlier and later links without a number |
+| IX-10 | A tag may belong to several categories; `GET /tags` gives each tag its `category_ids` (empty: every category), as the web groups Filter by tag (callisto-rpg/Idejo#363) | BR-04 | One list of tags, without categories |
 
 ## 23. Non-functional requirements
 

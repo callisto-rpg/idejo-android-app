@@ -258,6 +258,10 @@ Docker image) are added with them.
   to `text`. The app never reads the signs `@ + # / $ &` itself.
 - 2026-11-14 — Long topics (TV-05) show "N earlier / N later messages" as the web: idejo's
   message window counts them, `earlier` and `later` (IX-09, callisto-rpg/Idejo#362).
+- 2026-11-14 — Filter by tag (BR-04) groups the tags as the web: those of every category,
+  then each category's in the home page's order, a tag of several categories under each.
+  idejo lets a tag belong to several categories and `GET /tags` gives `category_ids`
+  (IX-10, callisto-rpg/Idejo#363); tag names stay unique across the server.
 
 ## Milestones (spec §26)
 
@@ -274,4 +278,5 @@ Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, 
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card). The app needs idejo with callisto-rpg/Idejo#357 (the
 socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting started),
-#361 (Help's commands) and #362 (the window's counts) (Steward decisions, 2026-11-14).
+#361 (Help's commands), #362 (the window's counts) and #363 (tags' categories) (Steward
+decisions, 2026-11-14).
