@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- App settings → About (ST-23). -->
+    <string name="about_app">idejo for Android</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_licence">Free software under the Apache License 2.0.</string>
+    <string name="about_licences">Open-source licences</string>
+    <string name="about_bundled">Fonts and icons</string>
+    <string name="about_licence_unknown">Licence not stated</string>
+    <string name="about_bundled_fraunces" translatable="false">Fraunces · OFL-1.1</string>
+    <string name="about_bundled_rubik" translatable="false">Rubik · OFL-1.1</string>
+    <string name="about_bundled_symbols" translatable="false">Material Symbols · Apache-2.0</string>
+    <string name="about_bundled_logo" translatable="false">idejo logo · CC-BY-4.0</string>
+</resources>

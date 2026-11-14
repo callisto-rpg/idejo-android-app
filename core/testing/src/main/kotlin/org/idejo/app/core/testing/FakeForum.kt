@@ -57,6 +57,19 @@ internal class TopicRecord(
     var changeSeq: Long = 0,
 )
 
+/** What one member follows, muted and has not read, by topic id. */
+internal class Reader(
+    val followed: MutableSet<String> = linkedSetOf(),
+    val muted: MutableSet<String> = mutableSetOf(),
+    val unread: MutableMap<String, Unseen> = mutableMapOf(),
+)
+
+/** Unread messages in a topic and the strongest reason (SH-32). */
+internal data class Unseen(
+    val count: Int,
+    val state: org.idejo.app.core.model.MentionState,
+)
+
 /** An author's composer in a topic (API guide §6). */
 internal class ComposerRecord(
     var openMessageId: String? = null,

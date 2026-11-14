@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,7 +46,9 @@ class MainActivity : ComponentActivity() {
 
                 is Launch.Forum -> {
                     val record by current.session.record.collectAsStateWithLifecycle()
-                    IdejoTheme(record.forumTheme(), record.dark()) { ForumHome(current.session) }
+                    IdejoTheme(record.forumTheme(), record.dark()) {
+                        key(current.session) { ForumApp(current.session) }
+                    }
                 }
             }
         }

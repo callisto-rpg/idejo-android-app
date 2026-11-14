@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- Breadcrumbs (SH-02). -->
+    <string name="place_unread">Unread</string>
+    <string name="place_tags">Filter by tag</string>
+    <string name="place_search">Search</string>
+    <string name="place_rules">Rules &amp; Roles</string>
+    <string name="place_help">Help</string>
+    <string name="place_app_settings">App settings</string>
+    <string name="sign_in">Sign in</string>
+    <string name="close">Close</string>
+
+    <!-- Left sidebar (SH-30 to SH-38), in the member guide's words. -->
+    <string name="sidebar_title">Sidebar</string>
+    <string name="sidebar_all_categories">All categories</string>
+    <string name="sidebar_all">All</string>
+    <string name="sidebar_roll_up">Roll up into icons</string>
+    <string name="sidebar_unroll">Show the names</string>
+    <string name="sidebar_fold">Show only topics with new messages</string>
+    <string name="sidebar_unfold">Show every topic you follow</string>
+    <plurals name="sidebar_more_topics">
+        <item quantity="one">%1$d more topic</item>
+        <item quantity="other">%1$d more topics</item>
+    </plurals>
+    <string name="sidebar_unfollow">Unfollow %1$s</string>
+    <string name="sidebar_follow">Follow %1$s</string>
+    <string name="sidebar_could_not_load">The sidebar could not be loaded.</string>
+    <string name="sidebar_try_again">Try again</string>
+
+    <!-- A topic's menu (SH-37). -->
+    <string name="topic_menu_follow">Follow</string>
+    <string name="topic_menu_unfollow">Unfollow</string>
+    <string name="topic_menu_unfollow_mute">Unfollow &amp; mute</string>
+    <string name="topic_menu_mark_unread">Mark unread</string>
+    <string name="topic_menu_copy_link">Copy link</string>
+    <string name="topic_menu_share">Share</string>
+    <string name="topic_menu_link_copied">Link copied</string>
+
+    <!-- Logo menu (SH-10, SH-11, SH-14). -->
+    <string name="logo_menu_this_forum">This forum</string>
+    <string name="logo_menu_home">Home</string>
+    <string name="logo_menu_share">Share link</string>
+    <string name="logo_menu_add_forum">Add a forum</string>
+    <string name="logo_menu_single_forum">The app is %1$s’s app and holds no other forum. To read another forum here, remove this one under Accounts, in the menu under your name, then enter the other forum’s address.</string>
+
+    <!-- User menu (SH-20 to SH-25). -->
+    <string name="user_menu_open">Your account</string>
+    <string name="user_menu_visitor">Reading as a visitor</string>
+    <string name="user_menu_tag">\@%1$s</string>
+    <string name="user_menu_theme">Theme</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="user_menu_tutorial">Tutorial bubbles</string>
+    <string name="tutorial_all">All</string>
+    <string name="tutorial_simple">Simple</string>
+    <string name="tutorial_off">Off</string>
+    <string name="user_menu_app_settings">App settings</string>
+    <string name="user_menu_accounts">Accounts</string>
+    <string name="user_menu_admin">Admin</string>
+    <string name="user_menu_sign_out">Sign out</string>
+    <string name="user_menu_sign_in">Sign in</string>
+    <string name="user_menu_sign_up">Sign up</string>
+    <string name="user_menu_back">Back</string>
+
+    <!-- Accounts (SH-23). -->
+    <string name="accounts_signed_in_as">Signed in as %1$s</string>
+    <string name="accounts_signed_out">Not signed in</string>
+    <string name="accounts_remove">Remove from app</string>
+    <string name="accounts_remove_title">Remove %1$s from the app?</string>
+    <string name="accounts_remove_text">You will be signed out of it on this device. You can add it again with its address.</string>
+    <string name="accounts_remove_confirm">Remove</string>
+    <string name="cancel">Cancel</string>
+    <string name="no_browser">No browser can open this page.</string>
+</resources>

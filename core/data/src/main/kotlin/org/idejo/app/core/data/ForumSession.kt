@@ -4,8 +4,11 @@
 package org.idejo.app.core.data
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -94,6 +97,14 @@ class ForumSession internal constructor(
         )
     val events: ForumEvents = ForumEvents(socket)
 
+    private val mutableUserEvents = MutableSharedFlow<IdejoEvent>(extraBufferCapacity = EVENTS)
+
+    /**
+     * The `user:me` channel's events while signed in (`unread.changed`, notifications…). The
+     * session joins it once; screens listen here instead of joining it again.
+     */
+    val userEvents: SharedFlow<IdejoEvent> = mutableUserEvents.asSharedFlow()
+
     val name: String get() = mutableRecord.value.name
     val origin: String get() = mutableRecord.value.origin
 
@@ -136,6 +147,7 @@ class ForumSession internal constructor(
         val user = events.user()
         scope.launch {
             user.events.collect { event ->
+                mutableUserEvents.emit(event)
                 when (event) {
                     is IdejoEvent.TokenRevoked -> signedOut()
                     is IdejoEvent.SettingsChanged -> refreshServer()
@@ -162,5 +174,6 @@ class ForumSession internal constructor(
     private companion object {
         const val DEFAULT_BASE = "/api/v1"
         const val DEFAULT_SOCKET = "/api/v1/socket"
+        const val EVENTS = 64
     }
 }

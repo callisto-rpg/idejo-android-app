@@ -1,0 +1,112 @@
+// SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package org.idejo.app
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import org.idejo.app.core.data.ForumSession
+import org.idejo.app.feature.onboarding.AccessNotice
+import org.idejo.app.feature.onboarding.AccessViewModel
+import org.idejo.app.feature.onboarding.rememberSignInAgain
+import org.idejo.app.feature.settings.AppSettingsRoute
+import org.idejo.app.feature.shell.ForumFrame
+import org.idejo.app.feature.shell.Place
+
+/**
+ * The open forum: its pages in the frame (spec §6), one back stack per forum. The pages of
+ * browsing (BR) and the topic page (TV) come with the next pull requests of M1.
+ */
+@Composable
+fun ForumApp(
+    session: ForumSession,
+    modifier: Modifier = Modifier,
+    access: AccessViewModel = hiltViewModel(),
+) {
+    // A new back stack for each forum and each sign-in (SessionManager opens a new session).
+    val navigation = rememberNavController()
+    val entry by navigation.currentBackStackEntryAsState()
+    val signIn = rememberSignInAgain(access)
+    LaunchedEffect(session) { session.refreshServer() }
+    ForumFrame(
+        place = entry?.place() ?: Place.Home,
+        onNavigate = { navigation.go(it) },
+        onSignIn = signIn,
+        modifier = modifier,
+    ) {
+        NavHost(navigation, startDestination = Place.Home) {
+            composable<Place.Home> { Page(session, signIn) }
+            composable<Place.Category> { Page(session, signIn) }
+            composable<Place.Topic> { Page(session, signIn) }
+            composable<Place.Unread> { Page(session, signIn) }
+            composable<Place.Tags> { Page(session, signIn) }
+            composable<Place.Search> { Page(session, signIn) }
+            composable<Place.Rules> { Page(session, signIn) }
+            composable<Place.Help> { Page(session, signIn) }
+            composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
+        }
+    }
+}
+
+/** Home is the start of the back stack; going there again pops back to it. */
+private fun NavHostController.go(place: Place) {
+    if (place == Place.Home) {
+        popBackStack(Place.Home, inclusive = false)
+    } else {
+        navigate(place) { launchSingleTop = true }
+    }
+}
+
+private fun NavBackStackEntry.place(): Place? =
+    when {
+        destination.hasRoute<Place.Category>() -> toRoute<Place.Category>()
+        destination.hasRoute<Place.Topic>() -> toRoute<Place.Topic>()
+        else -> SIMPLE.firstOrNull { destination.hasRoute(it::class) }
+    }
+
+private val SIMPLE =
+    listOf(
+        Place.Home,
+        Place.Unread,
+        Place.Tags,
+        Place.Search,
+        Place.Rules,
+        Place.Help,
+        Place.AppSettings,
+    )
+
+/** A page until browsing comes: the forum's SI-09 and SI-10 notices, and its name. */
+@Composable
+private fun Page(
+    session: ForumSession,
+    signIn: () -> Unit,
+) {
+    val state by session.access.collectAsStateWithLifecycle()
+    Column(
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        AccessNotice(state, session.name, onSignInAgain = signIn)
+        Text(stringResource(R.string.page_pending), style = MaterialTheme.typography.bodyLarge)
+    }
+}

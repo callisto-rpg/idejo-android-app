@@ -44,6 +44,12 @@ android {
     }
 }
 
+// The licence check's report ships in the app, for App settings → Open-source licences (ST-23).
+licensee {
+    bundleAndroidAsset.set(true)
+    androidAssetReportPath.set("licences.json")
+}
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:data"))
@@ -63,6 +69,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.hilt.viewmodel.compose)
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 }

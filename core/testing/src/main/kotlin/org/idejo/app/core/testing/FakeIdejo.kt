@@ -30,6 +30,7 @@ import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.ErrorBody
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
@@ -39,6 +40,8 @@ import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.Unread
+import org.idejo.app.core.model.UnreadCounter
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
@@ -58,7 +61,7 @@ import java.time.Instant
  * }
  * ```
  */
-@Suppress("TooManyFunctions") // One handler per endpoint.
+@Suppress("TooManyFunctions", "LargeClass") // One handler per endpoint: the API, faked.
 class FakeIdejo(
     val clock: FakeClock = FakeClock(),
     val settings: FakeSettings = FakeSettings(),
@@ -68,8 +71,9 @@ class FakeIdejo(
     private val random = SecureRandom()
     private var nextId = 100L
 
-    private val categories = seedCategories()
+    private val categories = seedCategories().toMutableList()
     private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
+    private val readers = mutableMapOf<String, Reader>()
     private val composers = mutableMapOf<Pair<String, String>, ComposerRecord>()
     private val tokens = mutableMapOf<String, Person>()
     private val codes = mutableMapOf<String, PendingCode>()
@@ -174,8 +178,76 @@ class FakeIdejo(
         synchronized(lock) {
             val record = requireNotNull(topics[topicId])
             // Through the same rules as the app's own Enters (the full stop included).
-            openMessage(record, person, punctuate(text)).let { close(record, it.id, held = false) }
+            val message =
+                openMessage(record, person, punctuate(text)).let {
+                    close(record, it.id, held = false)
+                }
+            news(record, person)
+            message
         }
+
+    /** A category added to the forum, as an administrator would. */
+    fun addCategory(category: Category) = synchronized(lock) { categories += category }
+
+    /** A topic [author] started in [categoryId], with its opening message. */
+    fun addTopic(
+        title: String,
+        categoryId: String = "c_veg",
+        author: Person = FakePeople.Leo,
+    ): Topic =
+        synchronized(lock) {
+            val id = "t_" + nextId++
+            val topic =
+                Topic(
+                    id = id,
+                    title = title,
+                    slug = title.lowercase().replace(' ', '-'),
+                    url = url.resolve("/t/$id")?.toString(),
+                    categoryId = categoryId,
+                    author = author,
+                    createdAt = clock.now,
+                    lastActivityAt = clock.now,
+                )
+            topics[id] = TopicRecord(topic)
+            openMessage(topics.getValue(id), author, title).let {
+                close(topics.getValue(id), it.id, held = false)
+            }
+            topic
+        }
+
+    /** [person] follows [topicId], as after writing there. */
+    fun follow(
+        person: Person,
+        topicId: String,
+    ) = synchronized(lock) { reader(person).followed += topicId }
+
+    /** What [person] has not read in [topicId]: [count] messages, the strongest [state]. */
+    fun unread(
+        person: Person,
+        topicId: String,
+        count: Int,
+        state: MentionState = MentionState.New,
+    ) = synchronized(lock) {
+        val unread = reader(person).unread
+        if (count == 0) unread.remove(topicId) else unread[topicId] = Unseen(count, state)
+        pushUnread(person)
+    }
+
+    /** Whether [person] follows [topicId] on the server. */
+    fun follows(
+        person: Person,
+        topicId: String,
+    ): Boolean = synchronized(lock) { topicId in reader(person).followed }
+
+    /** Whether [person] muted [topicId] on the server. */
+    fun mutes(
+        person: Person,
+        topicId: String,
+    ): Boolean = synchronized(lock) { topicId in reader(person).muted }
+
+    /** Whether a socket of the app joined [channel] (`category:c_veg`, `user:me`…). */
+    fun joined(channel: String): Boolean =
+        synchronized(lock) { sockets.any { it.isJoined(channel) } }
 
     /** A topic's messages as the server has them. */
     fun messages(topicId: String): List<Message> =
@@ -264,10 +336,40 @@ class FakeIdejo(
                 "GET",
                 "categories/{id}/topics",
             ) { call -> categoryTopics(call["id"], call.request) },
-            Route("GET", "topics/active") { ok(ListBody(topics.values.map { it.topic })) },
+            Route("GET", "topics/active") { call ->
+                ok(ListBody(topics.values.map { it.topic.seenBy(call.viewer) }))
+            },
+            Route("GET", "unread") { call ->
+                call.viewer?.let { ok(unreadOf(it)) }
+                    ?: unauthenticated()
+            },
             Route("GET", "topics/{id}") { call ->
-                topics[call["id"]]?.let { ok(it.topic) }
+                topics[call["id"]]?.let { ok(it.topic.seenBy(call.viewer)) }
                     ?: notFound()
+            },
+            Route("PUT", "topics/{id}/follow") { call ->
+                reading(call) { reader, id ->
+                    reader.followed += id
+                    reader.muted -= id
+                }
+            },
+            Route("DELETE", "topics/{id}/follow") { call ->
+                reading(call) { reader, id -> reader.followed -= id }
+            },
+            Route("PUT", "topics/{id}/mute") { call ->
+                reading(call) { reader, id ->
+                    reader.muted += id
+                    reader.followed -= id
+                    reader.unread -= id
+                }
+            },
+            Route("DELETE", "topics/{id}/mute") { call ->
+                reading(call) { reader, id -> reader.muted -= id }
+            },
+            Route("POST", "topics/{id}/mark-unread") { call ->
+                reading(call) { reader, id ->
+                    reader.unread[id] = reader.unread[id] ?: Unseen(1, MentionState.New)
+                }
             },
             Route("GET", "topics/{id}/messages") { call -> window(call["id"]) },
             Route("GET", "topics/{id}/changes") { call -> changes(call["id"], call.request) },
@@ -288,6 +390,118 @@ class FakeIdejo(
                 composing(call) { record, person -> commit(record, person, call.request) }
             },
         )
+
+    /** A change to what the viewer follows, mutes or has read in a topic: the topic after. */
+    private fun reading(
+        call: Call,
+        change: (Reader, String) -> Unit,
+    ): MockResponse {
+        val record = topics[call["id"]] ?: return notFound()
+        val person = call.viewer ?: return unauthenticated()
+        change(reader(person), record.topic.id)
+        pushUnread(person)
+        return ok(record.topic.seenBy(person))
+    }
+
+    private fun reader(person: Person): Reader =
+        readers.getOrPut(requireNotNull(person.id)) {
+            Reader()
+        }
+
+    /** The topic as [viewer] sees it: followed, muted, unread. */
+    private fun Topic.seenBy(viewer: Person?): Topic {
+        val reader = viewer?.let(::reader) ?: return this
+        val unseen = reader.unread[id]
+        return copy(
+            followed = id in reader.followed,
+            muted = id in reader.muted,
+            unreadCount = unseen?.count ?: 0,
+            mentionState = unseen?.state ?: MentionState.None,
+        )
+    }
+
+    /** `GET /unread` (BR-06): followed topics with news, then the others. */
+    private fun unreadOf(person: Person): Unread {
+        val reader = reader(person)
+        val seen =
+            topics.values
+                .map { it.topic.seenBy(person) }
+                .filter { it.unreadCount > 0 && !it.muted }
+        val (following, others) = seen.partition { it.followed }
+        return Unread(following, Page(others), counterOf(reader))
+    }
+
+    /** The **Unread** button: replies and mentions counted, the strongest kind named. */
+    private fun counterOf(reader: Reader): UnreadCounter {
+        val strong = reader.unread.values.filter { it.state > MentionState.New }
+        val level =
+            reader.unread.values
+                .maxOfOrNull { it.state }
+                ?.takeIf { it > MentionState.None }
+        return UnreadCounter(strong.sumOf { it.count }, level?.let(::levelName))
+    }
+
+    private fun levelName(state: MentionState): String =
+        when (state) {
+            MentionState.None, MentionState.New -> "new"
+            MentionState.Role -> "role"
+            MentionState.Reply -> "reply"
+            MentionState.Mention -> "mention"
+        }
+
+    /**
+     * A message by [author] in [record]: new for those who follow the topic, and
+     * `topic.activity` on its category's channel (API guide §7).
+     */
+    private fun news(
+        record: TopicRecord,
+        author: Person,
+    ) {
+        readers.forEach { (id, reader) ->
+            if (id == author.id || record.topic.id !in reader.followed) return@forEach
+            val seen = reader.unread[record.topic.id]
+            reader.unread[record.topic.id] =
+                Unseen(
+                    (seen?.count ?: 0) + 1,
+                    maxOf(seen?.state ?: MentionState.New, MentionState.New),
+                )
+            FakePeople.all.firstOrNull { it.id == id }?.let(::pushUnread)
+        }
+        val payload =
+            buildJsonObject {
+                put("topic_id", record.topic.id)
+                put("last_activity_at", clock.now.toString())
+                put("messages_count", record.messages.size)
+            }
+        sockets.forEach {
+            it.push(
+                "category:" + record.topic.categoryId,
+                "topic.activity",
+                payload,
+            )
+        }
+    }
+
+    /** A category channel's join: the category must be visible. */
+    internal fun joinCategory(id: String): JsonObject? =
+        synchronized(lock) { category(id)?.let { JsonObject(emptyMap()) } }
+
+    /** `unread.changed` on [person]'s user:me channels. */
+    private fun pushUnread(person: Person) {
+        val counter = counterOf(reader(person))
+        val payload =
+            buildJsonObject {
+                put("count", counter.count)
+                put("level", counter.level)
+            }
+        socketsOf(person).forEach { it.push("user:me", "unread.changed", payload) }
+    }
+
+    private fun socketsOf(person: Person): List<FakeSocket> =
+        sockets.filter { tokens[it.token]?.id == person.id }
+
+    private fun authenticatedViewer(request: RecordedRequest): Person? =
+        request.headers["Authorization"]?.removePrefix("Bearer ")?.let { tokens[it] }
 
     private fun composing(
         call: Call,
@@ -436,7 +650,11 @@ class FakeIdejo(
         request: RecordedRequest,
     ): MockResponse {
         category(id) ?: return notFound()
-        val all = topics.values.map { it.topic }.filter { it.categoryId == id }
+        val viewer = authenticatedViewer(request)
+        val all =
+            topics.values
+                .map { it.topic.seenBy(viewer) }
+                .filter { it.categoryId == id }
         val limit =
             request.url
                 .queryParameter("limit")

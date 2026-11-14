@@ -5,8 +5,10 @@ package org.idejo.app.core.data
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.idejo.app.core.api.ApiResult
@@ -51,7 +53,8 @@ class SessionManagerTest {
     /** A manager as after a launch; each one reads the same file, as a new process would. */
     private fun manager(): SessionManager {
         val storeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO).also(stores::add)
-        stores.dropLast(1).forEach { it.cancel() }
+        // The last store must be gone before another opens the same file (DataStore's rule).
+        runBlocking { stores.dropLast(1).forEach { it.coroutineContext[Job]?.cancelAndJoin() } }
         return SessionManager(
             ForumStore.create(file, storeScope),
             vault,
