@@ -28,6 +28,7 @@ import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.ErrorBody
+import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
@@ -239,6 +240,26 @@ class FakeIdejo(
         pushUnread(person)
     }
 
+    /** [person] new here: the welcome card not seen yet, nor Getting started. */
+    fun newMember(person: Person) =
+        synchronized(lock) {
+            reader(person).welcomed = false
+            reader(person).introDue = false
+        }
+
+    /** [person] has seen the welcome card. */
+    fun welcomed(person: Person) = synchronized(lock) { reader(person).welcomed = true }
+
+    /** [person] signed in on the web, as the app's Custom Tab does: Getting started is due. */
+    fun signedInOnWeb(person: Person) =
+        synchronized(lock) {
+            val reader = reader(person)
+            if (!reader.introHidden) reader.introDue = true
+        }
+
+    /** The self-select roles [person] holds, by id. */
+    fun rolesOf(person: Person): Set<String> = synchronized(lock) { reader(person).roles.toSet() }
+
     /** Whether [person] follows [topicId] on the server. */
     fun follows(
         person: Person,
@@ -332,6 +353,27 @@ class FakeIdejo(
         listOf(
             Route("GET", "server") { ok(server()) },
             Route("GET", "me") { call -> call.viewer?.let { ok(me(it)) } ?: unauthenticated() },
+            Route("POST", "me/welcome") { call ->
+                member(call) { it.welcomed = true }
+            },
+            Route("POST", "me/intro") { call ->
+                val hide =
+                    IdejoJson
+                        .decodeFromString<IntroClose>(call.request.body?.utf8() ?: "{}")
+                        .hide
+                member(call) { reader ->
+                    reader.introDue = false
+                    if (hide) reader.introHidden = true
+                }
+            },
+            Route("PUT", "me/roles/{id}") { call ->
+                member(call) { reader ->
+                    if (settings.roles.any { it.id == call["id"] }) reader.roles += call["id"]
+                }
+            },
+            Route("DELETE", "me/roles/{id}") { call ->
+                member(call) { it.roles -= call["id"] }
+            },
             Route("GET", "me/communities") { ok(ListBody<Topic>(emptyList())) },
             Route("GET", "categories") { ok(ListBody(categories.filter { it.permissions.view })) },
             Route(
@@ -636,6 +678,10 @@ class FakeIdejo(
             name = settings.name,
             url = url.toString(),
             theme = settings.theme,
+            aboutMd = settings.about,
+            rulesMd = settings.rules,
+            roles = settings.roles,
+            commands = settings.commands,
             settings =
                 ServerSettings(
                     windowSeconds = settings.windowSeconds,
@@ -644,13 +690,28 @@ class FakeIdejo(
                 ),
         )
 
-    private fun me(person: Person): Me =
-        Me(
+    private fun me(person: Person): Me {
+        val reader = reader(person)
+        return Me(
             id = requireNotNull(person.id),
             displayName = person.displayName,
             username = person.username,
             verified = true,
+            roles = settings.roles.filter { it.id in reader.roles },
+            welcomed = reader.welcomed,
+            introDue = reader.introDue && reader.welcomed && !reader.introHidden,
         )
+    }
+
+    /** A change to the signed-in member, answered with `GET /me`. */
+    private fun member(
+        call: Call,
+        change: (Reader) -> Unit,
+    ): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        change(reader(person))
+        return ok(me(person))
+    }
 
     private fun category(id: String): Category? =
         categories.firstOrNull {

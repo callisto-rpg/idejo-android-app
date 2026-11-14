@@ -16,6 +16,7 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageWindow
@@ -158,8 +159,11 @@ class ForumApi(
             acknowledgeWarnings().let { if (!it.isSuccessful) throw HttpException(it) }
         }
 
-    /** Getting started closed for good (BR-11). */
+    /** The welcome card (About, Rules, roles) seen (BR-07). */
     suspend fun welcome(): ApiResult<Me> = call { welcome() }
+
+    /** Getting started closed: until the next sign-in, or with [hide] for good (BR-11). */
+    suspend fun intro(hide: Boolean): ApiResult<Me> = call { intro(IntroClose(hide)) }
 
     /** A self-select role taken or left (BR-07). */
     suspend fun role(

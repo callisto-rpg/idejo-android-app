@@ -31,6 +31,30 @@ data class FakeSettings(
             lightBackground = "#f6f3ea",
             darkBackground = "#1d211b",
         ),
+    val about: String = "A club for **everyone** who grows things.",
+    val rules: String = "1. Be kind.\n2. No selling.",
+    /** The roles members may give themselves (BR-07). */
+    val roles: List<org.idejo.app.core.model.Role> =
+        listOf(
+            org.idejo.app.core.model
+                .Role("Gardener", id = "r_gardener", colour = "#3f7d3a"),
+            org.idejo.app.core.model
+                .Role("Beekeeper", id = "r_bees", colour = "#b07a00"),
+        ),
+    /** `GET /server`'s `commands` (IX-08). */
+    val commands: List<org.idejo.app.core.model.ServerCommand> =
+        listOf(
+            org.idejo.app.core.model.ServerCommand(
+                "image",
+                "Add an image at the end of your message",
+                "Opens your files.",
+            ),
+            org.idejo.app.core.model.ServerCommand(
+                "poll",
+                "Add a poll under your message",
+                "Asks for a question and its answers.",
+            ),
+        ),
 )
 
 /** The people of the fake forum. */
@@ -62,7 +86,17 @@ internal class Reader(
     val followed: MutableSet<String> = linkedSetOf(),
     val muted: MutableSet<String> = mutableSetOf(),
     val unread: MutableMap<String, Unseen> = mutableMapOf(),
-)
+) {
+    /** The welcome card seen (BR-07). */
+    var welcomed: Boolean = false
+
+    /** Getting started due (IX-07): set by [FakeIdejo.signedInOnWeb]. */
+    var introDue: Boolean = false
+    var introHidden: Boolean = false
+
+    /** Self-select roles held, by id. */
+    val roles: MutableSet<String> = linkedSetOf()
+}
 
 /** Unread messages in a topic and the strongest reason (SH-32). */
 internal data class Unseen(

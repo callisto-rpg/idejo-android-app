@@ -9,24 +9,32 @@ import androidx.compose.runtime.Composable
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.data.HomeState
+import org.idejo.app.core.data.MemberCard
 import org.idejo.app.core.data.PagesState
 import org.idejo.app.core.data.TopicView
 import org.idejo.app.core.data.UnreadState
+import org.idejo.app.core.data.WelcomeState
 import org.idejo.app.core.data.sections
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.CategoryGroup
 import org.idejo.app.core.model.LatestMessage
+import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PluginInfo
+import org.idejo.app.core.model.Role
 import org.idejo.app.core.model.SearchHit
+import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.ServerCommand
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicPreview
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.time.Instant
@@ -114,6 +122,39 @@ class BrowseScreenshotTest {
             )
         }
 
+    @Test
+    fun `BR-07 Rules & Roles`() =
+        snapshots("Rules") {
+            RulesScreen(WELCOME.copy(saved = true), RulesActions({}, {}, {}), {})
+        }
+
+    @Test
+    fun `BR-07 the welcome card`() =
+        snapshots("WelcomeCard") {
+            MemberCardContent(
+                MemberCard.Welcome,
+                WELCOME,
+                "Garden club",
+                RulesActions({}, {}, {}),
+                {},
+            )
+        }
+
+    @Test
+    fun `BR-11 Getting started`() =
+        snapshots("GettingStarted") {
+            MemberCardContent(
+                MemberCard.GettingStarted,
+                WELCOME,
+                "Garden club",
+                RulesActions({}, {}, {}),
+                {},
+            )
+        }
+
+    @Test
+    fun `BR-08 Help`() = snapshots("Help", tall = true) { HelpScreen(SERVER) }
+
     private fun home(view: TopicView) =
         HomeUi(
             home =
@@ -128,8 +169,10 @@ class BrowseScreenshotTest {
 
     private fun snapshots(
         name: String,
+        tall: Boolean = false,
         content: @Composable () -> Unit,
     ) {
+        if (tall) RuntimeEnvironment.setQualifiers("w390dp-h3200dp-xhdpi")
         for (dark in listOf(false, true)) {
             val mode = if (dark) "dark" else "light"
             captureRoboImage("src/test/screenshots/${name}_$mode.png", OPTIONS) {
@@ -147,6 +190,39 @@ class BrowseScreenshotTest {
                 compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.01f),
             )
         val NOW: Instant = Instant.now()
+        val SERVER =
+            Server(
+                name = "Garden club",
+                url = "https://garden.example.org/",
+                aboutMd = "A club for **everyone** who grows things, from balconies to allotments.",
+                rulesMd = "1. Be kind.\n2. No selling.\n3. Photos of *your own* garden only.",
+                roles =
+                    listOf(
+                        Role("Gardener", id = "r_gardener", colour = "#3f7d3a"),
+                        Role("Beekeeper", id = "r_bees", colour = "#b07a00"),
+                    ),
+                commands =
+                    listOf(
+                        ServerCommand(
+                            "image",
+                            "Add an image",
+                            "Opens your files. The picture you choose goes at the end of your message, not sent yet.",
+                        ),
+                        ServerCommand(
+                            "poll",
+                            "Add a poll",
+                            "Sends what you wrote, then asks for a question and its answers.",
+                        ),
+                    ),
+                plugins = listOf(PluginInfo("dice", help = "Rolls dice: !dice 2d6.")),
+            )
+        val WELCOME =
+            WelcomeState(
+                server = SERVER,
+                me = Me(id = "u_ada", displayName = "Ada Lovelace"),
+                chosen = setOf("r_bees"),
+                loading = false,
+            )
         val SEEDS = Tag("g_seeds", "Seeds", "seeds")
         val HITS =
             listOf(

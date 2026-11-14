@@ -10,6 +10,7 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
@@ -161,6 +162,11 @@ internal interface IdejoService {
 
     @POST("me/welcome")
     suspend fun welcome(): Me
+
+    @POST("me/intro")
+    suspend fun intro(
+        @Body body: IntroClose,
+    ): Me
 
     @PUT("me/roles/{id}")
     suspend fun addRole(

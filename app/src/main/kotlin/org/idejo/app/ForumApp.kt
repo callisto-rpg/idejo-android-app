@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -27,7 +28,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.feature.browse.CategoryRoute
+import org.idejo.app.feature.browse.HelpRoute
 import org.idejo.app.feature.browse.HomeRoute
+import org.idejo.app.feature.browse.MemberCards
+import org.idejo.app.feature.browse.RulesRoute
 import org.idejo.app.feature.browse.SearchRoute
 import org.idejo.app.feature.browse.TagsRoute
 import org.idejo.app.feature.browse.UnreadRoute
@@ -39,8 +43,8 @@ import org.idejo.app.feature.shell.ForumFrame
 import org.idejo.app.feature.shell.Place
 
 /**
- * The open forum: its pages in the frame (spec §6), one back stack per forum. The rest of
- * browsing (BR) and the topic page (TV) come with the next pull requests of M1.
+ * The open forum: its pages in the frame (spec §6), one back stack per forum, and the cards
+ * over them (BR-07, BR-11). The topic page (TV) comes with the next pull requests of M1.
  */
 @Composable
 fun ForumApp(
@@ -53,6 +57,8 @@ fun ForumApp(
     val entry by navigation.currentBackStackEntryAsState()
     val signIn = rememberSignInAgain(access)
     LaunchedEffect(session) { session.refreshServer() }
+    val context = LocalContext.current
+    val link: (String) -> Unit = { context.openLink(session.origin, it) }
     ForumFrame(
         place = entry?.place() ?: Place.Home,
         onNavigate = { navigation.go(it) },
@@ -89,10 +95,15 @@ fun ForumApp(
                     })
                 }
             }
-            composable<Place.Rules> { Page(session, signIn) }
-            composable<Place.Help> { Page(session, signIn) }
+            composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
+            composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
         }
+        // Over every page; a new one for each forum and each sign-in.
+        MemberCards(
+            onLink = link,
+            viewModel = hiltViewModel(key = "cards:${System.identityHashCode(session)}"),
+        )
     }
 }
 

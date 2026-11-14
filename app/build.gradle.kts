@@ -67,6 +67,7 @@ dependencies {
     ).forEach { implementation(project(":feature:$it")) }
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.browser)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.hilt.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)

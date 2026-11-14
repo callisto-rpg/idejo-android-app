@@ -243,6 +243,12 @@ Docker image) are added with them.
   loaded stay on screen after signing out; nothing else persists across launches.
 - 2026-11-14 — idejo's socket change goes first in the M1 stack. M1's live features are
   tested against FakeIdejo, which reads the token as idejo does.
+- 2026-11-14 — Getting started (BR-11) is the web's getting-started card, not the welcome
+  card: idejo adds `intro_due` to `GET /me` and `POST /me/intro` (`hide`) (IX-07,
+  callisto-rpg/Idejo#360). `POST /me/welcome` marks the welcome card (Rules & Roles, BR-07).
+- 2026-11-14 — Help (BR-08) reads the `!` commands from `GET /server`'s `commands`, and
+  plugins' `help` (IX-08, callisto-rpg/Idejo#361); the keys, signs and formats are the app's
+  own strings in the web's words.
 - 2026-11-14 — The home page's **View** works as on the web: idejo answers
   `GET /topics/active?expanded=true` with previews (callisto-rpg/Idejo#359).
 - 2026-11-14 — Inline links (TV-21): idejo gives each mention `source`, how it is written in
@@ -263,6 +269,7 @@ Docker image) are added with them.
 - [ ] M7 — Right sidebar
 
 Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
-markdown, browse: home, category, Filter by tag, Search, Unread). The app needs idejo with
-callisto-rpg/Idejo#357 (the socket), #358 (inline links) and #359 (the home page's
-Expanded view) (Steward decisions, 2026-11-14).
+markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
+welcome and getting-started cards). The app needs idejo with callisto-rpg/Idejo#357 (the
+socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting started)
+and #361 (Help's commands) (Steward decisions, 2026-11-14).

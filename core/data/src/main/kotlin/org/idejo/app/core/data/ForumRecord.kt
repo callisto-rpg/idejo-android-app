@@ -44,8 +44,6 @@ data class ForumRecord(
     val folded: Set<String> = emptySet(),
     /** The sidebar's links rolled up into icons (SH-35). */
     val linksRolled: Boolean = false,
-    /** Getting started closed for good (BR-11). */
-    val welcomeHidden: Boolean = false,
 ) {
     val name: String get() = discovery.name
 }

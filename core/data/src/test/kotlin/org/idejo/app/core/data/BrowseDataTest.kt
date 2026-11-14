@@ -229,4 +229,48 @@ class BrowseDataTest {
             assertEquals(listOf(basil.id), after.following.map { it.id })
             assertFalse(after.empty)
         }
+
+    @Test
+    fun `BR-07 BR-11 the welcome card first, roles saved with Continue, then Getting started`() =
+        runBlocking {
+            fake.newMember(FakePeople.Ada)
+            fake.signedInOnWeb(FakePeople.Ada)
+            val welcome = Welcome(signedIn(), scope).also { it.refresh() }
+
+            val first = welcome.state.until { !it.loading }
+            assertEquals(MemberCard.Welcome, first.card)
+            assertEquals("1. Be kind.\n2. No selling.", first.server?.rulesMd)
+            welcome.tick("r_bees")
+            welcome.continueWelcome()
+
+            val next = welcome.state.until { it.saved && !it.saving }
+            assertEquals(setOf("r_bees"), fake.rolesOf(FakePeople.Ada))
+            assertEquals(MemberCard.GettingStarted, next.card)
+
+            welcome.closeIntro(hide = true)
+            val closed = welcome.state.until { it.card == null && !it.saving }
+            assertEquals(setOf("r_bees"), closed.held)
+            fake.signedInOnWeb(FakePeople.Ada)
+            welcome.refresh()
+            assertNull(welcome.state.until { !it.loading && it.me?.introDue == false }.card)
+        }
+
+    @Test
+    fun `BR-07 Rules & Roles takes and leaves self-select roles`() =
+        runBlocking {
+            fake.welcomed(FakePeople.Ada)
+            val welcome = Welcome(signedIn(), scope).also { it.refresh() }
+            welcome.state.until { !it.loading }
+            welcome.tick("r_gardener")
+            welcome.save()
+            welcome.state.until { it.saved }
+            assertEquals(setOf("r_gardener"), fake.rolesOf(FakePeople.Ada))
+
+            welcome.tick("r_gardener")
+            welcome.tick("r_bees")
+            welcome.save()
+            val saved = welcome.state.until { it.saved }
+            assertEquals(setOf("r_bees"), fake.rolesOf(FakePeople.Ada))
+            assertEquals(setOf("r_bees"), saved.chosen)
+        }
 }

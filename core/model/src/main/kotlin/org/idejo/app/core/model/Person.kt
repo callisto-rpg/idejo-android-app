@@ -50,11 +50,20 @@ data class Me(
     @SerialName("bio_md") val bioMd: String? = null,
     val email: String? = null,
     val verified: Boolean = false,
+    /** The welcome card (About, Rules, roles) was seen (BR-07). */
     val welcomed: Boolean = false,
+    /** The getting-started card is due (BR-11, IX-07); false from older servers. */
+    @SerialName("intro_due") val introDue: Boolean = false,
     @SerialName("auto_punctuation") val autoPunctuation: Boolean = true,
     @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean = true,
     @SerialName("warning_pending") val warningPending: Boolean = false,
     val administrator: Boolean = false,
     val moderator: Boolean = false,
     @SerialName("server_moderator") val serverModerator: Boolean = false,
+)
+
+/** `POST /me/intro`: Getting started closed, for good with [hide] (BR-11, IX-07). */
+@Serializable
+data class IntroClose(
+    val hide: Boolean = false,
 )
