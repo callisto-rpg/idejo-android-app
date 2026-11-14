@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.map
@@ -48,8 +48,12 @@ class UnreadFeed(
         }
     private var listening: Job? = null
 
+    // The followed topics come with the first page and are set just before it, so each page
+    // state reads them as they are: never the new page with the old followed topics, which
+    // combining the two flows could show for a moment (an empty page flashing).
     val state: StateFlow<UnreadState> =
-        combine(following, others.state, ::UnreadState)
+        others.state
+            .map { UnreadState(following.value, it) }
             .stateIn(scope, SharingStarted.Eagerly, UnreadState())
 
     /** Reads the first page, and from now on again on each change. */
