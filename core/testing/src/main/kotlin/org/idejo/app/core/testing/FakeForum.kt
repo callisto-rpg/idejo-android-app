@@ -38,9 +38,9 @@ data class FakeSettings(
     val roles: List<org.idejo.app.core.model.Role> =
         listOf(
             org.idejo.app.core.model
-                .Role("Gardener", id = "r_gardener", colour = "#3f7d3a"),
+                .Role("Gardener", id = "r_gardener", colour = "#3f7d3a", slug = "gardener"),
             org.idejo.app.core.model
-                .Role("Beekeeper", id = "r_bees", colour = "#b07a00"),
+                .Role("Beekeeper", id = "r_bees", colour = "#b07a00", slug = "beekeeper"),
         ),
     /** `GET /server`'s `commands` (IX-08). */
     val commands: List<org.idejo.app.core.model.ServerCommand> =

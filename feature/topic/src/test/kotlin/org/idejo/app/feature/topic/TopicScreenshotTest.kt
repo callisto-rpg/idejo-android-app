@@ -3,25 +3,38 @@
 
 package org.idejo.app.feature.topic
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import org.idejo.app.core.data.InlineCard
 import org.idejo.app.core.data.TopicState
+import org.idejo.app.core.data.namesMember
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.markdown.MentionPulse
+import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.Continuation
 import org.idejo.app.core.model.Forwarded
+import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.Mention
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MovedAway
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PluginBlock
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollOption
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.ReplyTo
 import org.idejo.app.core.model.Role
+import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.Spoiler
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
@@ -88,10 +101,155 @@ class TopicScreenshotTest {
         }
 
     @Test
+    fun `TV-07 mentions of the member glow, red for them, blue for their role`() =
+        snapshots("TopicGlow") {
+            val ada =
+                Me(
+                    "u_ada",
+                    "Ada Lovelace",
+                    roles = listOf(Role("Gardener", slug = "gardener")),
+                )
+            val context = MessageContext("https://garden.example.org", me = ada)
+            Column {
+                GLOWS.forEachIndexed { index, (message, kind) ->
+                    val colour =
+                        if (index ==
+                            0
+                        ) {
+                            IdejoTheme.colors.dotMention
+                        } else {
+                            IdejoTheme.colors.dotRoleMention
+                        }
+                    MessageItem(
+                        message,
+                        context,
+                        Modifier.glow(colour) { 1f },
+                        pulse = MentionPulse({ it.namesMember(ada) }, colour) { 1f },
+                    )
+                    if (kind) HorizontalDivider()
+                }
+            }
+        }
+
+    @Test
     fun `TV-01 a topic the member may not view`() =
         snapshots("TopicGone") {
             TopicScreen(TopicUi(TopicState(loading = false, gone = true)), TopicActions())
         }
+
+    @Test
+    fun `TV-22 a topic link's card, followed`() =
+        snapshots("CardTopic") {
+            val topic =
+                TOPIC.copy(
+                    author = LEO,
+                    messagesCount = 12,
+                    lastActivityAt = NOW,
+                    followed = true,
+                )
+            val opening = "Planning this year's **beds**: three of tomatoes, one of beans."
+            InlineCardScreen(
+                InlineCardUi(
+                    InlineCard.Topic(topic, VEG, opening),
+                    loading = false,
+                    signedIn = true,
+                ),
+                InlineCardActions(),
+            )
+        }
+
+    @Test
+    fun `TV-22 a category link's card`() =
+        snapshots("CardCategory") {
+            InlineCardScreen(
+                InlineCardUi(InlineCard.Category(VEG, listOf(TOPIC)), loading = false),
+                InlineCardActions(),
+            )
+        }
+
+    @Test
+    fun `TV-22 a tag link's card`() =
+        snapshots("CardTag") {
+            val card = InlineCard.Tag(Tag("g_seeds", "Seeds", "seeds"), listOf(VEG), emptyList())
+            InlineCardScreen(InlineCardUi(card, loading = false), InlineCardActions())
+        }
+
+    @Test
+    fun `TV-22 a role link's card, without Open`() =
+        snapshots("CardRole") {
+            val role =
+                RoleCard("r_gardener", "Gardener", "gardener", "#3f7d3a", listOf(LEO, MINA), 2)
+            InlineCardScreen(
+                InlineCardUi(InlineCard.Role(role), loading = false),
+                InlineCardActions(),
+            )
+        }
+
+    @Test
+    fun `TV-22 a forum link's card, Join and Open waiting for M4`() =
+        snapshots("CardForum") {
+            val card = InlineCard.Forum("Bees", "bees.example.org")
+            InlineCardScreen(InlineCardUi(card, loading = false), InlineCardActions())
+        }
+
+    @Test
+    fun `TV-26 plugin blocks, videos and pages loaded only on a tap`() =
+        snapshots("TopicPlugins") {
+            fun block(
+                command: String,
+                kind: String,
+                vararg params: Pair<String, Any>,
+            ) = PluginBlock(
+                command,
+                kind,
+                JsonObject(
+                    params.associate { (k, v) ->
+                        k to if (v is Int) JsonPrimitive(v) else JsonPrimitive(v.toString())
+                    },
+                ),
+            )
+            val blocks =
+                listOf(
+                    block(
+                        "youtube",
+                        "video",
+                        "src" to "https://www.youtube-nocookie.com/embed/abc",
+                        "link" to "https://www.youtube.com/watch?v=abc",
+                    ),
+                    block(
+                        "button",
+                        "button",
+                        "label" to "Seed swap sign-up",
+                        "url" to "https://seeds.example/",
+                    ),
+                    block(
+                        "rules",
+                        "card",
+                        "label" to "Swap rules",
+                        "body_md" to "Bring **labelled** seeds.",
+                    ),
+                    block("forum", "forum", "name" to "Bees", "url" to "https://bees.example.org/"),
+                    block("map", "iframe", "src" to "https://maps.example/garden", "height" to 200),
+                    block("unknown", "hologram"),
+                )
+            val withBlocks =
+                message(
+                    "m_p",
+                    LEO,
+                    "Here is everything for Saturday.",
+                    3,
+                ).copy(plugins = blocks)
+            TopicScreen(
+                TopicUi(TopicState(topic = TOPIC, messages = listOf(withBlocks), loading = false)),
+                TopicActions(),
+            )
+        }
+
+    @Test
+    fun `TV-25 the image viewer, with zoom, Share and Save`() =
+        snapshots(
+            "ImageViewer",
+        ) { ImageViewerContent(ViewedImage("https://garden.example/u/a.png")) {} }
 
     private fun snapshots(
         name: String,
@@ -124,6 +282,15 @@ class TopicScreenshotTest {
                 colour = "#8a6a1f",
             )
         val ADA = Person("u_ada", "Ada Lovelace", ignoredByMe = true)
+        val VEG =
+            Category(
+                "c_veg",
+                "Vegetables",
+                "vegetables",
+                colour = "#8a6a1f",
+                description = "Beds, seeds and what grows in them.",
+                topicsCount = 4,
+            )
         val TOPIC =
             Topic(
                 "t_1",
@@ -209,6 +376,25 @@ class TopicScreenshotTest {
                 "Planning this year's beds. **Cherokee Purple** and Sungold first.",
                 600,
             )
+        val GLOWS =
+            listOf(
+                message("g1", MINA, "@ada can you check the seed tray?", 6).copy(
+                    mentions = listOf(Mention("user", "@Ada Lovelace", "@ada", id = "u_ada")),
+                ) to true,
+                message("g2", LEO, "+gardener the frost is coming tonight.", 3).copy(
+                    mentions =
+                        listOf(
+                            Mention(
+                                "role",
+                                "+Gardener",
+                                "+gardener",
+                                id = "gardener",
+                                slug = "gardener",
+                            ),
+                        ),
+                ) to false,
+            )
+
         val MESSAGES =
             listOf(
                 message("m1", MINA, "Sungold every year. Pinch the suckers early.", 30).copy(

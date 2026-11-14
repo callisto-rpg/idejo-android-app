@@ -67,6 +67,7 @@ data class MarkdownActions(
  * A message body drawn natively from its Markdown (TV-20 to TV-24). [revealed] holds the
  * inline spoilers shown. [image] draws an image from its address (TV-25: sized, lazy, tap
  * to zoom, from the message's `images`); [emojiImage] a server emoji from its address.
+ * [pulse] makes the tags naming the reader pulse while their message glows (TV-07).
  */
 @Composable
 fun MarkdownBody(
@@ -74,6 +75,7 @@ fun MarkdownBody(
     modifier: Modifier = Modifier,
     actions: MarkdownActions = MarkdownActions(),
     revealed: Set<Int> = emptySet(),
+    pulse: MentionPulse? = null,
     style: TextStyle = IdejoTheme.typography.bodyLarge,
     image: @Composable (MdInline.Image) -> Unit = { ImageWords(it, style) },
     emojiImage: @Composable (Emoji) -> Unit = {},
@@ -83,6 +85,7 @@ fun MarkdownBody(
             colors = inlineColors(),
             actions = actions,
             revealed = revealed,
+            pulse = pulse,
             style = style,
             spoilerWord = stringResource(R.string.markdown_spoiler),
             pictures = Pictures(image, emojiImage),
@@ -109,10 +112,12 @@ private fun inlineColors(): InlineColors {
     }
 }
 
+@Suppress("LongParameterList") // What every block of one body shares.
 private class BodyScope(
     val colors: InlineColors,
     val actions: MarkdownActions,
     val revealed: Set<Int>,
+    val pulse: MentionPulse?,
     val style: TextStyle,
     val spoilerWord: String,
     val pictures: Pictures,
@@ -202,7 +207,7 @@ private class BodyScope(
         modifier: Modifier = Modifier,
         align: TextAlign? = null,
     ) {
-        val builder = InlineBuilder(colors, actions, revealed, spoilerWord)
+        val builder = InlineBuilder(colors, actions, revealed, spoilerWord, pulse)
         val text = builder.build(inlines)
         val content =
             builder.images.mapValues { (_, emoji) ->

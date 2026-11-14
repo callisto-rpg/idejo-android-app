@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<!-- What FileProvider may hand to another app: images the member shares (TV-25). -->
+<paths>
+    <cache-path name="shared" path="shared/" />
+</paths>

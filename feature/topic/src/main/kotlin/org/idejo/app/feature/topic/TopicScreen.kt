@@ -30,8 +30,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,8 +49,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.data.Glow
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.model.Mention
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 
@@ -56,6 +61,7 @@ data class TopicActions(
     val onUser: (String) -> Unit = {},
     val onTag: (String) -> Unit = {},
     val onLink: (String) -> Unit = {},
+    val onInlineLink: (Mention) -> Unit = {},
     val onRetry: () -> Unit = {},
     val onEarlier: () -> Unit = {},
     val onLater: () -> Unit = {},
@@ -77,6 +83,7 @@ fun TopicRoute(
     onUser: (String) -> Unit,
     onTag: (String) -> Unit,
     onLink: (String) -> Unit,
+    onInlineLink: (Mention) -> Unit,
     onTopic: (String, String?) -> Unit,
     viewModel: TopicViewModel = hiltViewModel(),
 ) {
@@ -89,6 +96,7 @@ fun TopicRoute(
             onUser = onUser,
             onTag = onTag,
             onLink = onLink,
+            onInlineLink = onInlineLink,
             onRetry = { viewModel.retry() },
             onEarlier = { viewModel.earlier() },
             onLater = { viewModel.later() },
@@ -120,12 +128,13 @@ fun TopicScreen(
     list: LazyListState = rememberLazyListState(),
 ) {
     val topic = state.topic
+    var viewed by remember { mutableStateOf<ViewedImage?>(null) }
     Box(modifier.fillMaxSize()) {
         when {
             topic.gone -> Gone()
             topic.topic == null && topic.loading -> Spinner()
             topic.topic == null -> topic.problem?.let { Problem(it, actions.onRetry) }
-            else -> Messages(state, actions, list)
+            else -> Messages(state, actions, list) { viewed = it }
         }
         val bottom = Modifier.align(Alignment.BottomCenter)
         val problem = topic.problem
@@ -139,6 +148,7 @@ fun TopicScreen(
             }
         }
     }
+    viewed?.let { ImageViewer(it) { viewed = null } }
 }
 
 @Composable
@@ -146,6 +156,7 @@ private fun Messages(
     state: TopicUi,
     actions: TopicActions,
     list: LazyListState,
+    onImage: (ViewedImage) -> Unit,
 ) {
     val topic = state.topic
     val open = topic.topic?.let { !it.locked && !it.archived } == true
@@ -155,12 +166,16 @@ private fun Messages(
             state.emoji,
             onUser = actions.onUser,
             onLink = actions.onLink,
+            onInlineLink = actions.onInlineLink,
+            onImage = onImage,
             onMessage = actions.onMessage,
             onTopic = actions.onTopic,
             onVote = actions.onVote,
             mayVote = open && state.signedIn,
             voting = topic.voting,
+            me = state.me,
         )
+    val glowing = rememberGlowing(list, state.glows)
     LazyColumn(
         Modifier.fillMaxSize(),
         state = list,
@@ -182,7 +197,14 @@ private fun Messages(
             if (message.id == topic.unread?.messageId) {
                 item(key = "unread") { UnreadLine(topic.unread!!.count) }
             }
-            item(key = message.id) { MessageItem(message, context) }
+            item(key = message.id) {
+                val glow = glowing[message.id]
+                if (glow == null) {
+                    MessageItem(message, context)
+                } else {
+                    GlowingMessage(message, context, glow) { glowing.remove(message.id) }
+                }
+            }
         }
         if (topic.later > 0 || topic.loadingLater) {
             item(

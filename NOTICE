@@ -15,8 +15,9 @@ This product includes:
   Charles and Flavia Zimbardi, SIL Open Font License 1.1 (LICENSES/OFL-1.1.txt).
 - Rubik 2.300 (core/designsystem/src/main/res/font/rubik.ttf), copyright 2015 The Rubik
   Project Authors (https://github.com/googlefonts/rubik), SIL Open Font License 1.1.
-- Material Symbols icons (core/designsystem/src/main/res/drawable/ic_*.xml and
-  feature/shell/src/main/res/drawable/ic_*.xml), copyright
+- Material Symbols icons (core/designsystem/src/main/res/drawable/ic_*.xml,
+  feature/shell/src/main/res/drawable/ic_*.xml and
+  feature/topic/src/main/res/drawable/ic_*.xml), copyright
   Google LLC, Apache-2.0 (github.com/google/material-design-icons).
 
 The licence of every file is given by its SPDX header or by REUSE.toml.

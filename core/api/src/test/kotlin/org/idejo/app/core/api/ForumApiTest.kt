@@ -118,6 +118,11 @@ class ForumApiTest {
                     ?.count,
             )
             assertEquals("youtube", message.plugins.single().command)
+            assertEquals("video", message.plugins.single().block)
+            assertEquals(
+                "https://www.youtube-nocookie.com/embed/abc",
+                message.plugins.single().text("src"),
+            )
             assertTrue(message.reactions.single().mine)
 
             val opening = requireNotNull(window.firstMessage)

@@ -44,8 +44,10 @@ import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
 import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
+import org.idejo.app.feature.shell.InlineCardDialog
 import org.idejo.app.feature.shell.Place
 import org.idejo.app.feature.shell.UserCardDialog
+import org.idejo.app.feature.topic.InlineCardRoute
 import org.idejo.app.feature.topic.TopicRoute
 
 /**
@@ -111,6 +113,7 @@ fun ForumApp(
             ) {
                 UserCardRoute(onClose = { navigation.popBackStack() })
             }
+            inlineCard(navigation)
         }
         // Over every page; a new one for each forum and each sign-in.
         MemberCards(
@@ -119,6 +122,27 @@ fun ForumApp(
         )
     }
 }
+
+/** An inline link's card (TV-22): each way out closes it first. */
+private fun NavGraphBuilder.inlineCard(navigation: NavHostController) =
+    dialog<InlineCardDialog>(
+        dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        val leave: (Place) -> Unit = {
+            navigation.popBackStack()
+            navigation.go(it)
+        }
+        InlineCardRoute(
+            onTopic = { leave(Place.Topic(it)) },
+            onCategory = { leave(Place.Category(it)) },
+            onTag = { leave(Place.Tags(it)) },
+            onUser = {
+                navigation.popBackStack()
+                navigation.navigate(UserCardDialog(it))
+            },
+            onClose = { navigation.popBackStack() },
+        )
+    }
 
 /** The topic page (TV); a name opens its user card, a tag Filter by tag. */
 private fun NavGraphBuilder.topicPage(
@@ -131,6 +155,22 @@ private fun NavGraphBuilder.topicPage(
             onUser = { navigation.navigate(UserCardDialog(it)) },
             onTag = { navigation.go(Place.Tags(it)) },
             onLink = link,
+            onInlineLink = { mention ->
+                val id = mention.id
+                if (mention.type == "user") {
+                    id?.let { navigation.navigate(UserCardDialog(it)) }
+                } else {
+                    navigation.navigate(
+                        InlineCardDialog(
+                            mention.type,
+                            mention.text,
+                            id,
+                            mention.slug,
+                            mention.name,
+                        ),
+                    )
+                }
+            },
             onTopic = { id, messageId -> navigation.go(Place.Topic(id, messageId)) },
         )
     }

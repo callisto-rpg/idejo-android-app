@@ -108,6 +108,12 @@ class TopicDataTest {
             assertEquals(first.id, state.landing)
             assertTrue(state.messages.any { it.id == first.id })
             assertTrue(state.atEnd)
+
+            // TV-07: mentions glow from there on, after the line has faded too.
+            assertEquals(first.id, state.glowFrom)
+            reader.unreadShown()
+            val faded = reader.state.until { it.unread == null }
+            assertEquals(first.id, faded.glowFrom)
         }
 
     @Test
@@ -189,6 +195,25 @@ class TopicDataTest {
             reader.end()
             val end = reader.state.until { !it.loading && it.newBelow == 0 }
             assertEquals("Something new.", end.messages.last().bodyMd)
+        }
+
+    @Test
+    fun `TV-05 a new message is counted once, though it opens and then closes`() =
+        runBlocking {
+            val id = longTopic(100)
+            val reader = TopicReader(connected(), id, scope, landing = fake.messages(id)[10].id)
+            reader.start()
+            val shown = reader.state.until { !it.loading }
+            eventually { fake.joined("topic:$id") }
+
+            fake.post(mina, id, "Something new")
+            fake.post(mina, id, "And another")
+            reader.state.until { it.newBelow >= 2 }
+            // Each message's later events (its closing) arrive after it was counted.
+            delay(SETTLE)
+
+            assertEquals(2, reader.state.value.newBelow)
+            assertEquals(shown.later + 2, reader.state.value.later)
         }
 
     @Test
@@ -318,3 +343,6 @@ class TopicDataTest {
         messageId: String,
     ) = state.messages.firstOrNull { it.id == messageId }?.poll
 }
+
+/** Time for a message's later events to arrive in a test that checks none counts twice. */
+private const val SETTLE = 500L
