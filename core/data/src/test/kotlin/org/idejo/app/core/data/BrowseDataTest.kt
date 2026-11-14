@@ -273,4 +273,18 @@ class BrowseDataTest {
             assertEquals(setOf("r_bees"), fake.rolesOf(FakePeople.Ada))
             assertEquals(setOf("r_bees"), saved.chosen)
         }
+
+    @Test
+    fun `BR-09 a user card, and Ignore then Stop ignoring`() =
+        runBlocking {
+            val session = signedIn()
+            val mina = FakePeople.Mina.id!!
+            val card = session.call { user(mina) }.getOrNull()
+            assertEquals("Mina", card?.displayName?.substringBefore(' '))
+            assertEquals(false, card?.ignoredByMe)
+
+            assertEquals(true, session.call { ignore(mina, true) }.getOrNull()?.ignoredByMe)
+            assertEquals(false, session.call { ignore(mina, false) }.getOrNull()?.ignoredByMe)
+            assertNull(session.call { user(FakePeople.Ada.id!!) }.getOrNull()?.ignoredByMe)
+        }
 }

@@ -47,6 +47,7 @@ import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicPreview
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UnreadCounter
+import org.idejo.app.core.model.UserCard
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
@@ -365,6 +366,16 @@ class FakeIdejo(
                     reader.introDue = false
                     if (hide) reader.introHidden = true
                 }
+            },
+            Route("GET", "users/{id}") { call -> card(call.viewer, call["id"]) },
+            Route("PUT", "users/{id}/ignore") { call ->
+                val viewer = call.viewer
+                if (viewer != null && viewer.id != call["id"]) reader(viewer).ignored += call["id"]
+                card(viewer, call["id"])
+            },
+            Route("DELETE", "users/{id}/ignore") { call ->
+                call.viewer?.let { reader(it).ignored -= call["id"] }
+                card(call.viewer, call["id"])
             },
             Route("PUT", "me/roles/{id}") { call ->
                 member(call) { reader ->
@@ -700,6 +711,25 @@ class FakeIdejo(
             roles = settings.roles.filter { it.id in reader.roles },
             welcomed = reader.welcomed,
             introDue = reader.introDue && reader.welcomed && !reader.introHidden,
+        )
+    }
+
+    /** `GET /users/{id}`: [viewer] may ignore anyone but themselves (AC-06). */
+    private fun card(
+        viewer: Person?,
+        id: String,
+    ): MockResponse {
+        val person = FakePeople.all.firstOrNull { it.id == id } ?: return notFound()
+        return ok(
+            UserCard(
+                id = id,
+                displayName = person.displayName,
+                username = person.username,
+                userTag = person.userTag,
+                colour = person.colour,
+                bioMd = "I grow *tomatoes* and ||secret|| peppers.",
+                ignoredByMe = viewer?.takeIf { it.id != id }?.let { id in reader(it).ignored },
+            ),
         )
     }
 

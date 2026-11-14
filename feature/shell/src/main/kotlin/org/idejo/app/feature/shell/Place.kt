@@ -50,3 +50,9 @@ sealed interface Place {
     @Serializable
     data object AppSettings : Place
 }
+
+/** A member's card over the page (BR-09): a dialog, not a place, so the breadcrumbs stay. */
+@Serializable
+data class UserCardDialog(
+    val id: String,
+)

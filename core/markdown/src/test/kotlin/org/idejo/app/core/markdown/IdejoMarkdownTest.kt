@@ -190,4 +190,10 @@ class IdejoMarkdownTest {
             IdejoMarkdown.parse("```kotlin\nval x = 1\n  indented\n```").blocks.single(),
         )
     }
+
+    @Test
+    fun `BR-09 plain text drops the styles and never shows a spoiler's words`() {
+        val document = IdejoMarkdown.parse("I *grow* ||tomatoes||.\n\n> Quoted **too**")
+        assertEquals("I grow (spoiler). Quoted too", document.plainText("spoiler"))
+    }
 }

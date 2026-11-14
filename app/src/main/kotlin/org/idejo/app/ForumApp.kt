@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -24,6 +25,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import org.idejo.app.core.data.ForumSession
@@ -35,12 +37,14 @@ import org.idejo.app.feature.browse.RulesRoute
 import org.idejo.app.feature.browse.SearchRoute
 import org.idejo.app.feature.browse.TagsRoute
 import org.idejo.app.feature.browse.UnreadRoute
+import org.idejo.app.feature.browse.UserCardRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
 import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
 import org.idejo.app.feature.shell.Place
+import org.idejo.app.feature.shell.UserCardDialog
 
 /**
  * The open forum: its pages in the frame (spec §6), one back stack per forum, and the cards
@@ -60,7 +64,8 @@ fun ForumApp(
     val context = LocalContext.current
     val link: (String) -> Unit = { context.openLink(session.origin, it) }
     ForumFrame(
-        place = entry?.place() ?: Place.Home,
+        // A dialog (a user card) keeps the page under it in the breadcrumbs.
+        place = entry?.place() ?: navigation.previousBackStackEntry?.place() ?: Place.Home,
         onNavigate = { navigation.go(it) },
         onSignIn = signIn,
         modifier = modifier,
@@ -98,6 +103,12 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
+            // A user card (BR-09): names in messages open it, with the topic page (TV).
+            dialog<UserCardDialog>(
+                dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+            ) {
+                UserCardRoute(onClose = { navigation.popBackStack() })
+            }
         }
         // Over every page; a new one for each forum and each sign-in.
         MemberCards(

@@ -135,6 +135,13 @@
     <string name="format_escape">A \\ before a sign shows the sign itself.</string>
     <string name="format_escape_word">not italics</string>
 
+    <!-- The user card (BR-09). -->
+    <string name="user_roles">Roles</string>
+    <string name="user_ignore">Ignore</string>
+    <string name="user_unignore">Stop ignoring</string>
+    <string name="user_close">Close</string>
+    <string name="user_picture">Picture of %1$s</string>
+
     <!-- Lists (BR-10). -->
     <string name="list_could_not_load">Couldn’t load this page.</string>
     <string name="list_offline">You’re offline. Pull down to try again.</string>

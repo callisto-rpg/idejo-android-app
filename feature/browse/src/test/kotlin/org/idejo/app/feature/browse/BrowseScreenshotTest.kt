@@ -31,6 +31,7 @@ import org.idejo.app.core.model.ServerCommand
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicPreview
+import org.idejo.app.core.model.UserCard
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -155,6 +156,32 @@ class BrowseScreenshotTest {
     @Test
     fun `BR-08 Help`() = snapshots("Help", tall = true) { HelpScreen(SERVER) }
 
+    @Test
+    fun `BR-09 a user card`() =
+        snapshots("UserCard") {
+            UserCardScreen(UserCardUi(MINA_CARD, loading = false), {}, {}, {})
+        }
+
+    @Test
+    fun `BR-09 a user card with a long bio, ignored`() =
+        snapshots("UserCardLongBio") {
+            val bio =
+                "I grow *tomatoes* on a balcony, ||secret|| peppers indoors and far too " +
+                    "many herbs. Ask me about Sungold, staking and pinching the suckers, or " +
+                    "how to keep basil going all summer without it bolting. Allotment on " +
+                    "Saturdays."
+            UserCardScreen(
+                UserCardUi(
+                    MINA_CARD.copy(bioMd = bio, ignoredByMe = true),
+                    loading = false,
+                ),
+                {
+                },
+                {},
+                {},
+            )
+        }
+
     private fun home(view: TopicView) =
         HomeUi(
             home =
@@ -190,6 +217,21 @@ class BrowseScreenshotTest {
                 compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.01f),
             )
         val NOW: Instant = Instant.now()
+        val MINA_CARD =
+            UserCard(
+                "u_mina",
+                "Mina Kader",
+                username = "mina",
+                userTag = "she/her",
+                colour = "#8a6a1f",
+                roles =
+                    listOf(
+                        Role("Moderator", colour = "#6a3e8e"),
+                        Role("Gardener", colour = "#3f7d3a"),
+                    ),
+                bioMd = "I grow *tomatoes* and ||secret|| peppers.",
+                ignoredByMe = false,
+            )
         val SERVER =
             Server(
                 name = "Garden club",

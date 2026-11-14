@@ -96,6 +96,9 @@ internal class Reader(
 
     /** Self-select roles held, by id. */
     val roles: MutableSet<String> = linkedSetOf()
+
+    /** The people ignored, by id (AC-06). */
+    val ignored: MutableSet<String> = mutableSetOf()
 }
 
 /** Unread messages in a topic and the strongest reason (SH-32). */
