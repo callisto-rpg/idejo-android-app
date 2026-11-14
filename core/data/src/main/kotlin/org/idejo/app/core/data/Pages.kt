@@ -26,7 +26,10 @@ data class PagesState<T>(
     val end: Boolean = false,
     /** Why the last read failed; what was shown stays. */
     val problem: ApiProblem? = null,
-)
+) {
+    /** A page is being read. */
+    val busy: Boolean get() = loading || refreshing || loadingMore
+}
 
 /**
  * A cursor-paged list (BR-10, API guide §4): the first page, the next one when the reader
@@ -73,9 +76,10 @@ class Pages<T>(
 
     /** Reads the next page, unless one is being read or the list has ended. */
     fun more() {
-        // No cursor: the first page is still coming, or the list has ended.
+        // No cursor: the first page is still coming, or the list has ended. The state, not
+        // the job, says whether a read is under way: the job ends just after the state.
         val cursor = next
-        if (cursor == null || job?.isActive == true) return
+        if (cursor == null || state.value.busy) return
         mutableState.update { it.copy(loadingMore = true, problem = null) }
         job =
             scope.launch {
