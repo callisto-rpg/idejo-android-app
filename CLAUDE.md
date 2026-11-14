@@ -145,7 +145,8 @@ These come from idejo GM-01 to GM-15 and the API guide section 6:
 - **Strings**: every visible string in `res/values/strings.xml` (plurals in `<plurals>`),
   the web's wording from the member guide wherever the web has one. Never hard-coded text.
 - **Colours**: only `MaterialTheme.colorScheme` roles and `IdejoTheme` extras (category,
-  role, dot and bubble colours). Never a literal colour in a feature module (TH-02).
+  role, dot, bubble and inline-link colours, `LinkKind`). Never a literal colour in a
+  feature module (TH-02).
 - **Typography**: Fraunces for titles, Rubik for text, via `IdejoTheme.typography`.
 - **Accessibility**: content descriptions on every icon button, headings marked, 48 dp
   targets, every gesture has a button (AX-04), reduced motion respected.
@@ -241,6 +242,11 @@ Docker image) are added with them.
   loaded stay on screen after signing out; nothing else persists across launches.
 - 2026-11-14 — idejo's socket change goes first in the M1 stack. M1's live features are
   tested against FakeIdejo, which reads the token as idejo does.
+- 2026-11-14 — Inline links (TV-21): idejo gives each mention `source`, how it is written in
+  `body_md`, lowercased, and lists `&forum` links as `forum` mentions
+  (callisto-rpg/Idejo#358). `core/markdown` draws a mention's `text` wherever its `source`
+  stands as a word, ignoring case, outside code and links; on older servers it falls back
+  to `text`. The app never reads the signs `@ + # / $ &` itself.
 
 ## Milestones (spec §26)
 
@@ -253,5 +259,6 @@ Docker image) are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell). The app's socket needs
-idejo with callisto-rpg/Idejo#357 (Steward decisions, 2026-11-14).
+Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell, markdown). The app's socket
+needs idejo with callisto-rpg/Idejo#357, its inline links #358 (Steward decisions,
+2026-11-14).

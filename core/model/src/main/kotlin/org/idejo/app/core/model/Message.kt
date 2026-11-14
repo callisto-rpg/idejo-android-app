@@ -72,11 +72,16 @@ data class Continuation(
     val title: String,
 )
 
-/** An inline link: `type` is `user`, `role`, `topic`, `category`, `tag` or one added later. */
+/**
+ * An inline link: `type` is `user`, `role`, `topic`, `category`, `tag`, `forum` or one added
+ * later. [text] is what readers see; [source] how it is written in `body_md`, lowercased
+ * (idejo 0.3.13; null before, when the link reads as typed only for `@user`).
+ */
 @Serializable
 data class Mention(
     val type: String,
     val text: String,
+    val source: String? = null,
     val id: String? = null,
     val slug: String? = null,
     val name: String? = null,
