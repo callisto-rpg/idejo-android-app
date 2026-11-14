@@ -74,6 +74,8 @@ data class MessageContext(
     val onLink: (String) -> Unit = {},
     /** An inline link idejo resolved: its card, or the user card (TV-22). */
     val onInlineLink: (Mention) -> Unit = {},
+    /** An image tapped: the viewer (TV-25). */
+    val onImage: (ViewedImage) -> Unit = {},
     /** A quote or forward tapped: the message it shows (TV-02). */
     val onMessage: (String) -> Unit = {},
     /** A banner's button: another topic (TP-09, TP-15). */
@@ -310,11 +312,15 @@ private fun MessageImage(
             val h = k.height?.takeIf { it > 0 }
             if (w != null && h != null) w.toFloat() / h else null
         }
+    val url = absolute(context.origin, image.url)
+    val alt = image.alt.ifBlank { known?.alt }
     AsyncImage(
-        absolute(context.origin, image.url),
-        image.alt.ifBlank { known?.alt },
+        url,
+        alt,
         Modifier
-            .widthIn(max = 480.dp)
+            .clickable(onClickLabel = stringResource(R.string.image_view)) {
+                context.onImage(ViewedImage(url, alt))
+            }.widthIn(max = 480.dp)
             .fillMaxWidth()
             .then(if (ratio != null) Modifier.aspectRatio(ratio) else Modifier),
         contentScale = ContentScale.Fit,

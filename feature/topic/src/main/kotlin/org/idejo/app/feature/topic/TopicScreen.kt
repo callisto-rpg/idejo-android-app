@@ -30,9 +30,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -126,12 +128,13 @@ fun TopicScreen(
     list: LazyListState = rememberLazyListState(),
 ) {
     val topic = state.topic
+    var viewed by remember { mutableStateOf<ViewedImage?>(null) }
     Box(modifier.fillMaxSize()) {
         when {
             topic.gone -> Gone()
             topic.topic == null && topic.loading -> Spinner()
             topic.topic == null -> topic.problem?.let { Problem(it, actions.onRetry) }
-            else -> Messages(state, actions, list)
+            else -> Messages(state, actions, list) { viewed = it }
         }
         val bottom = Modifier.align(Alignment.BottomCenter)
         val problem = topic.problem
@@ -145,6 +148,7 @@ fun TopicScreen(
             }
         }
     }
+    viewed?.let { ImageViewer(it) { viewed = null } }
 }
 
 @Composable
@@ -152,6 +156,7 @@ private fun Messages(
     state: TopicUi,
     actions: TopicActions,
     list: LazyListState,
+    onImage: (ViewedImage) -> Unit,
 ) {
     val topic = state.topic
     val open = topic.topic?.let { !it.locked && !it.archived } == true
@@ -162,6 +167,7 @@ private fun Messages(
             onUser = actions.onUser,
             onLink = actions.onLink,
             onInlineLink = actions.onInlineLink,
+            onImage = onImage,
             onMessage = actions.onMessage,
             onTopic = actions.onTopic,
             onVote = actions.onVote,

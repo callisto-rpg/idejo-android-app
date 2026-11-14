@@ -189,6 +189,12 @@ class TopicScreenshotTest {
             InlineCardScreen(InlineCardUi(card, loading = false), InlineCardActions())
         }
 
+    @Test
+    fun `TV-25 the image viewer, with zoom, Share and Save`() =
+        snapshots(
+            "ImageViewer",
+        ) { ImageViewerContent(ViewedImage("https://garden.example/u/a.png")) {} }
+
     private fun snapshots(
         name: String,
         content: @Composable () -> Unit,

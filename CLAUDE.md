@@ -277,6 +277,10 @@ Docker image) are added with them.
   **Open** (no role page in the app; its members open their user cards), a category's no
   **New topic** (M2). Another forum (`&forum` links, TV-26's `forum` blocks) shows as idejo
   ID mode will, with **Join** and **Open** disabled until M4.
+- 2026-11-14 — The image viewer (TV-25) takes the image from the app's image cache (the
+  client without a token). **Share** hands a copy through a FileProvider limited to the
+  cache's `shared/` folder; **Save** writes where the member picks in the system's file
+  picker, so the app asks for no storage permission.
 
 ## Milestones (spec §26)
 
@@ -293,7 +297,8 @@ Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, 
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card; topic: the page, its window, live
 changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
-mention glows, inline cards). The app needs idejo with callisto-rpg/Idejo#357 (the
-socket), #358 (inline links), #359 (the home page's Expanded view), #360 (Getting
-started), #361 (Help's commands), #362 (the window's counts), #363 (tags' categories),
-#364 (banners) and #368 (roles' slugs) (Steward decisions, 2026-11-14).
+mention glows, inline cards, the image viewer). The app needs idejo with
+callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359 (the home page's Expanded
+view), #360 (Getting started), #361 (Help's commands), #362 (the window's counts), #363
+(tags' categories), #364 (banners) and #368 (roles' slugs) (Steward decisions,
+2026-11-14).

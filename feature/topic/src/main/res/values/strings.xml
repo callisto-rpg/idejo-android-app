@@ -120,4 +120,13 @@
     <string name="forum_join_named">Join %1$s</string>
     <string name="forum_open">Open</string>
     <string name="forum_later">Joining and opening other forums comes with idejo ID mode.</string>
+    <!-- The image viewer (TV-25). -->
+    <string name="image_view">View image</string>
+    <string name="image_close">Close</string>
+    <string name="image_zoom_in">Zoom in</string>
+    <string name="image_zoom_out">Zoom out</string>
+    <string name="image_share">Share</string>
+    <string name="image_save">Save</string>
+    <string name="image_saved">Image saved.</string>
+    <string name="image_failed">The image could not be loaded.</string>
 </resources>
