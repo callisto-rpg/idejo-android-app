@@ -1,0 +1,814 @@
+// SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package org.idejo.app.core.testing
+
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import mockwebserver3.Dispatcher
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
+import mockwebserver3.RecordedRequest
+import okhttp3.HttpUrl
+import okio.ByteString.Companion.decodeBase64
+import okio.ByteString.Companion.encodeUtf8
+import okio.ByteString.Companion.toByteString
+import org.idejo.app.core.api.ForumAddress
+import org.idejo.app.core.api.IdejoClient
+import org.idejo.app.core.api.IdejoJson
+import org.idejo.app.core.api.Pkce
+import org.idejo.app.core.model.AccessToken
+import org.idejo.app.core.model.ApiError
+import org.idejo.app.core.model.Category
+import org.idejo.app.core.model.Changes
+import org.idejo.app.core.model.Commit
+import org.idejo.app.core.model.CommitResult
+import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Discovery
+import org.idejo.app.core.model.ErrorBody
+import org.idejo.app.core.model.ListBody
+import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageState
+import org.idejo.app.core.model.MessageWindow
+import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.ServerSettings
+import org.idejo.app.core.model.TokenGrant
+import org.idejo.app.core.model.Topic
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.security.SecureRandom
+import java.time.Duration
+import java.time.Instant
+
+/**
+ * An idejo forum in the test's own process (NF-08), behaving as the API guide describes:
+ * discovery (§1), sign-in with PKCE (§2), tokens and revocation (§3), the error shape and
+ * pages (§4), the growing message (§6), events and catch-up (§7). Its time is [clock].
+ * Not idejo: its rules are the guide's, simplified where the guide does not say more.
+ *
+ * ```
+ * FakeIdejo().use { fake ->
+ *     val token = fake.tokenFor(FakePeople.Ada)
+ *     val api = ForumApi(fake.address, "/api/v1", { token }, IdejoHttp.forLocalTesting())
+ * }
+ * ```
+ */
+@Suppress("TooManyFunctions") // One handler per endpoint.
+class FakeIdejo(
+    val clock: FakeClock = FakeClock(),
+    val settings: FakeSettings = FakeSettings(),
+) : AutoCloseable {
+    private val server = MockWebServer()
+    private val lock = Any()
+    private val random = SecureRandom()
+    private var nextId = 100L
+
+    private val categories = seedCategories()
+    private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
+    private val composers = mutableMapOf<Pair<String, String>, ComposerRecord>()
+    private val tokens = mutableMapOf<String, Person>()
+    private val codes = mutableMapOf<String, PendingCode>()
+    internal val sockets = mutableListOf<FakeSocket>()
+    private val failures = ArrayDeque<MockResponse>()
+
+    /** Off: discovery says `api: null`, every API path 404, the socket 404 (API guide intro). */
+    @Volatile var apiOff = false
+
+    /** Every request the app made, in order. */
+    val requests: MutableList<RecordedRequest> =
+        java.util.Collections.synchronizedList(
+            mutableListOf(),
+        )
+
+    init {
+        server.dispatcher =
+            object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse {
+                    requests += request
+                    return synchronized(lock) { failures.removeFirstOrNull() ?: route(request) }
+                }
+            }
+        server.start()
+    }
+
+    /** The forum's address (http, for tests: `ForumAddress.forLocalTesting`). */
+    val address: ForumAddress get() = ForumAddress.forLocalTesting(server.url("/"))
+
+    val url: HttpUrl get() = server.url("/")
+
+    override fun close() {
+        synchronized(lock) { sockets.toList() }.forEach { it.close() }
+        server.close()
+    }
+
+    // What a test can do to the forum.
+
+    /** A token for [person], as if they had signed in. */
+    fun tokenFor(person: Person): AccessToken = synchronized(lock) { newToken(person) }
+
+    /**
+     * Revokes [token] as **Apps and devices** would:
+     * 401 from then on, `token.revoked` on its sockets.
+     */
+    fun revoke(token: AccessToken) = synchronized(lock) { revokeLocked(token.value) }
+
+    /** The next request gets [status] with the API's error shape. */
+    fun failNext(
+        status: Int,
+        code: String,
+        message: String = "",
+        retryAfterSeconds: Long? = null,
+    ) = synchronized(lock) {
+        failures +=
+            error(status, code, message).let { response ->
+                if (retryAfterSeconds == null) {
+                    response
+                } else {
+                    response
+                        .newBuilder()
+                        .addHeader("Retry-After", retryAfterSeconds.toString())
+                        .build()
+                }
+            }
+    }
+
+    /**
+     * The forum's sign-in page in a Custom Tab, where [person] taps **Allow** (or **Cancel**):
+     * the redirect the browser is sent to. An invalid request returns null, as the page
+     * shows an error and never redirects (API guide §2).
+     */
+    fun authorize(
+        url: HttpUrl,
+        person: Person,
+        allow: Boolean = true,
+    ): String? =
+        synchronized(lock) {
+            val valid =
+                url.encodedPath == "/app/authorize" &&
+                    url.queryParameter("response_type") == "code" &&
+                    url.queryParameter("client_id") == IdejoClient.ID &&
+                    url.queryParameter("redirect_uri") == IdejoClient.REDIRECT_URI &&
+                    url.queryParameter("code_challenge_method") == "S256" &&
+                    url.queryParameter("code_challenge")?.length == CHALLENGE_LENGTH
+            if (!valid) return@synchronized null
+            val state = url.queryParameter("state").orEmpty()
+            val redirect = IdejoClient.REDIRECT_URI + "?"
+            if (!allow) return@synchronized redirect + "error=access_denied&state=" + encode(state)
+            val code = randomId()
+            codes[code] =
+                PendingCode(person, requireNotNull(url.queryParameter("code_challenge")), clock.now)
+            redirect + "code=" + code + "&state=" + encode(state)
+        }
+
+    /** [person] writes [text] in [topicId] as one closed message, as another member would. */
+    fun post(
+        person: Person,
+        topicId: String,
+        text: String,
+    ): Message =
+        synchronized(lock) {
+            val record = requireNotNull(topics[topicId])
+            // Through the same rules as the app's own Enters (the full stop included).
+            openMessage(record, person, punctuate(text)).let { close(record, it.id, held = false) }
+        }
+
+    /** A topic's messages as the server has them. */
+    fun messages(topicId: String): List<Message> =
+        synchronized(lock) { topics.getValue(topicId).messages.toList() }
+
+    // Routing.
+
+    private fun route(request: RecordedRequest): MockResponse {
+        val path = request.url.encodedPath
+        if (path == "/.well-known/idejo") return discovery()
+        if (path == "/api/v1/socket/websocket") return socketUpgrade(request)
+        if (!path.startsWith(API)) return status(HTTP_NOT_FOUND)
+        if (apiOff) return error(HTTP_NOT_FOUND, ApiError.NOT_FOUND, "Not found.")
+        val route = path.removePrefix(API)
+        return when {
+            route == "/oauth/token" && request.method == "POST" -> tokenGrant(request)
+            route == "/oauth/revoke" && request.method == "POST" -> revokeRequest(request)
+            else -> authenticated(request, route)
+        }
+    }
+
+    private fun authenticated(
+        request: RecordedRequest,
+        route: String,
+    ): MockResponse {
+        val header = request.headers["Authorization"]
+        val viewer =
+            if (header == null) {
+                null
+            } else {
+                tokens[header.removePrefix("Bearer ")]
+                    ?: return error(HTTP_UNAUTHORIZED, ApiError.INVALID_TOKEN, "Sign in again.")
+            }
+        val parts = route.trim('/').split('/')
+        for (candidate in routes) {
+            val params = candidate.match(request.method.orEmpty(), parts) ?: continue
+            return candidate.handle(Call(request, viewer, params))
+        }
+        return notFound()
+    }
+
+    /** A request as a route sees it: who asks, and the path's `{params}`. */
+    private class Call(
+        val request: RecordedRequest,
+        val viewer: Person?,
+        val params: Map<String, String>,
+    ) {
+        operator fun get(name: String): String = params.getValue(name)
+    }
+
+    private class Route(
+        val method: String,
+        pattern: String,
+        val handle: (Call) -> MockResponse,
+    ) {
+        private val pattern = pattern.split('/')
+
+        fun match(
+            method: String,
+            parts: List<String>,
+        ): Map<String, String>? {
+            if (method != this.method || parts.size != pattern.size) return null
+            val params = mutableMapOf<String, String>()
+            for ((expected, actual) in pattern.zip(parts)) {
+                when {
+                    expected.startsWith("{") -> params[expected.trim('{', '}')] = actual
+                    expected != actual -> return null
+                }
+            }
+            return params
+        }
+    }
+
+    /** The endpoints the fake answers; anything else is 404. Order matters: fixed before `{id}`. */
+    private val routes: List<Route> =
+        listOf(
+            Route("GET", "server") { ok(server()) },
+            Route("GET", "me") { call -> call.viewer?.let { ok(me(it)) } ?: unauthenticated() },
+            Route("GET", "me/communities") { ok(ListBody<Topic>(emptyList())) },
+            Route("GET", "categories") { ok(ListBody(categories.filter { it.permissions.view })) },
+            Route(
+                "GET",
+                "categories/{id}",
+            ) { call -> category(call["id"])?.let(::ok) ?: notFound() },
+            Route(
+                "GET",
+                "categories/{id}/topics",
+            ) { call -> categoryTopics(call["id"], call.request) },
+            Route("GET", "topics/active") { ok(ListBody(topics.values.map { it.topic })) },
+            Route("GET", "topics/{id}") { call ->
+                topics[call["id"]]?.let { ok(it.topic) }
+                    ?: notFound()
+            },
+            Route("GET", "topics/{id}/messages") { call -> window(call["id"]) },
+            Route("GET", "topics/{id}/changes") { call -> changes(call["id"], call.request) },
+            Route("GET", "topics/{id}/pins") { call -> pins(call["id"]) },
+            Route(
+                "GET",
+                "messages/{id}",
+            ) { call -> findMessage(call["id"])?.let(::ok) ?: notFound() },
+            Route(
+                "GET",
+                "topics/{id}/composer",
+            ) { call -> composing(call) { record, person -> ok(composerState(record, person)) } },
+            Route(
+                "POST",
+                "topics/{id}/composer/typing",
+            ) { call -> composing(call) { record, person -> ok(typing(record, person)) } },
+            Route("POST", "topics/{id}/composer/commit") { call ->
+                composing(call) { record, person -> commit(record, person, call.request) }
+            },
+        )
+
+    private fun composing(
+        call: Call,
+        handle: (TopicRecord, Person) -> MockResponse,
+    ): MockResponse {
+        val record = topics[call["id"]] ?: return notFound()
+        val person = call.viewer ?: return unauthenticated()
+        return handle(record, person)
+    }
+
+    private fun pins(topicId: String): MockResponse {
+        val record = topics[topicId] ?: return notFound()
+        return ok(ListBody(record.messages.filter { it.pinnedAt != null }))
+    }
+
+    // §1 Discovery.
+
+    private fun discovery(): MockResponse {
+        if (apiOff) {
+            return ok(
+                buildJsonObject {
+                    put("name", settings.name)
+                    put("url", url.toString())
+                    put("api", null as String?)
+                },
+            )
+        }
+        return ok(
+            Discovery(
+                name = settings.name,
+                url = url.toString(),
+                idejoVersion = "0.3.12",
+                logoUrl = url.resolve("/logo").toString(),
+                api =
+                    org.idejo.app.core.model.ApiInfo(
+                        listOf("v1"),
+                        API,
+                        "$API/openapi.json",
+                        "$API/socket",
+                    ),
+                oauth =
+                    org.idejo.app.core.model.OAuthInfo(
+                        authorize = "/app/authorize",
+                        token = "$API/oauth/token",
+                        revoke = "$API/oauth/revoke",
+                        clientId = IdejoClient.ID,
+                        redirectUri = IdejoClient.REDIRECT_URI,
+                        scopes = IdejoClient.SCOPES,
+                        codeChallengeMethods = listOf("S256"),
+                    ),
+                features = listOf("polls"),
+            ),
+        )
+    }
+
+    // §2, §3 Sign-in and tokens.
+
+    private fun tokenGrant(request: RecordedRequest): MockResponse {
+        val form = form(request)
+        if (form["grant_type"] != "authorization_code") {
+            return error(HTTP_BAD_REQUEST, "unsupported_grant_type", "Only authorization codes.")
+        }
+        if (form["client_id"] != IdejoClient.ID ||
+            form["redirect_uri"] != IdejoClient.REDIRECT_URI
+        ) {
+            return error(HTTP_BAD_REQUEST, "invalid_client", "Unknown client.")
+        }
+        val code = form["code"].orEmpty()
+        val pending =
+            codes[code]
+                ?: return error(HTTP_BAD_REQUEST, ApiError.INVALID_GRANT, "The code is not valid.")
+        if (pending.used) {
+            // A code used twice: refused, and the token it gave is revoked.
+            pending.token?.let(::revokeLocked)
+            return error(HTTP_BAD_REQUEST, ApiError.INVALID_GRANT, "The code was already used.")
+        }
+        pending.used = true
+        val expired = Duration.between(pending.at, clock.now) > CODE_LIFETIME
+        val verified = Pkce.challenge(form["code_verifier"].orEmpty()) == pending.challenge
+        if (expired ||
+            !verified
+        ) {
+            return error(HTTP_BAD_REQUEST, ApiError.INVALID_GRANT, "The code is not valid.")
+        }
+        val token = newToken(pending.person)
+        pending.token = token.value
+        return ok(
+            TokenGrant(
+                token,
+                scope = IdejoClient.SCOPES.joinToString(" "),
+                tokenId =
+                    "tok_" + randomId(),
+                user = pending.person,
+            ),
+        )
+    }
+
+    private fun revokeRequest(request: RecordedRequest): MockResponse {
+        request.headers["Authorization"]?.removePrefix("Bearer ")?.let(::revokeLocked)
+        form(request)["token"]?.let(::revokeLocked)
+        return status(HTTP_NO_CONTENT)
+    }
+
+    private fun newToken(person: Person): AccessToken =
+        AccessToken("idj_" + randomId()).also {
+            tokens[it.value] =
+                person
+        }
+
+    private fun revokeLocked(token: String) {
+        if (tokens.remove(token) == null) return
+        sockets.filter { it.token == token }.forEach { it.revoked() }
+    }
+
+    // Reading.
+
+    private fun server(): Server =
+        Server(
+            name = settings.name,
+            url = url.toString(),
+            settings =
+                ServerSettings(
+                    windowSeconds = settings.windowSeconds,
+                    unansweredSeconds = settings.unansweredSeconds,
+                    earlyReply = settings.earlyReply,
+                ),
+        )
+
+    private fun me(person: Person): Me =
+        Me(
+            id = requireNotNull(person.id),
+            displayName = person.displayName,
+            username = person.username,
+            verified = true,
+        )
+
+    private fun category(id: String): Category? =
+        categories.firstOrNull {
+            it.id == id &&
+                it.permissions.view
+        }
+
+    private fun categoryTopics(
+        id: String,
+        request: RecordedRequest,
+    ): MockResponse {
+        category(id) ?: return notFound()
+        val all = topics.values.map { it.topic }.filter { it.categoryId == id }
+        val limit =
+            request.url
+                .queryParameter("limit")
+                ?.toIntOrNull()
+                ?.coerceIn(1, MAX_PAGE)
+                ?: DEFAULT_PAGE
+        val from = request.url.queryParameter("cursor")?.let(::decodeCursor) ?: 0
+        val page = all.drop(from).take(limit)
+        val next = (from + page.size).takeIf { it < all.size }?.let(::encodeCursor)
+        return ok(Page(page, nextCursor = next, prevCursor = null))
+    }
+
+    private fun window(topicId: String): MockResponse {
+        val record = topics[topicId] ?: return notFound()
+        return ok(
+            MessageWindow(
+                data = record.messages.toList(),
+                firstMessage = record.messages.firstOrNull(),
+                cursor = record.changeSeq,
+                total = record.messages.size,
+            ),
+        )
+    }
+
+    private fun changes(
+        topicId: String,
+        request: RecordedRequest,
+    ): MockResponse {
+        val record = topics[topicId] ?: return notFound()
+        val since =
+            request.url
+                .queryParameter("since")
+                ?.toLongOrNull()
+                ?.takeIf { it >= 0 }
+                ?: return error(HTTP_BAD_REQUEST, "bad_cursor", "That cursor is not valid.")
+        if (since >
+            record.changeSeq
+        ) {
+            return error(HTTP_GONE, ApiError.CURSOR_EXPIRED, "Load the topic again.")
+        }
+        val limit =
+            request.url
+                .queryParameter("limit")
+                ?.toIntOrNull()
+                ?.coerceIn(1, MAX_PAGE)
+                ?: DEFAULT_PAGE
+        val changed = record.messages.filter { it.cursor > since }.sortedBy { it.cursor }
+        val page = changed.take(limit)
+        val cursor = page.lastOrNull()?.cursor ?: since
+        return ok(Changes(page, cursor, more = changed.size > page.size, topic = record.topic))
+    }
+
+    private fun findMessage(id: String): Message? =
+        topics.values.firstNotNullOfOrNull { r ->
+            r.messages.firstOrNull {
+                it.id ==
+                    id
+            }
+        }
+
+    // §6 The growing message.
+
+    private fun composerOf(
+        record: TopicRecord,
+        person: Person,
+    ) = composers.getOrPut(record.topic.id to requireNotNull(person.id)) { ComposerRecord() }
+
+    private fun composerState(
+        record: TopicRecord,
+        person: Person,
+    ): ComposerState {
+        val composer = composerOf(record, person)
+        val held = composer.heldUntil?.takeIf { it > clock.now }
+        return ComposerState(
+            openMessageId = composer.openMessageId,
+            mayStartNewAt = held,
+            heldUntil = held,
+            typingSince = composer.typingSince,
+            windowSeconds = settings.windowSeconds,
+            unansweredSeconds = settings.unansweredSeconds,
+            replyAllowedEarly = settings.earlyReply,
+            mayPost = true,
+            now = clock.now,
+        )
+    }
+
+    private fun typing(
+        record: TopicRecord,
+        person: Person,
+    ): ComposerState {
+        val composer = composerOf(record, person)
+        if (composer.openMessageId == null &&
+            composer.typingSince == null
+        ) {
+            composer.typingSince = clock.now
+        }
+        return composerState(record, person)
+    }
+
+    private fun commit(
+        record: TopicRecord,
+        person: Person,
+        request: RecordedRequest,
+    ): MockResponse {
+        val commit =
+            try {
+                IdejoJson.decodeFromString<Commit>(request.body?.utf8().orEmpty())
+            } catch (_: kotlinx.serialization.SerializationException) {
+                return error(HTTP_BAD_REQUEST, "invalid_request", "That is not a commit.")
+            }
+        val composer = composerOf(record, person)
+        val held = composer.heldUntil?.takeIf { it > clock.now }
+        val open = composer.openMessageId
+        val text = punctuate(commit.bodyMd)
+
+        if (commit.new && open != null) {
+            // A reply while a message is open: it closes, and the reply starts at once if
+            // early replies are allowed, else not before the timers run out.
+            if (!settings.earlyReply && withinWindow(composer)) return tooSoon()
+            close(record, open, held = false)
+            composer.openMessageId = null
+        } else if (open == null && held != null) {
+            return tooSoon()
+        }
+
+        val message =
+            if (composer.openMessageId == null) {
+                if (text.isBlank()) return ok(CommitResult(null, composerState(record, person)))
+                openMessage(record, person, text, commit.replyTo).also {
+                    composer.openMessageId = it.id
+                    composer.lastOpenedAt = it.openedAt
+                    composer.typingSince = null
+                }
+            } else {
+                append(record, requireNotNull(composer.openMessageId), text)
+            }
+
+        val result =
+            if (commit.breakMessage) {
+                val early = withinWindow(composer)
+                composer.openMessageId = null
+                if (early) {
+                    composer.heldUntil =
+                        composer.lastOpenedAt?.plusSeconds(settings.windowSeconds.toLong())
+                }
+                close(record, message.id, held = early)
+            } else {
+                message
+            }
+        return ok(CommitResult(result, composerState(record, person)))
+    }
+
+    private fun withinWindow(composer: ComposerRecord): Boolean =
+        composer.lastOpenedAt?.let {
+            Duration.between(it, clock.now).seconds <
+                settings.windowSeconds
+        }
+            ?: false
+
+    private fun tooSoon() =
+        error(
+            HTTP_CONFLICT,
+            ApiError.TOO_SOON,
+            "You cannot post a new message yet. Append your old message.",
+        )
+
+    /** The server adds a full stop after unpunctuated text (API guide §6). */
+    private fun punctuate(text: String): String {
+        val trimmed = text.trimEnd()
+        if (!settings.autoPunctuation || trimmed.isEmpty()) return trimmed
+        return if (trimmed.last().isLetterOrDigit()) "$trimmed." else trimmed
+    }
+
+    private fun openMessage(
+        record: TopicRecord,
+        person: Person,
+        text: String,
+        replyTo: List<String> = emptyList(),
+    ): Message {
+        val message =
+            Message(
+                id = "m_" + nextId++,
+                topicId = record.topic.id,
+                author = person,
+                state = MessageState.Open,
+                bodyMd = text,
+                cursor = ++record.changeSeq,
+                openedAt = clock.now,
+                updatedAt = clock.now,
+                repliesTo =
+                    replyTo.mapNotNull { id ->
+                        record.messages.firstOrNull { it.id == id }?.let {
+                            org.idejo.app.core.model.ReplyTo(
+                                it.id,
+                                it.author.displayName,
+                                it.bodyMd,
+                            )
+                        }
+                    },
+            )
+        record.messages += message
+        record.topic =
+            record.topic.copy(messagesCount = record.messages.size, lastActivityAt = clock.now)
+        broadcast(record, "message.opened", message)
+        return message
+    }
+
+    private fun append(
+        record: TopicRecord,
+        id: String,
+        text: String,
+    ): Message = replace(record, id, "message.appended") { it.copy(bodyMd = text) }
+
+    private fun close(
+        record: TopicRecord,
+        id: String,
+        held: Boolean,
+    ): Message =
+        replace(record, id, "message.closed") {
+            it.copy(state = MessageState.Closed, held = held, closedAt = clock.now)
+        }
+
+    private fun replace(
+        record: TopicRecord,
+        id: String,
+        event: String,
+        change: (Message) -> Message,
+    ): Message {
+        val index = record.messages.indexOfFirst { it.id == id }
+        val message =
+            change(
+                record.messages[index],
+            ).copy(cursor = ++record.changeSeq, updatedAt = clock.now)
+        record.messages[index] = message
+        broadcast(record, event, message)
+        return message
+    }
+
+    private fun broadcast(
+        record: TopicRecord,
+        event: String,
+        message: Message,
+    ) {
+        val payload =
+            JsonObject(
+                mapOf(
+                    "message" to output.encodeToJsonElement(Message.serializer(), message),
+                    "cursor" to json(message.cursor),
+                ),
+            )
+        sockets.toList().forEach { it.push("topic:" + record.topic.id, event, payload) }
+    }
+
+    // §7 The socket.
+
+    private fun socketUpgrade(request: RecordedRequest): MockResponse {
+        if (apiOff) return status(HTTP_NOT_FOUND)
+        val token =
+            request.headers["Sec-WebSocket-Protocol"]
+                ?.split(',')
+                ?.map { it.trim() }
+                ?.firstOrNull { it.startsWith(AUTH_TOKEN_PREFIX) }
+                ?.removePrefix(AUTH_TOKEN_PREFIX)
+                ?.decodeBase64()
+                ?.utf8()
+        if (token == null) return status(HTTP_FORBIDDEN)
+        tokens[token] ?: return status(HTTP_FORBIDDEN)
+        val socket = FakeSocket(this, token)
+        sockets += socket
+        return MockResponse
+            .Builder()
+            .addHeader("Sec-WebSocket-Protocol", "phoenix")
+            .webSocketUpgrade(socket.listener)
+            .build()
+    }
+
+    /** A topic channel's join: the topic must exist and be visible. */
+    internal fun joinTopic(id: String): JsonObject? =
+        synchronized(lock) {
+            topics[id]?.let { record ->
+                if (categories.any { it.id == record.topic.categoryId && it.permissions.view }) {
+                    buildJsonObject { put("cursor", record.changeSeq) }
+                } else {
+                    null
+                }
+            }
+        }
+
+    internal fun forget(socket: FakeSocket) = synchronized(lock) { sockets.remove(socket) }
+
+    // Answers.
+
+    private inline fun <reified T> ok(value: T): MockResponse =
+        json(output.encodeToString(value), HTTP_OK)
+
+    private fun json(
+        body: String,
+        status: Int,
+    ) = MockResponse
+        .Builder()
+        .code(status)
+        .addHeader("Content-Type", "application/json; charset=utf-8")
+        .body(body)
+        .build()
+
+    private fun status(status: Int) = MockResponse.Builder().code(status).build()
+
+    private fun error(
+        status: Int,
+        code: String,
+        message: String,
+    ) = json(output.encodeToString(ErrorBody(ApiError(code, message))), status)
+
+    private fun notFound() = error(HTTP_NOT_FOUND, ApiError.NOT_FOUND, "Not found.")
+
+    private fun unauthenticated() =
+        error(HTTP_UNAUTHORIZED, ApiError.UNAUTHENTICATED, "Sign in first.")
+
+    private fun form(request: RecordedRequest): Map<String, String> =
+        request.body?.utf8().orEmpty().split('&').filter { it.contains('=') }.associate {
+            decode(it.substringBefore('=')) to decode(it.substringAfter('='))
+        }
+
+    private fun randomId(): String =
+        ByteArray(ID_BYTES).also(random::nextBytes).let {
+            it.toByteString().hex()
+        }
+
+    private fun encodeCursor(offset: Int) = "o$offset".encodeUtf8().base64Url()
+
+    private fun decodeCursor(cursor: String) =
+        cursor
+            .decodeBase64()
+            ?.utf8()
+            ?.removePrefix("o")
+            ?.toIntOrNull()
+
+    private class PendingCode(
+        val person: Person,
+        val challenge: String,
+        val at: Instant,
+        var used: Boolean = false,
+        var token: String? = null,
+    )
+
+    private companion object {
+        const val API = "/api/v1"
+        const val AUTH_TOKEN_PREFIX = "base64url.bearer.phx."
+        const val CHALLENGE_LENGTH = 43
+        val CODE_LIFETIME: Duration = Duration.ofSeconds(60)
+        const val DEFAULT_PAGE = 50
+        const val MAX_PAGE = 100
+        const val ID_BYTES = 8
+        const val HTTP_OK = 200
+        const val HTTP_NO_CONTENT = 204
+        const val HTTP_BAD_REQUEST = 400
+        const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_FORBIDDEN = 403
+        const val HTTP_NOT_FOUND = 404
+        const val HTTP_CONFLICT = 409
+        const val HTTP_GONE = 410
+
+        fun encode(text: String): String = java.net.URLEncoder.encode(text, StandardCharsets.UTF_8)
+
+        fun decode(text: String): String = URLDecoder.decode(text, StandardCharsets.UTF_8)
+
+        fun json(value: Long) = kotlinx.serialization.json.JsonPrimitive(value)
+    }
+}
+
+/** The fake's answers: every field written, nulls included, as idejo's are. */
+internal val output: Json =
+    Json(IdejoJson) {
+        encodeDefaults = true
+        explicitNulls = true
+    }

@@ -24,6 +24,8 @@ rootProject.name = "idejo-android"
 include(":app")
 include(":core:model", ":core:api", ":core:realtime")
 include(":core:data", ":core:markdown", ":core:designsystem")
+// The fake idejo server, for tests only (NF-08); never a dependency of the app.
+include(":core:testing")
 include(
     ":feature:onboarding",
     ":feature:shell",

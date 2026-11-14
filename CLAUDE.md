@@ -83,6 +83,9 @@ core/api/                Retrofit services per forum, discovery, OAuth (PKCE), e
                          to ApiError(code, message, details) (pure JVM)
 core/realtime/           Phoenix Channels client: socket, channels, heartbeat, rejoin with
                          backoff, catch-up cursors (pure JVM)
+core/testing/            FakeIdejo: an in-process idejo on MockWebServer (discovery, PKCE
+                         sign-in, reading, the growing message, catch-up, the socket), for
+                         tests only (NF-08) (pure JVM)
 core/data/               Repositories, Room database per forum, DataStore, Keystore,
                          ForumRegistry (forums held, mode, tokens), drafts
 core/markdown/           idejo dialect parser + Compose renderer (TV-20 to TV-24)
@@ -182,6 +185,7 @@ sources and are credited in `NOTICE` and `REUSE.toml`. Contributions under idejo
 ./gradlew assembleFossRelease               # release build with R8 (unsigned)
 ./gradlew installFossDebug                  # install on a connected device or emulator
 ./gradlew test                              # unit tests: every module, both flavours
+./gradlew :core:testing:test                # the API guide's flows against FakeIdejo
 ./gradlew verifyRoborazziDebug              # screenshot tests (recordRoborazziDebug to update)
 ./gradlew ktlintCheck detekt                # style and static analysis (whole repository)
 ./gradlew ktlintFormat                      # fix what ktlint can fix
@@ -196,8 +200,10 @@ ktlint (with the Compose rules) and detekt run as their pinned command-line tool
 root build, over every `.kt` and `.kts` file; detekt is 1.23.8, its latest stable (2.0 is
 still alpha). Android Lint fails on warnings; only the "newer version available" checks
 are off. Screenshots (Roborazzi on Robolectric, SDK 34: Robolectric's later sandboxes need
-Java 21) live in each module's `src/test/screenshots`. Commands for instrumented and
-end-to-end tests are added with them.
+Java 21) live in each module's `src/test/screenshots`. `FakeIdejo` (core/testing) is the
+fake server of NF-08: depend on it with `testImplementation(project(":core:testing"))`,
+never from main code. Commands for instrumented and end-to-end tests (against idejo's
+Docker image) are added with them.
 
 ## Steward decisions
 
@@ -228,8 +234,8 @@ end-to-end tests are added with them.
 
 ## Milestones (spec §26)
 
-- [ ] **M0 — Foundations**
-- [ ] M1 — Read a forum
+- [x] M0 — Foundations
+- [ ] **M1 — Read a forum**
 - [ ] M2 — Write
 - [ ] M3 — Notifications and settings
 - [ ] M4 — idejo ID mode
@@ -237,4 +243,5 @@ end-to-end tests are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M0 — Foundations** (in progress: PR 1, project skeleton).
+Current milestone: **M1 — Read a forum** (not started). Before the app's socket can connect,
+idejo needs the `auth_token` change (Steward decisions, 2026-11-14).
