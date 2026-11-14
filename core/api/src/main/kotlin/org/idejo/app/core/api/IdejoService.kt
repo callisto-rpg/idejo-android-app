@@ -5,6 +5,7 @@ package org.idejo.app.core.api
 
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.Changes
+import org.idejo.app.core.model.Command
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
@@ -14,11 +15,21 @@ import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicUpdate
+import org.idejo.app.core.model.Unread
+import org.idejo.app.core.model.UserCard
+import org.idejo.app.core.model.Warning
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -101,4 +112,103 @@ internal interface IdejoService {
         @Path("id") id: String,
         @Body commit: Commit,
     ): CommitResult
+
+    @GET("tags")
+    suspend fun tags(): ListBody<Tag>
+
+    @GET("topics")
+    suspend fun tagged(
+        @Query("tags") tags: String,
+        @Query("operator") operator: String?,
+        @Query("cursor") cursor: String?,
+        @Query("limit") limit: Int?,
+    ): Page<Topic>
+
+    @GET("unread")
+    suspend fun unread(
+        @Query("cursor") cursor: String?,
+    ): Unread
+
+    @GET("search")
+    suspend fun search(
+        @Query("q") query: String,
+        @Query("category_id") categoryId: String?,
+        @Query("cursor") cursor: String?,
+    ): Page<SearchHit>
+
+    @GET("users/{id}")
+    suspend fun user(
+        @Path("id") id: String,
+    ): UserCard
+
+    @PUT("users/{id}/ignore")
+    suspend fun ignore(
+        @Path("id") id: String,
+    ): UserCard
+
+    @DELETE("users/{id}/ignore")
+    suspend fun unignore(
+        @Path("id") id: String,
+    ): UserCard
+
+    @GET("me/warnings")
+    suspend fun warnings(): ListBody<Warning>
+
+    @POST("me/warnings/acknowledge")
+    suspend fun acknowledgeWarnings(): retrofit2.Response<Unit>
+
+    @POST("me/welcome")
+    suspend fun welcome(): Me
+
+    @PUT("me/roles/{id}")
+    suspend fun addRole(
+        @Path("id") id: String,
+    ): Me
+
+    @DELETE("me/roles/{id}")
+    suspend fun removeRole(
+        @Path("id") id: String,
+    ): Me
+
+    @GET("topics/{id}/commands")
+    suspend fun commands(
+        @Path("id") id: String,
+    ): ListBody<Command>
+
+    @PUT("topics/{id}/read")
+    suspend fun read(
+        @Path("id") id: String,
+        @Body position: ReadPosition,
+    ): Topic
+
+    @PUT("topics/{id}/follow")
+    suspend fun follow(
+        @Path("id") id: String,
+    ): Topic
+
+    @DELETE("topics/{id}/follow")
+    suspend fun unfollow(
+        @Path("id") id: String,
+    ): Topic
+
+    @PUT("topics/{id}/mute")
+    suspend fun mute(
+        @Path("id") id: String,
+    ): Topic
+
+    @DELETE("topics/{id}/mute")
+    suspend fun unmute(
+        @Path("id") id: String,
+    ): Topic
+
+    @POST("topics/{id}/mark-unread")
+    suspend fun markUnread(
+        @Path("id") id: String,
+    ): Topic
+
+    @PATCH("topics/{id}")
+    suspend fun updateTopic(
+        @Path("id") id: String,
+        @Body update: TopicUpdate,
+    ): Topic
 }

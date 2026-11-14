@@ -408,6 +408,7 @@ class FakeIdejo(
         Server(
             name = settings.name,
             url = url.toString(),
+            theme = settings.theme,
             settings =
                 ServerSettings(
                     windowSeconds = settings.windowSeconds,
@@ -699,6 +700,8 @@ class FakeIdejo(
                 ?.map { it.trim() }
                 ?.firstOrNull { it.startsWith(AUTH_TOKEN_PREFIX) }
                 ?.removePrefix(AUTH_TOKEN_PREFIX)
+                // As Phoenix's Base.decode64!(padding: false): the standard alphabet, unpadded.
+                ?.takeIf { encoded -> encoded.none { it == '-' || it == '_' || it == '=' } }
                 ?.decodeBase64()
                 ?.utf8()
         if (token == null) return status(HTTP_FORBIDDEN)

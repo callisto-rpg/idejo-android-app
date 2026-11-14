@@ -226,11 +226,21 @@ Docker image) are added with them.
 - 2026-11-14 — Backups: none until SY-02 (`allowBackup="false"`, and every domain excluded
   in `data_extraction_rules.xml` and `backup_rules.xml`).
 - 2026-11-14 — The socket's token travels as Phoenix's `auth_token`, in
-  `Sec-WebSocket-Protocol: phoenix, base64url.bearer.phx.<token, base64url unpadded>`, never
-  in the address (SI-04, API guide §7). idejo's `ApiSocket` still reads the token from the
-  connect params, which over a real WebSocket only come from the query string: idejo needs
-  `auth_token: true` on the socket and `connect/3` reading `connect_info.auth_token` (its
-  DV-06 review) before the app's socket can connect.
+  `Sec-WebSocket-Protocol: phoenix, base64url.bearer.phx.<token>`, never in the address
+  (SI-04, API guide §7). The token is in **standard** Base64 without padding: Phoenix decodes
+  it with `Base.decode64!(…, padding: false)` despite the prefix's name. idejo reads it from
+  `connect_info.auth_token` (callisto-rpg/Idejo#357, DV-06); a token in the connect params is
+  refused. The fake server decodes it as strictly as Phoenix.
+- 2026-11-14 — M1 and later milestones overlap: the later milestone wins. M1's logo menu has
+  SH-10, SH-11 and SH-14 explaining MD-03 (SH-12, SH-13, SH-15 wait for M4). Its user menu has
+  Theme, Tutorial bubbles, Sign out, App settings (version and licences only), Accounts and
+  Admin, without Profile and account (M3). The user card has Ignore, without Private Message
+  (M2).
+- 2026-11-14 — The Room cache comes in M5 (OF-01). In M1, a DataStore file holds the forum:
+  its address, discovery, theme (TH-06), the sealed token and the member's choices. Pages
+  loaded stay on screen after signing out; nothing else persists across launches.
+- 2026-11-14 — idejo's socket change goes first in the M1 stack. M1's live features are
+  tested against FakeIdejo, which reads the token as idejo does.
 
 ## Milestones (spec §26)
 
@@ -243,5 +253,5 @@ Docker image) are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M1 — Read a forum** (not started). Before the app's socket can connect,
-idejo needs the `auth_token` change (Steward decisions, 2026-11-14).
+Current milestone: **M1 — Read a forum** (in progress: core/data). The app's socket needs
+idejo with callisto-rpg/Idejo#357 (Steward decisions, 2026-11-14).
