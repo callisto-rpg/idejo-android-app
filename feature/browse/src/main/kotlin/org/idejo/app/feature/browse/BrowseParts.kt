@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -32,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.data.PagesState
 import org.idejo.app.core.data.TopicView
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 
@@ -55,6 +57,19 @@ internal fun SectionTitle(
         HorizontalDivider(Modifier.weight(1f))
         trailing()
     }
+}
+
+/** A page's title, as the web's `h1`. */
+@Composable
+internal fun PageTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text,
+        modifier.semantics { heading() },
+        style = IdejoTheme.typography.headlineSmall,
+    )
 }
 
 /** **View**: Compact or Expanded, as two joined buttons (BR-03). */
@@ -114,6 +129,39 @@ internal fun ProblemRow(
         )
         TextButton(onClick = onRetry) { Text(stringResource(R.string.list_try_again)) }
     }
+}
+
+/**
+ * The end of a paged list: the first page coming, [empty] when nothing came, why a page
+ * failed with **Try again**, and the spinner while more comes.
+ */
+internal fun <T> LazyListScope.pagedEnd(
+    pages: PagesState<T>,
+    empty: String?,
+    onRefresh: () -> Unit,
+    onMore: () -> Unit,
+) {
+    when {
+        pages.loading -> {
+            item(key = "loading") { MoreSpinner() }
+        }
+
+        pages.items.isEmpty() && pages.problem == null && empty != null -> {
+            item(key = "empty") {
+                Text(
+                    empty,
+                    style = IdejoTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+    pages.problem?.let { problem ->
+        item(key = "problem") {
+            ProblemRow(problem, if (pages.items.isEmpty()) onRefresh else onMore)
+        }
+    }
+    if (pages.loadingMore) item(key = "more") { MoreSpinner() }
 }
 
 /** The spinner at the end of a list while its next page comes. */

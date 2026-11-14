@@ -7,18 +7,23 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.DiscoveryClient
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
 import org.idejo.app.core.api.IdejoHttp
+import org.idejo.app.core.api.getOrNull
+import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.realtime.SocketState
 import org.idejo.app.core.testing.FakeIdejo
 import org.idejo.app.core.testing.FakePeople
 import org.junit.After
@@ -52,6 +57,7 @@ class BrowseDataTest {
 
     @After
     fun stop() {
+        sessions.active?.socket?.disconnect()
         fake.close()
         scope.cancel()
     }
@@ -149,5 +155,78 @@ class BrowseDataTest {
                     ?.firstExcerpt
                     ?.isNotBlank() == true,
             )
+        }
+
+    @Test
+    fun `BR-04 Filter by tag lists the topics carrying all the tags, or any with Or`() =
+        runBlocking {
+            val seeds = Tag("g_seeds", "Seeds", "seeds")
+            val indoor = Tag("g_indoor", "Indoor", "indoor")
+            fake.addTopic("Peppers indoors", tags = listOf(seeds, indoor))
+            fake.addTopic("Seed swap", tags = listOf(seeds))
+            fake.addTopic("Grow lights", tags = listOf(indoor))
+            val session = signedIn()
+
+            val tags = (session.call { tags() } as ApiResult.Success).value
+            assertEquals(setOf("seeds", "indoor"), tags.mapNotNull { it.slug }.toSet())
+            val all = session.call { tagged(listOf("seeds", "indoor")) }.getOrNull()
+            assertEquals(listOf("Peppers indoors"), all?.data?.map { it.title })
+            val any = session.call { tagged(listOf("seeds", "indoor"), any = true) }.getOrNull()
+            assertEquals(
+                setOf("Tomato plans for spring", "Peppers indoors", "Seed swap", "Grow lights"),
+                any?.data?.map { it.title }?.toSet(),
+            )
+        }
+
+    @Test
+    fun `BR-05 search finds messages and marks the matches`() =
+        runBlocking {
+            fake.post(FakePeople.Mina, "t_1", "Sungold every year")
+            val session = signedIn()
+
+            val hits =
+                session
+                    .call { search("sungold") }
+                    .getOrNull()
+                    ?.data
+                    .orEmpty()
+
+            val hit = hits.single()
+            assertEquals("t_1", hit.topicId)
+            assertEquals(listOf("Sungold"), hit.excerpt.filter { it.match }.map { it.text })
+            assertTrue(
+                session
+                    .call {
+                        search(
+                            "sungold",
+                            categoryId = "c_fruit",
+                        )
+                    }.getOrNull()
+                    ?.data!!
+                    .isEmpty(),
+            )
+        }
+
+    @Test
+    fun `BR-06 Unread lists followed topics first, then others, and follows unread changes`() =
+        runBlocking {
+            val basil = fake.addTopic("Basil all summer")
+            fake.follow(FakePeople.Ada, basil.id)
+            fake.unread(FakePeople.Ada, basil.id, 1)
+            fake.unread(FakePeople.Ada, "t_1", 2)
+            val session = signedIn()
+            session.socket.connect()
+            withTimeout(5.seconds) { session.socket.state.first { it == SocketState.Connected } }
+            val feed = UnreadFeed(session, scope).also { it.start() }
+
+            val first = feed.state.until { !it.others.loading }
+            assertEquals(listOf(basil.id), first.following.map { it.id })
+            assertEquals(listOf("t_1"), first.others.items.map { it.id })
+            withTimeout(5.seconds) { while (!fake.joined("user:me")) delay(20) }
+
+            fake.unread(FakePeople.Ada, "t_1", 0)
+            val after = feed.state.until { it.others.items.isEmpty() && !it.others.refreshing }
+            assertEquals(listOf(basil.id), after.following.map { it.id })
+            assertFalse(after.empty)
         }
 }

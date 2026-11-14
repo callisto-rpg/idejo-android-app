@@ -263,6 +263,6 @@ Docker image) are added with them.
 - [ ] M7 — Right sidebar
 
 Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
-markdown, browse: home and category). The app needs idejo with callisto-rpg/Idejo#357 (the
-socket), #358 (inline links) and #359 (the home page's Expanded view) (Steward decisions,
-2026-11-14).
+markdown, browse: home, category, Filter by tag, Search, Unread). The app needs idejo with
+callisto-rpg/Idejo#357 (the socket), #358 (inline links) and #359 (the home page's
+Expanded view) (Steward decisions, 2026-11-14).

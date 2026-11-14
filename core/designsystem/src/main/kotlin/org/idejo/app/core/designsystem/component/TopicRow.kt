@@ -5,6 +5,7 @@ package org.idejo.app.core.designsystem.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
@@ -75,7 +77,8 @@ data class TopicExpansion(
  * category's mark on the home page), title, who started it (or its category) and when it was
  * last active, its tags at the right above "N new" ([unread]) and its number of messages.
  * Compact by default; with [expansion], the Expanded view, whose pictures [picture] draws.
- * An [inactive] topic is faded, as the web's.
+ * An [inactive] topic is faded, as the web's. [onTag] makes the tags open **Filter by tag**
+ * (BR-04), by their index in [tags].
  */
 @Composable
 fun TopicRow(
@@ -93,6 +96,7 @@ fun TopicRow(
     inactive: Boolean = false,
     lead: (@Composable () -> Unit)? = null,
     picture: (@Composable (url: String, modifier: Modifier) -> Unit)? = null,
+    onTag: ((Int) -> Unit)? = null,
 ) {
     val inactiveWords = stringResource(R.string.topic_inactive)
     Surface(
@@ -131,7 +135,7 @@ fun TopicRow(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                tags.forEach { Tag(it) }
+                tags.forEachIndexed { index, tag -> Tag(tag, onTag?.let { { it(index) } }) }
                 if (unread > 0) NewBadge(unread)
                 Text(
                     pluralStringResource(R.plurals.topic_messages, messagesCount, messagesCount),
@@ -303,11 +307,24 @@ private fun Writers(
 }
 
 @Composable
-private fun Tag(name: String) {
+private fun Tag(
+    name: String,
+    onClick: (() -> Unit)?,
+) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier =
+            if (onClick != null) {
+                // Small as on the web: inside a row the row's own target takes the rest.
+                Modifier.clip(RoundedCornerShape(10.dp)).clickable(
+                    role = Role.Button,
+                    onClick = onClick,
+                )
+            } else {
+                Modifier
+            },
     ) {
         Text(
             name,

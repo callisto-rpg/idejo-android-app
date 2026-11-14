@@ -11,6 +11,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.data.HomeState
 import org.idejo.app.core.data.PagesState
 import org.idejo.app.core.data.TopicView
+import org.idejo.app.core.data.UnreadState
 import org.idejo.app.core.data.sections
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
@@ -19,6 +20,7 @@ import org.idejo.app.core.model.CategoryGroup
 import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicPreview
@@ -36,11 +38,11 @@ import java.time.Instant
 class BrowseScreenshotTest {
     @Test
     fun `BR-01 home, compact`() =
-        snapshots("Home") { HomeScreen(home(TopicView.Compact), {}, {}, {}, {}) }
+        snapshots("Home") { HomeScreen(home(TopicView.Compact), {}, {}, {}, {}, {}) }
 
     @Test
     fun `BR-01 BR-03 home, expanded`() =
-        snapshots("HomeExpanded") { HomeScreen(home(TopicView.Expanded), {}, {}, {}, {}) }
+        snapshots("HomeExpanded") { HomeScreen(home(TopicView.Expanded), {}, {}, {}, {}, {}) }
 
     @Test
     fun `BR-02 category page`() =
@@ -50,6 +52,60 @@ class BrowseScreenshotTest {
                     category = VEGETABLES,
                     topics = PagesState(TOPICS, loading = false),
                     view = TopicView.Compact,
+                ),
+                {},
+                {},
+                {},
+                {},
+                {},
+            )
+        }
+
+    @Test
+    fun `BR-04 Filter by tag`() =
+        snapshots("Tags") {
+            TagsScreen(
+                TagsUi(
+                    tags =
+                        listOf(
+                            SEEDS,
+                            Tag("g_indoor", "Indoor", "indoor"),
+                            Tag("g_trees", "Trees", "trees"),
+                        ),
+                    tagsLoading = false,
+                    choice = TagChoice(setOf("seeds", "indoor"), any = true),
+                    shown = TagChoice(setOf("seeds", "indoor"), any = true),
+                    topics = PagesState(TOPICS.take(2), loading = false, end = true),
+                    categories = listOf(VEGETABLES, FRUIT),
+                ),
+                TagsActions({}, {}, {}, {}, {}, {}),
+            )
+        }
+
+    @Test
+    fun `BR-05 search`() =
+        snapshots("Search") {
+            SearchScreen(
+                SearchUi(
+                    query = SearchQuery("sungold"),
+                    searched = SearchQuery("sungold"),
+                    hits = PagesState(HITS, loading = false, end = true),
+                    categories = listOf(VEGETABLES, FRUIT),
+                ),
+                SearchActions({}, {}, {}, { _, _ -> }, {}, {}),
+            )
+        }
+
+    @Test
+    fun `BR-06 unread`() =
+        snapshots("Unread") {
+            UnreadScreen(
+                UnreadUi(
+                    UnreadState(
+                        following = TOPICS.take(1),
+                        others = PagesState(TOPICS.drop(1).take(1), loading = false, end = true),
+                    ),
+                    categories = listOf(VEGETABLES, FRUIT),
                 ),
                 {},
                 {},
@@ -91,6 +147,37 @@ class BrowseScreenshotTest {
                 compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.01f),
             )
         val NOW: Instant = Instant.now()
+        val SEEDS = Tag("g_seeds", "Seeds", "seeds")
+        val HITS =
+            listOf(
+                SearchHit(
+                    "m1",
+                    "t_1",
+                    "Tomato plans for spring",
+                    categoryId = "c_veg",
+                    authorName = "Mina Kader",
+                    openedAt = NOW.minusSeconds(600),
+                    excerpt =
+                        listOf(
+                            SearchHit.Segment("Sungold", match = true),
+                            SearchHit.Segment(" every year. Pinch the suckers early."),
+                        ),
+                ),
+                SearchHit(
+                    "m2",
+                    "t_4",
+                    "Cherry tomatoes on a balcony",
+                    categoryId = "c_veg",
+                    authorName = "Leo Moreau",
+                    openedAt = NOW.minusSeconds(86_400 * 2),
+                    excerpt =
+                        listOf(
+                            SearchHit.Segment("Two pots: one "),
+                            SearchHit.Segment("Sungold", match = true),
+                            SearchHit.Segment(", one Black Cherry, both on the south rail."),
+                        ),
+                ),
+            )
         val GARDENING = CategoryGroup("g1", "Gardening", 1)
         val VEGETABLES =
             Category(
@@ -124,7 +211,7 @@ class BrowseScreenshotTest {
                     "Tomato plans for spring",
                     categoryId = "c_veg",
                     author = LEO,
-                    tags = listOf(Tag("g_seeds", "Seeds")),
+                    tags = listOf(SEEDS),
                     lastActivityAt = NOW.minusSeconds(120),
                     messagesCount = 24,
                     unreadCount = 3,

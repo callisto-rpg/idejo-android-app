@@ -28,6 +28,9 @@ import androidx.navigation.toRoute
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.feature.browse.CategoryRoute
 import org.idejo.app.feature.browse.HomeRoute
+import org.idejo.app.feature.browse.SearchRoute
+import org.idejo.app.feature.browse.TagsRoute
+import org.idejo.app.feature.browse.UnreadRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
@@ -57,24 +60,35 @@ fun ForumApp(
         modifier = modifier,
     ) {
         NavHost(navigation, startDestination = Place.Home) {
+            val topic: (String) -> Unit = { navigation.go(Place.Topic(it)) }
+            val tag: (String) -> Unit = { navigation.go(Place.Tags(it)) }
             composable<Place.Home> {
                 Page(session, signIn) {
                     HomeRoute(
                         onCategory = { navigation.go(Place.Category(it)) },
-                        onTopic = { navigation.go(Place.Topic(it)) },
+                        onTopic = topic,
+                        onTag = tag,
                     )
                 }
             }
             composable<Place.Category> {
-                Page(
-                    session,
-                    signIn,
-                ) { CategoryRoute(onTopic = { navigation.go(Place.Topic(it)) }) }
+                Page(session, signIn) { CategoryRoute(onTopic = topic, onTag = tag) }
             }
             composable<Place.Topic> { Page(session, signIn) }
-            composable<Place.Unread> { Page(session, signIn) }
-            composable<Place.Tags> { Page(session, signIn) }
-            composable<Place.Search> { Page(session, signIn) }
+            composable<Place.Unread> {
+                Page(session, signIn) { UnreadRoute(onTopic = topic, onTag = tag) }
+            }
+            composable<Place.Tags> { Page(session, signIn) { TagsRoute(onTopic = topic) } }
+            composable<Place.Search> {
+                Page(session, signIn) {
+                    SearchRoute(onMessage = {
+                        id,
+                        message,
+                        ->
+                        navigation.go(Place.Topic(id, message))
+                    })
+                }
+            }
             composable<Place.Rules> { Page(session, signIn) }
             composable<Place.Help> { Page(session, signIn) }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
@@ -95,6 +109,7 @@ private fun NavBackStackEntry.place(): Place? =
     when {
         destination.hasRoute<Place.Category>() -> toRoute<Place.Category>()
         destination.hasRoute<Place.Topic>() -> toRoute<Place.Topic>()
+        destination.hasRoute<Place.Tags>() -> toRoute<Place.Tags>()
         else -> SIMPLE.firstOrNull { destination.hasRoute(it::class) }
     }
 
@@ -102,7 +117,6 @@ private val SIMPLE =
     listOf(
         Place.Home,
         Place.Unread,
-        Place.Tags,
         Place.Search,
         Place.Rules,
         Place.Help,

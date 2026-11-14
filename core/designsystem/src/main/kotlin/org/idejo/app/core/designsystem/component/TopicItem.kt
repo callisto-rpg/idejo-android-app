@@ -15,13 +15,15 @@ import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import java.time.Instant
 
 /**
  * A [Topic] as a row of a list (BR-02, BR-03): led by its starter's picture, or with
  * [category] (the home page's active topics) by the category's mark and name. [expanded]
- * shows its preview when the list was read with one. [picture] draws an address.
+ * shows its preview when the list was read with one. [picture] draws an address; [onTag]
+ * opens a tag tapped (BR-04).
  */
 @Composable
 fun TopicItem(
@@ -31,6 +33,7 @@ fun TopicItem(
     expanded: Boolean = false,
     category: Category? = null,
     picture: (@Composable (url: String, modifier: Modifier) -> Unit)? = null,
+    onTag: ((Tag) -> Unit)? = null,
 ) {
     val dark = IdejoTheme.dark
     val scheme = MaterialTheme.colorScheme
@@ -47,6 +50,7 @@ fun TopicItem(
         pinned = topic.pinned,
         unread = topic.unreadCount,
         inactive = topic.inactive,
+        onTag = onTag?.let { open -> { open(topic.tags[it]) } },
         expansion =
             topic.preview?.takeIf { expanded }?.let { preview ->
                 TopicExpansion(

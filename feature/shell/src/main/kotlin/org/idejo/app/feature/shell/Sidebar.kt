@@ -427,7 +427,7 @@ internal class Link(
 
 internal val links =
     listOf(
-        Link(Place.Tags, R.drawable.ic_tag, R.string.place_tags),
+        Link(Place.Tags(), R.drawable.ic_tag, R.string.place_tags),
         Link(Place.Search, R.drawable.ic_search, R.string.place_search),
         Link(Place.Rules, R.drawable.ic_rules, R.string.place_rules),
         Link(Place.Help, R.drawable.ic_help, R.string.place_help),

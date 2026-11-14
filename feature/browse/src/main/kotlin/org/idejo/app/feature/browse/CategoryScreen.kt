@@ -40,6 +40,7 @@ import org.idejo.app.core.model.Category
 @Composable
 fun CategoryRoute(
     onTopic: (String) -> Unit,
+    onTag: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CategoryViewModel = hiltViewModel(),
 ) {
@@ -47,6 +48,7 @@ fun CategoryRoute(
     CategoryScreen(
         state = state,
         onTopic = onTopic,
+        onTag = onTag,
         onRefresh = viewModel::refresh,
         onMore = viewModel::more,
         onView = viewModel::view,
@@ -64,6 +66,7 @@ fun CategoryRoute(
 fun CategoryScreen(
     state: CategoryUi,
     onTopic: (String) -> Unit,
+    onTag: (String) -> Unit,
     onRefresh: () -> Unit,
     onMore: () -> Unit,
     onView: (TopicView) -> Unit,
@@ -72,6 +75,7 @@ fun CategoryScreen(
     val topics = state.topics
     val list = rememberLazyListState()
     val picture = remember(state.origin) { pictures(state.origin) }
+    val empty = stringResource(R.string.category_empty)
     EndlessScroll(list, onMore)
     PullToRefreshBox(topics.refreshing, onRefresh, modifier.fillMaxSize()) {
         LazyColumn(
@@ -81,35 +85,16 @@ fun CategoryScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item(key = "head") { Head(state.category, state.view, onView) }
-            when {
-                topics.loading -> {
-                    item(key = "loading") { MoreSpinner() }
-                }
-
-                topics.items.isEmpty() && topics.problem == null -> {
-                    item(key = "empty") {
-                        Text(
-                            stringResource(R.string.category_empty),
-                            style = IdejoTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
             items(topics.items, key = { it.id }) { topic ->
                 TopicItem(
                     topic = topic,
                     onClick = { onTopic(topic.id) },
                     expanded = state.view == TopicView.Expanded,
                     picture = picture,
+                    onTag = { tag -> tag.slug?.let(onTag) },
                 )
             }
-            topics.problem?.let { problem ->
-                item(key = "problem") {
-                    ProblemRow(problem, if (topics.items.isEmpty()) onRefresh else onMore)
-                }
-            }
-            if (topics.loadingMore) item(key = "more") { MoreSpinner() }
+            pagedEnd(topics, empty, onRefresh, onMore)
         }
     }
 }

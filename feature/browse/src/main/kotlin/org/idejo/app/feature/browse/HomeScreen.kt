@@ -48,6 +48,7 @@ import org.idejo.app.core.model.Category
 fun HomeRoute(
     onCategory: (String) -> Unit,
     onTopic: (String) -> Unit,
+    onTag: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -56,6 +57,7 @@ fun HomeRoute(
         state = state,
         onCategory = onCategory,
         onTopic = onTopic,
+        onTag = onTag,
         onRefresh = viewModel::refresh,
         onView = viewModel::view,
         modifier = modifier,
@@ -72,6 +74,7 @@ fun HomeScreen(
     state: HomeUi,
     onCategory: (String) -> Unit,
     onTopic: (String) -> Unit,
+    onTag: (String) -> Unit,
     onRefresh: () -> Unit,
     onView: (TopicView) -> Unit,
     modifier: Modifier = Modifier,
@@ -122,6 +125,7 @@ fun HomeScreen(
                         expanded = state.view == TopicView.Expanded,
                         category = home.category(topic.categoryId),
                         picture = picture,
+                        onTag = { tag -> tag.slug?.let(onTag) },
                     )
                 }
             }

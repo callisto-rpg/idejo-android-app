@@ -37,8 +37,10 @@ import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
+import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicPreview
@@ -196,6 +198,7 @@ class FakeIdejo(
         title: String,
         categoryId: String = "c_veg",
         author: Person = FakePeople.Leo,
+        tags: List<Tag> = emptyList(),
     ): Topic =
         synchronized(lock) {
             val id = "t_" + nextId++
@@ -209,6 +212,7 @@ class FakeIdejo(
                     author = author,
                     createdAt = clock.now,
                     lastActivityAt = clock.now,
+                    tags = tags,
                 )
             topics[id] = TopicRecord(topic)
             openMessage(topics.getValue(id), author, title).let {
@@ -342,6 +346,12 @@ class FakeIdejo(
                 val expanded = call.request.expanded
                 ok(ListBody(topics.values.map { it.seen(call.viewer, expanded) }))
             },
+            Route("GET", "tags") {
+                val all = topics.values.flatMap { it.topic.tags }.distinctBy { it.id }
+                ok(ListBody(all))
+            },
+            Route("GET", "topics") { call -> tagged(call.viewer, call.request) },
+            Route("GET", "search") { call -> search(call.viewer, call.request) },
             Route("GET", "unread") { call ->
                 call.viewer?.let { ok(unreadOf(it)) }
                     ?: unauthenticated()
@@ -658,6 +668,90 @@ class FakeIdejo(
             topics.values
                 .map { it.seen(viewer, request.expanded) }
                 .filter { it.categoryId == id }
+        return ok(paged(all, request))
+    }
+
+    /** `GET /topics?tags=a,b&operator=or` (BR-04): topics carrying all, or any, of the tags. */
+    private fun tagged(
+        viewer: Person?,
+        request: RecordedRequest,
+    ): MockResponse {
+        val wanted =
+            request.url
+                .queryParameter("tags")
+                .orEmpty()
+                .split(',')
+                .filter { it.isNotBlank() }
+                .toSet()
+        val any = request.url.queryParameter("operator") == "or"
+        val all =
+            topics.values.map { it.topic.seenBy(viewer) }.filter { topic ->
+                val carried = topic.tags.mapNotNull { it.slug }.toSet()
+                if (any) carried.any { it in wanted } else carried.containsAll(wanted)
+            }
+        return ok(paged(all, request))
+    }
+
+    /** `GET /search` (BR-05): messages whose words or topic title hold the query, marked. */
+    private fun search(
+        viewer: Person?,
+        request: RecordedRequest,
+    ): MockResponse {
+        val query =
+            request.url
+                .queryParameter("q")
+                .orEmpty()
+                .trim()
+        val category = request.url.queryParameter("category_id")
+        val hits =
+            topics.values
+                .map { it.topic.seenBy(viewer) to it.messages }
+                .filter { (topic, _) -> category == null || topic.categoryId == category }
+                .flatMap { (topic, messages) ->
+                    messages
+                        .filter {
+                            query.isNotEmpty() &&
+                                it.bodyMd.orEmpty().contains(
+                                    query,
+                                    ignoreCase = true,
+                                )
+                        }.map { message ->
+                            SearchHit(
+                                messageId = message.id,
+                                topicId = topic.id,
+                                topicTitle = topic.title,
+                                categoryId = topic.categoryId,
+                                authorName = message.author.displayName,
+                                excerpt = marked(message.bodyMd.orEmpty(), query),
+                            )
+                        }
+                }
+        return ok(paged(hits, request))
+    }
+
+    /** [text] cut where [query] stands, each match marked. */
+    private fun marked(
+        text: String,
+        query: String,
+    ): List<SearchHit.Segment> {
+        val segments = mutableListOf<SearchHit.Segment>()
+        var from = 0
+        while (true) {
+            val at = text.indexOf(query, from, ignoreCase = true)
+            if (at < 0) break
+            if (at > from) segments += SearchHit.Segment(text.substring(from, at))
+            segments += SearchHit.Segment(text.substring(at, at + query.length), match = true)
+            from = at + query.length
+        }
+        if (from < text.length) segments += SearchHit.Segment(text.substring(from))
+        return segments
+    }
+
+    /** One page of [all] after the request's cursor, at most its `limit`. */
+    private fun <T> paged(
+        all: List<T>,
+        request: RecordedRequest,
+    ): Page<T> {
         val limit =
             request.url
                 .queryParameter("limit")
@@ -667,7 +761,7 @@ class FakeIdejo(
         val from = request.url.queryParameter("cursor")?.let(::decodeCursor) ?: 0
         val page = all.drop(from).take(limit)
         val next = (from + page.size).takeIf { it < all.size }?.let(::encodeCursor)
-        return ok(Page(page, nextCursor = next, prevCursor = null))
+        return Page(page, nextCursor = next, prevCursor = null)
     }
 
     /** The topic as [viewer] sees it, with its preview when the list asked for one. */

@@ -20,6 +20,33 @@
     <!-- Category page (BR-02). -->
     <string name="category_empty">No topics yet.</string>
 
+    <!-- Filter by tag (BR-04). -->
+    <string name="tags_title">Filter by tag</string>
+    <string name="tags_intro">Choose one or more tags: the topics carrying all of them (And) or any of them (Or) are listed.</string>
+    <string name="tags_none">No tags yet.</string>
+    <string name="tags_show">Show topics</string>
+    <string name="tags_operator">Operator</string>
+    <string name="tags_and">And</string>
+    <string name="tags_or">Or</string>
+    <string name="tags_one">Topics tagged</string>
+    <string name="tags_all">Topics carrying all of these tags</string>
+    <string name="tags_any">Topics carrying any of these tags</string>
+    <string name="tags_none_all">No topics carry all these tags.</string>
+    <string name="tags_none_any">No topics carry any of these tags.</string>
+
+    <!-- Search (BR-05). -->
+    <string name="search_title">Search</string>
+    <string name="search_words">Words to find</string>
+    <string name="search_category">Category</string>
+    <string name="search_all_categories">All categories</string>
+    <string name="search_nothing">Nothing found.</string>
+
+    <!-- Unread (BR-06). -->
+    <string name="unread_title">Unread</string>
+    <string name="unread_following">Following</string>
+    <string name="unread_others">Other topics</string>
+    <string name="unread_nothing">Nothing new since your last visit.</string>
+
     <!-- Lists (BR-10). -->
     <string name="list_could_not_load">Couldn’t load this page.</string>
     <string name="list_offline">You’re offline. Pull down to try again.</string>

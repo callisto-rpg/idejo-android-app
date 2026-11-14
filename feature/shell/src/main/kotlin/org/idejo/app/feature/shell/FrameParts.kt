@@ -47,7 +47,7 @@ internal fun unreadOf(
 internal fun Place.label(): Int =
     when (this) {
         Place.Unread -> R.string.place_unread
-        Place.Tags -> R.string.place_tags
+        is Place.Tags -> R.string.place_tags
         Place.Search -> R.string.place_search
         Place.Rules -> R.string.place_rules
         Place.Help -> R.string.place_help

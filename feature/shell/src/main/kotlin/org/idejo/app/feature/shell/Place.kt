@@ -19,16 +19,24 @@ sealed interface Place {
         val id: String,
     ) : Place
 
+    /** A topic; with [messageId], open on that message (a search hit, a notification). */
     @Serializable
     data class Topic(
         val id: String,
+        val messageId: String? = null,
     ) : Place
 
     @Serializable
     data object Unread : Place
 
+    /**
+     * **Filter by tag** (BR-04), with [tags] ticked (slugs, comma separated, as idejo's
+     * `GET /topics?tags=`): a tag tapped anywhere.
+     */
     @Serializable
-    data object Tags : Place
+    data class Tags(
+        val tags: String = "",
+    ) : Place
 
     @Serializable
     data object Search : Place
