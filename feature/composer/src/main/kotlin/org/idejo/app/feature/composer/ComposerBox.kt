@@ -1,0 +1,245 @@
+// SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package org.idejo.app.feature.composer
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import org.idejo.app.core.designsystem.component.Avatar
+import org.idejo.app.core.designsystem.component.StatusBubble
+import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.designsystem.theme.parseHexColor
+import org.idejo.app.core.designsystem.theme.pictureUrl
+import org.idejo.app.core.model.Me
+
+/** What the member does in the composer. */
+data class ComposerEvents(
+    /** The box's text, after a soft return was taken out (CO-03). */
+    val onTyped: (String) -> Unit = {},
+    val onEnter: () -> Unit = {},
+    val onComplete: () -> Unit = {},
+    val onErrorSeen: () -> Unit = {},
+)
+
+/** The composer driven by [composer]: what the app places in the topic (CO-01). */
+@Composable
+fun ComposerRoute(
+    composer: Composer,
+    author: Me?,
+    origin: String,
+    modifier: Modifier = Modifier,
+) {
+    val state by composer.state.collectAsStateWithLifecycle()
+    ComposerBox(
+        state,
+        author,
+        origin,
+        ComposerEvents(
+            onTyped = composer::typed,
+            onEnter = composer::enter,
+            onComplete = composer::complete,
+            onErrorSeen = composer::errorSeen,
+        ),
+        modifier,
+    )
+}
+
+/**
+ * The author's open message, in place (CO-01): the head with the picture, name and status
+ * bubble, faded until something is sent (CO-05); the text, sent in higher contrast than
+ * unsent, what was just sent glowing (CO-04); the server's errors under it (CO-08).
+ */
+@Composable
+fun ComposerBox(
+    state: ComposerState,
+    author: Me?,
+    origin: String,
+    events: ComposerEvents,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Head(state.status, author, origin)
+        Editor(state, events)
+        state.error?.let { ErrorLine(it, events.onErrorSeen) }
+    }
+}
+
+@Composable
+private fun Head(
+    status: ComposerStatus,
+    author: Me?,
+    origin: String,
+) {
+    val faded = status == ComposerStatus.Empty || status == ComposerStatus.Unsent
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val name = author?.displayName.orEmpty()
+        val picture = pictureUrl(author?.avatarUrl, author?.avatarDarkUrl, IdejoTheme.dark)
+        Row(
+            Modifier.alpha(if (faded) FADED else 1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Avatar(
+                name,
+                parseHexColor(author?.colour) ?: MaterialTheme.colorScheme.tertiary,
+                image =
+                    picture?.let { url ->
+                        {
+                            AsyncImage(
+                                absolute(origin, url),
+                                null,
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
+                    },
+            )
+            Text(name, style = IdejoTheme.typography.titleSmall)
+        }
+        statusText(status)?.let { StatusBubble(it) }
+    }
+}
+
+@Composable
+private fun statusText(status: ComposerStatus): String? =
+    when (status) {
+        ComposerStatus.Empty -> null
+        ComposerStatus.Unsent -> stringResource(R.string.composer_unsent)
+        ComposerStatus.Sent -> stringResource(R.string.composer_sent)
+        ComposerStatus.SentAppendsUnsent -> stringResource(R.string.composer_appends)
+        ComposerStatus.SentAndCommitted -> stringResource(R.string.composer_committed)
+    }
+
+@Composable
+private fun Editor(
+    state: ComposerState,
+    events: ComposerEvents,
+) {
+    var value by rememberFollowing(state.text)
+    val colors = textColors(rememberGlow(state.justSent))
+    val label = stringResource(R.string.composer_label)
+    Box {
+        if (value.text.isEmpty()) {
+            Text(
+                stringResource(R.string.composer_placeholder),
+                style = IdejoTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        BasicTextField(
+            value = value,
+            onValueChange = { next ->
+                if (softReturn(value.text, next.text) != null) {
+                    events.onEnter()
+                } else {
+                    value = next
+                    events.onTyped(next.text)
+                }
+            },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = label }
+                    .onPreviewKeyEvent { key ->
+                        keys(key, events) {
+                            value = value.insert("\n")
+                            events.onTyped(value.text)
+                        }
+                    },
+            textStyle = IdejoTheme.typography.bodyLarge.copy(color = colors.sent),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            visualTransformation = SentText(state, colors),
+        )
+    }
+}
+
+@Composable
+private fun ErrorLine(
+    error: ComposerError,
+    onDismiss: () -> Unit,
+) {
+    val text =
+        when (error) {
+            is ComposerError.Refused -> {
+                val seconds = error.retryAfter?.seconds?.toInt()
+                listOfNotNull(
+                    error.error.message.ifBlank { null },
+                    seconds?.let { pluralStringResource(R.plurals.composer_retry_after, it, it) },
+                ).joinToString(" ")
+            }
+
+            ComposerError.Unreachable -> {
+                stringResource(R.string.composer_unreachable)
+            }
+        }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text,
+            Modifier.weight(1f),
+            style = IdejoTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+        TextButton(onClick = onDismiss) { Text(stringResource(R.string.composer_error_dismiss)) }
+    }
+}
+
+/** [url] as an absolute address: a path is the forum's. */
+internal fun absolute(
+    origin: String,
+    url: String,
+): String = if (url.startsWith("/")) origin.trimEnd('/') + url else url
+
+private const val FADED = 0.6f

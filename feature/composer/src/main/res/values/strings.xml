@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- CO-01: the text box, named after the keys as the web's placeholder. -->
+    <string name="composer_label">Message</string>
+    <string name="composer_placeholder">Enter: send · Ctrl+Enter / Enter×3: New message</string>
+    <!-- CO-05: the status bubble beside the picture. -->
+    <string name="composer_unsent">unsent</string>
+    <string name="composer_sent">sent</string>
+    <string name="composer_appends">sent, appends unsent</string>
+    <string name="composer_committed">sent &amp; committed</string>
+    <!-- CO-08: no answer; the server's own message is shown otherwise. -->
+    <string name="composer_unreachable">Couldn\'t reach the forum. Nothing you typed is lost: press Enter to send it again.</string>
+    <string name="composer_error_dismiss">Dismiss</string>
+    <!-- CO-08: rate_limited's Retry-After. -->
+    <plurals name="composer_retry_after">
+        <item quantity="one">Try again in %d second.</item>
+        <item quantity="other">Try again in %d seconds.</item>
+    </plurals>
+</resources>

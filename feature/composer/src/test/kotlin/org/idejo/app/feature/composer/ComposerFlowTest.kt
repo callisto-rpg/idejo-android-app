@@ -90,4 +90,18 @@ class ComposerFlowTest {
             assertEquals("Hi.", resumed.sent)
             assertEquals(ComposerStatus.Sent, resumed.status)
         }
+
+    @Test
+    fun `CO-21 leaving the topic never closes the open message from the app`() =
+        runTest {
+            val scope =
+                kotlinx.coroutines.CoroutineScope(coroutineContext + kotlinx.coroutines.Job())
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), scope)
+            composer.typed("Hi")
+            composer.enter()
+            val id = requireNotNull(composer.state.first { it.openMessageId != null }.openMessageId)
+            scope.coroutineContext[kotlinx.coroutines.Job]!!.cancel()
+            // The server closes it after 30 s without the channel (invariant 7), not the app.
+            assertEquals(MessageState.Open, fake.messages("t_1").first { it.id == id }.state)
+        }
 }

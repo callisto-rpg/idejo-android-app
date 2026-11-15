@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -29,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -38,8 +40,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -55,6 +66,7 @@ import org.idejo.app.core.data.Glow
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Mention
+import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 
@@ -91,6 +103,7 @@ fun TopicRoute(
     onLink: (String) -> Unit,
     onInlineLink: (Mention) -> Unit,
     onTopic: (String, String?) -> Unit,
+    writing: TopicWriting,
     viewModel: TopicViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -120,6 +133,7 @@ fun TopicRoute(
             onTopic = { onTopic(it, null) },
             onVote = { message, poll, options -> viewModel.vote(message, poll, options) },
         ),
+        writing = writing,
     )
 }
 
@@ -133,6 +147,7 @@ fun TopicScreen(
     state: TopicUi,
     actions: TopicActions,
     modifier: Modifier = Modifier,
+    writing: TopicWriting = TopicWriting(),
     list: LazyListState = rememberLazyListState(),
 ) {
     val topic = state.topic
@@ -141,9 +156,9 @@ fun TopicScreen(
     val jump = rememberJumpActions(topic, list, actions)
     val beside = jumpCardBeside() && topic.topic != null
     val scrolled by remember(list) { derivedStateOf { list.firstVisibleItemIndex > 0 } }
-    Row(modifier.fillMaxSize()) {
+    Row(modifier.fillMaxSize().onKeyEvent { completes(it, writing) }) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
-            Page(state, actions, list) { viewed = it }
+            Page(state, actions, writing, list) { viewed = it }
             if (!beside && scrolled && topic.topic != null) {
                 JumpButton(jumps, jump, Modifier.align(Alignment.TopEnd))
             }
@@ -158,6 +173,7 @@ fun TopicScreen(
 private fun Page(
     state: TopicUi,
     actions: TopicActions,
+    writing: TopicWriting,
     list: LazyListState,
     onImage: (ViewedImage) -> Unit,
 ) = Box(Modifier.fillMaxSize()) {
@@ -166,7 +182,7 @@ private fun Page(
         topic.gone -> Gone()
         topic.topic == null && topic.loading -> Spinner()
         topic.topic == null -> topic.problem?.let { Problem(it, actions.onRetry) }
-        else -> Messages(state, actions, list, onImage)
+        else -> Messages(state, actions, writing, list, onImage)
     }
     val bottom = Modifier.align(Alignment.BottomCenter)
     val problem = topic.problem
@@ -185,6 +201,7 @@ private fun Page(
 private fun Messages(
     state: TopicUi,
     actions: TopicActions,
+    writing: TopicWriting,
     list: LazyListState,
     onImage: (ViewedImage) -> Unit,
 ) {
@@ -207,7 +224,7 @@ private fun Messages(
         )
     val glowing = rememberGlowing(list, state.glows)
     LazyColumn(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().imePadding(),
         state = list,
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
@@ -227,23 +244,33 @@ private fun Messages(
             if (message.id == topic.unread?.messageId) {
                 item(key = "unread") { UnreadLine(topic.unread!!.count) }
             }
-            item(key = message.id) {
-                val glow = glowing[message.id]
-                if (glow == null) {
-                    MessageItem(message, context)
-                } else {
-                    GlowingMessage(message, context, glow) { glowing.remove(message.id) }
-                }
-            }
+            item(key = message.id) { Entry(message, context, glowing, writing) }
         }
         if (topic.later > 0 || topic.loadingLater) {
             item(
                 key = "later",
             ) { More(topic.later, earlier = false, topic.loadingLater, actions.onLater) }
         }
+        if (composerAtEnd(topic, writing)) item(key = "composer") { writing.box(Modifier) }
     }
     Landing(topic, list)
     Following(topic, list, actions)
+}
+
+/** A message, glowing when it names the member (TV-07), or the composer in its place. */
+@Composable
+private fun Entry(
+    message: Message,
+    context: MessageContext,
+    glowing: SnapshotStateMap<String, Glow>,
+    writing: TopicWriting,
+) {
+    val glow = glowing[message.id]
+    when {
+        writing.mayWrite && message.id == writing.openMessageId -> writing.box(Modifier)
+        glow == null -> MessageItem(message, context)
+        else -> GlowingMessage(message, context, glow) { glowing.remove(message.id) }
+    }
 }
 
 /** Scrolls to the message the window was loaded around, once it is there (TV-01). */

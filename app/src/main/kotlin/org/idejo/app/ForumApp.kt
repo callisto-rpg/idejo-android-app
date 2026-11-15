@@ -172,6 +172,7 @@ private fun NavGraphBuilder.topicPage(
                 }
             },
             onTopic = { id, messageId -> navigation.go(Place.Topic(id, messageId)) },
+            writing = rememberTopicWriting(),
         )
     }
 }
