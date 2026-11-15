@@ -3,6 +3,7 @@
 
 package org.idejo.app.core.api
 
+import okhttp3.MultipartBody
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.Changes
 import org.idejo.app.core.model.Command
@@ -10,30 +11,47 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.ForwardTarget
+import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
+import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.RoleCard
+import org.idejo.app.core.model.ScheduleCreate
+import org.idejo.app.core.model.Scheduled
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.SpoilerSet
+import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicCreate
+import org.idejo.app.core.model.TopicCreated
+import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
+import org.idejo.app.core.model.Upload
 import org.idejo.app.core.model.UserCard
 import org.idejo.app.core.model.Vote
 import org.idejo.app.core.model.Warning
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -119,6 +137,35 @@ internal interface IdejoService {
         @Body commit: Commit,
     ): CommitResult
 
+    @PUT("messages/{id}")
+    suspend fun editMessage(
+        @Path("id") id: String,
+        @Body edit: MessageEdit,
+    ): Message
+
+    @DELETE("messages/{id}")
+    suspend fun deleteMessage(
+        @Path("id") id: String,
+    ): Message
+
+    @GET("emoji")
+    suspend fun emoji(
+        @Query("q") query: String?,
+    ): ListBody<Emoji>
+
+    @GET("suggest")
+    suspend fun suggest(
+        @Query("sigil") sign: String,
+        @Query("q") query: String,
+        @Query("topic_id") topicId: String?,
+    ): ListBody<Suggestion>
+
+    @GET("forward-targets")
+    suspend fun forwardTargets(
+        @Query("q") query: String?,
+        @Query("except") except: String?,
+    ): ListBody<ForwardTarget>
+
     @GET("tags")
     suspend fun tags(): ListBody<Tag>
 
@@ -191,6 +238,76 @@ internal interface IdejoService {
     suspend fun removeRole(
         @Path("id") id: String,
     ): Me
+
+    @GET("topic-icons")
+    suspend fun topicIcons(): ListBody<TopicIcon>
+
+    @GET("gifs")
+    suspend fun gifs(): GifSettings
+
+    @POST("categories/{id}/topics")
+    suspend fun createTopic(
+        @Path("id") categoryId: String,
+        @Body body: TopicCreate,
+    ): TopicCreated
+
+    @POST("messages/{id}/new-topic")
+    suspend fun forkTopic(
+        @Path("id") messageId: String,
+        @Body body: TopicCreate,
+    ): TopicCreated
+
+    @Multipart
+    @POST("uploads")
+    suspend fun upload(
+        @Part image: MultipartBody.Part,
+    ): Upload
+
+    @GET("topics/{id}/scheduled")
+    suspend fun scheduled(
+        @Path("id") id: String,
+    ): ListBody<Scheduled>
+
+    @POST("topics/{id}/scheduled")
+    suspend fun schedule(
+        @Path("id") id: String,
+        @Body body: ScheduleCreate,
+    ): Scheduled
+
+    @DELETE("scheduled/{id}")
+    suspend fun cancelScheduled(
+        @Path("id") id: String,
+    ): Response<Unit>
+
+    @POST("topics/{id}/polls")
+    suspend fun createPoll(
+        @Path("id") id: String,
+        @Body body: PollCreate,
+    ): Message
+
+    @PUT("messages/{id}/spoiler")
+    suspend fun spoiler(
+        @Path("id") id: String,
+        @Body body: SpoilerSet,
+    ): Message
+
+    @DELETE("messages/{id}/spoiler")
+    suspend fun unspoiler(
+        @Path("id") id: String,
+    ): Message
+
+    @POST("topics/{id}/plugins/{command}")
+    suspend fun runPlugin(
+        @Path("id") id: String,
+        @Path("command") command: String,
+        @Body body: PluginRun,
+    ): Message
+
+    @POST("topics/{id}/automessages/{name}")
+    suspend fun automessage(
+        @Path("id") id: String,
+        @Path("name") name: String,
+    ): Message
 
     @GET("topics/{id}/commands")
     suspend fun commands(

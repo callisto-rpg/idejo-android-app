@@ -7,7 +7,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.idejo.app.core.model.AccessToken
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.Changes
@@ -16,20 +19,34 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.ForwardTarget
+import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
+import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.RoleCard
+import org.idejo.app.core.model.ScheduleCreate
+import org.idejo.app.core.model.Scheduled
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.SpoilerSet
+import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicCreate
+import org.idejo.app.core.model.TopicCreated
+import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
+import org.idejo.app.core.model.Upload
 import org.idejo.app.core.model.UserCard
 import org.idejo.app.core.model.Vote
 import org.idejo.app.core.model.Warning
@@ -134,6 +151,33 @@ class ForumApi(
         commit: Commit,
     ): ApiResult<CommitResult> = call { commit(topicId, commit) }
 
+    /** Edits one's closed message (CO-18); [finish] ends the edit (Ctrl+Enter). */
+    suspend fun editMessage(
+        id: String,
+        bodyMd: String,
+        finish: Boolean,
+    ): ApiResult<Message> = call { editMessage(id, MessageEdit(bodyMd, finish)) }
+
+    /** Deletes one's own message (CO-18), not a topic's first. */
+    suspend fun deleteMessage(id: String): ApiResult<Message> = call { deleteMessage(id) }
+
+    /** Emoji by name (the emoji picker, CO-10). */
+    suspend fun emoji(query: String?): ApiResult<List<Emoji>> =
+        call { emoji(query?.ifBlank { null }).data }
+
+    /** The composer's suggestions after [sign] (CO-12), the recent ones first. */
+    suspend fun suggest(
+        sign: Char,
+        query: String,
+        topicId: String?,
+    ): ApiResult<List<Suggestion>> = call { suggest(sign.toString(), query, topicId).data }
+
+    /** Where a message may be forwarded (CO-17), matching [query], leaving out [except]. */
+    suspend fun forwardTargets(
+        query: String? = null,
+        except: String? = null,
+    ): ApiResult<List<ForwardTarget>> = call { forwardTargets(query, except).data }
+
     suspend fun tags(): ApiResult<List<Tag>> = call { tags().data }
 
     /** Topics carrying [tags] (slugs), all of them or, with [any], one of them (BR-04). */
@@ -186,6 +230,75 @@ class ForumApi(
 
     suspend fun commands(topicId: String): ApiResult<List<Command>> =
         call { commands(topicId).data }
+
+    /** Whether GIFs are on, and the provider the app calls itself (CO-15). */
+    suspend fun gifs(): ApiResult<GifSettings> = call { gifs() }
+
+    /**
+     * The icons a topical topic takes (CO-19). The API files them under the `moderate`
+     * scope, which every token of the app has; the server checks no role for the list.
+     */
+    suspend fun topicIcons(): ApiResult<List<TopicIcon>> = call { topicIcons().data }
+
+    /** A new topic (CO-19); continuing from message [from] when given. */
+    suspend fun createTopic(
+        body: TopicCreate,
+        from: String? = null,
+    ): ApiResult<TopicCreated> =
+        call {
+            if (from != null) {
+                forkTopic(from, body)
+            } else {
+                createTopic(requireNotNull(body.categoryId), body.copy(categoryId = null))
+            }
+        }
+
+    /** An image for the composer (CO-14): JPEG, PNG, GIF or WebP, as multipart `image`. */
+    suspend fun upload(
+        bytes: ByteArray,
+        fileName: String,
+        type: String,
+    ): ApiResult<Upload> =
+        call {
+            val body = bytes.toRequestBody(type.toMediaTypeOrNull())
+            upload(MultipartBody.Part.createFormData("image", fileName, body))
+        }
+
+    /** The member's scheduled messages in a topic (CO-20). */
+    suspend fun scheduled(topicId: String): ApiResult<List<Scheduled>> =
+        call { scheduled(topicId).data }
+
+    suspend fun schedule(
+        topicId: String,
+        body: ScheduleCreate,
+    ): ApiResult<Scheduled> = call { schedule(topicId, body) }
+
+    suspend fun cancelScheduled(id: String): ApiResult<Unit> =
+        call { cancelScheduled(id).let { if (!it.isSuccessful) throw HttpException(it) } }
+
+    suspend fun createPoll(
+        topicId: String,
+        body: PollCreate,
+    ): ApiResult<Message> = call { createPoll(topicId, body) }
+
+    /** `!spoiler` (CO-13): on, with [overlay]'s words, or off. */
+    suspend fun spoiler(
+        messageId: String,
+        on: Boolean,
+        overlay: String? = null,
+    ): ApiResult<Message> =
+        call { if (on) spoiler(messageId, SpoilerSet(overlay)) else unspoiler(messageId) }
+
+    suspend fun runPlugin(
+        topicId: String,
+        command: String,
+        body: PluginRun,
+    ): ApiResult<Message> = call { runPlugin(topicId, command, body) }
+
+    suspend fun automessage(
+        topicId: String,
+        name: String,
+    ): ApiResult<Message> = call { automessage(topicId, name) }
 
     /** Read up to [messageId], or all of the topic (TV-06). */
     suspend fun read(

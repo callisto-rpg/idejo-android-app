@@ -317,6 +317,10 @@ Docker image) are added with them.
   topics at the sidebar's foot: M2 and M4), SH-03 (the logo's dot for news in other
   forums: M4), SH-12, SH-13 and SH-15 (the logo menu's forum list, shortcuts and
   long-press: M4).
+- 2026-11-15 — The graphical composer (CO-10, CO-11) and the always-shown message controls
+  (MA-01) follow the member's settings, which idejo's `GET /me` gives (`graphical_composer`,
+  `controls_on_mobile`, `controls_on_desktop`; IX-15, callisto-rpg/Idejo#372). A server
+  without them gets the graphical composer on (new accounts' default) and controls on a tap.
 
 ## Milestones (spec §26)
 
@@ -338,5 +342,6 @@ page, large screens.
 The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
 window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the
-reader's last message), #370 (category icons, `mark_colour`) and #371 (followed topics)
-(Steward decisions, 2026-11-14 and 2026-11-15).
+reader's last message), #370 (category icons, `mark_colour`), #371 (followed topics) and
+#372 (the composer and controls choices; the app falls back without it) (Steward
+decisions, 2026-11-14 and 2026-11-15).

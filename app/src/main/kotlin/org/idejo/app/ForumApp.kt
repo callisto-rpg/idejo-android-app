@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -29,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.feature.browse.CategoryRoute
 import org.idejo.app.feature.browse.HelpRoute
@@ -39,13 +44,18 @@ import org.idejo.app.feature.browse.SearchRoute
 import org.idejo.app.feature.browse.TagsRoute
 import org.idejo.app.feature.browse.UnreadRoute
 import org.idejo.app.feature.browse.UserCardRoute
+import org.idejo.app.feature.composer.ForwardRoute
+import org.idejo.app.feature.composer.NewTopicRoute
+import org.idejo.app.feature.composer.ShareViewModel
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
 import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
+import org.idejo.app.feature.shell.ForwardDialog
 import org.idejo.app.feature.shell.InlineCardDialog
 import org.idejo.app.feature.shell.Place
+import org.idejo.app.feature.shell.ShareDialog
 import org.idejo.app.feature.shell.UserCardDialog
 import org.idejo.app.feature.topic.InlineCardRoute
 import org.idejo.app.feature.topic.TopicRoute
@@ -107,21 +117,42 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
-            // A user card (BR-09): a name in a topic opens it.
-            dialog<UserCardDialog>(
-                dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
-            ) {
-                UserCardRoute(onClose = { navigation.popBackStack() })
-            }
-            inlineCard(navigation)
+            newTopicPage(navigation) { content -> Page(session, signIn, content) }
+            cards(navigation)
         }
         // Over every page; a new one for each forum and each sign-in.
         MemberCards(
             onLink = link,
             viewModel = hiltViewModel(key = "cards:${System.identityHashCode(session)}"),
         )
+        SharedImagesCard(session, navigation)
     }
 }
+
+/** The cards over a page: a user's, an inline link's, the forward card. */
+private fun NavGraphBuilder.cards(navigation: NavHostController) {
+    // A user card (BR-09): a name in a topic opens it.
+    dialog<UserCardDialog>(
+        dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        UserCardRoute(onClose = { navigation.popBackStack() })
+    }
+    inlineCard(navigation)
+    forwardCard(navigation)
+    shareCard(navigation)
+}
+
+/** The forward card (CO-17): the target chosen opens with the message over its composer. */
+private fun NavGraphBuilder.forwardCard(navigation: NavHostController) =
+    dialog<ForwardDialog> { entry ->
+        ForwardRoute(
+            onPick = { target ->
+                val forward = entry.toRoute<ForwardDialog>().messageId
+                navigation.popBackStack()
+                navigation.go(Place.Topic(target.id, forward = forward))
+            },
+        )
+    }
 
 /** An inline link's card (TV-22): each way out closes it first. */
 private fun NavGraphBuilder.inlineCard(navigation: NavHostController) =
@@ -172,6 +203,31 @@ private fun NavGraphBuilder.topicPage(
                 }
             },
             onTopic = { id, messageId -> navigation.go(Place.Topic(id, messageId)) },
+            writing =
+                rememberTopicWriting(
+                    onForward = { id, topicId -> navigation.navigate(ForwardDialog(id, topicId)) },
+                    onNewTopic = { start ->
+                        navigation.go(
+                            Place.NewTopic(start.categoryId, start.from, start.title, start.body),
+                        )
+                    },
+                ),
+        )
+    }
+}
+
+/** **New topic** (CO-19): the topic started replaces it. */
+private fun NavGraphBuilder.newTopicPage(
+    navigation: NavHostController,
+    page: @Composable (@Composable () -> Unit) -> Unit,
+) = composable<Place.NewTopic> {
+    page {
+        NewTopicRoute(
+            onOpen = { id ->
+                navigation.popBackStack()
+                navigation.go(Place.Topic(id))
+            },
+            onDone = { navigation.popBackStack() },
         )
     }
 }
@@ -190,6 +246,7 @@ private fun NavBackStackEntry.place(): Place? =
         destination.hasRoute<Place.Category>() -> toRoute<Place.Category>()
         destination.hasRoute<Place.Topic>() -> toRoute<Place.Topic>()
         destination.hasRoute<Place.Tags>() -> toRoute<Place.Tags>()
+        destination.hasRoute<Place.NewTopic>() -> toRoute<Place.NewTopic>()
         else -> SIMPLE.firstOrNull { destination.hasRoute(it::class) }
     }
 

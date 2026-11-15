@@ -79,7 +79,8 @@ data class Command(
     val kind: String? = null,
     val sender: String? = null,
     val argument: String? = null,
-    val block: Boolean? = null,
+    /** A plugin's block (`video`, `iframe`, `button`, `card`, `forum`, `collapse`). */
+    val block: String? = null,
 )
 
 /** `PUT /topics/{id}/read`: read up to [messageId], or the whole topic when null (TV-06). */

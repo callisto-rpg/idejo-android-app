@@ -18,8 +18,9 @@ This product includes:
 - Rubik 2.300 (core/designsystem/src/main/res/font/rubik.ttf), copyright 2015 The Rubik
   Project Authors (https://github.com/googlefonts/rubik), SIL Open Font License 1.1.
 - Material Symbols icons (core/designsystem/src/main/res/drawable/ic_*.xml,
-  feature/shell/src/main/res/drawable/ic_*.xml and
-  feature/topic/src/main/res/drawable/ic_*.xml), copyright
+  feature/shell/src/main/res/drawable/ic_*.xml,
+  feature/topic/src/main/res/drawable/ic_*.xml and
+  feature/composer/src/main/res/drawable/ic_*.xml), copyright
   Google LLC, Apache-2.0 (github.com/google/material-design-icons).
 
 The licence of every file is given by its SPDX header or by REUSE.toml.

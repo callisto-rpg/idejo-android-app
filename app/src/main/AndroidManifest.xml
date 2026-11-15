@@ -29,6 +29,13 @@ SPDX-License-Identifier: Apache-2.0
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- CO-14: pictures shared from another app go to a topic the member picks. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
         </activity>
 
         <!-- SI-03: the sign-in redirect, org.idejo.app:/oauth/callback. It has no host, so the
@@ -47,7 +54,8 @@ SPDX-License-Identifier: Apache-2.0
                 <data android:scheme="org.idejo.app" />
             </intent-filter>
         </activity>
-        <!-- An image shared from the viewer (TV-25): only the cache's shared/ folder. -->
+        <!-- An image shared from the viewer (TV-25), the camera's photo for the composer (CO-14):
+             only the cache's shared/ and camera/ folders. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.images"
