@@ -69,7 +69,6 @@ class ShellViewModel
         private val sessions: SessionManager,
         private val choices: AppChoices,
     ) : ViewModel() {
-        private val me = MutableStateFlow<Me?>(null)
         private val openTopic = MutableStateFlow<Topic?>(null)
         private val warned = MutableStateFlow<Warnings?>(null)
         private var sidebar: ForumSidebar? = null
@@ -97,20 +96,18 @@ class ShellViewModel
                 conversations?.close()
                 val private = ForumConversations(session, viewModelScope).also { it.start() }
                 conversations = private
-                me.value = null
                 warned.value?.close()
                 val warnings = Warnings(session, viewModelScope).also { warned.value = it }
                 viewModelScope.launch {
-                    if (session.access.value == Access.SignedIn) {
-                        me.value = session.call { me() }.getOrNull()
-                        warnings.start(pending = me.value?.warningPending == true)
-                    }
+                    // The forum's one copy of `GET /me` (MeRepository), read afresh on opening.
+                    val me = session.me.refresh()?.getOrNull()
+                    if (me != null) warnings.start(pending = me.warningPending)
                 }
                 combine(
                     session.record,
                     session.access,
                     opened.state,
-                    me,
+                    session.me.state,
                     openTopic,
                 ) { record, access, sidebar, me, topic ->
                     ShellState(record, access, sidebar, me, topic)

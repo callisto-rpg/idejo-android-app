@@ -41,6 +41,7 @@ import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.MePatch
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageEdit
@@ -55,7 +56,6 @@ import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.PollOption
-import org.idejo.app.core.model.PrivateMessagesChoice
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -114,6 +114,12 @@ class FakeIdejo(
 
     /** False plays a server older than idejo 0.3.16: no `GET /me/followed` (IX-02). */
     @Volatile var followedList: Boolean = true
+
+    /**
+     * False plays a server before callisto-rpg/Idejo#372 (IX-15): `GET /me` has no
+     * `graphical_composer`, `controls_on_mobile` or `controls_on_desktop`.
+     */
+    @Volatile var memberChoices: Boolean = true
 
     private val categories = seedCategories().toMutableList()
     private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
@@ -229,7 +235,7 @@ class FakeIdejo(
             val record = requireNotNull(topics[topicId])
             // Through the same rules as the app's own Enters (the full stop included).
             val message =
-                openMessage(record, person, punctuate(text)).let {
+                openMessage(record, person, punctuate(person, text)).let {
                     close(record, it.id, held = false)
                 }
             news(record, person)
@@ -540,8 +546,15 @@ class FakeIdejo(
             },
             Route("PATCH", "me") { call ->
                 val body = call.request.body?.utf8() ?: "{}"
-                val choice = IdejoJson.decodeFromString<PrivateMessagesChoice>(body)
-                member(call) { it.acceptsPrivate = choice.acceptsPrivateMessages }
+                // Only the fields sent change (API guide: `PATCH /me`); unknown ones ignored.
+                val patch = IdejoJson.decodeFromString<MePatch>(body)
+                member(call) { reader ->
+                    patch.autoPunctuation?.let { reader.autoPunctuation = it }
+                    patch.graphicalComposer?.let { reader.graphicalComposer = it }
+                    patch.controlsOnMobile?.let { reader.controlsOnMobile = it }
+                    patch.controlsOnDesktop?.let { reader.controlsOnDesktop = it }
+                    patch.acceptsPrivateMessages?.let { reader.acceptsPrivate = it }
+                }
             },
             Route("GET", "conversations") { call ->
                 call.viewer?.let { ok(ListBody(conversationsOf(it))) } ?: unauthenticated()
@@ -1293,8 +1306,26 @@ class FakeIdejo(
             introDue = reader.introDue && reader.welcomed && !reader.introHidden,
             warningPending = reader.warnings.isNotEmpty(),
             acceptsPrivateMessages = reader.acceptsPrivate,
+            autoPunctuation = reader.autoPunctuation,
+            graphicalComposer = reader.graphicalComposer.takeIf { memberChoices },
+            controlsOnMobile = reader.controlsOnMobile.takeIf { memberChoices },
+            controlsOnDesktop = reader.controlsOnDesktop.takeIf { memberChoices },
         )
     }
+
+    /** [person]'s choices as Profile and account sets them (ST-02, MA-01), read back. */
+    fun choicesOf(person: Person): MePatch =
+        synchronized(lock) {
+            reader(person).let {
+                MePatch(
+                    autoPunctuation = it.autoPunctuation,
+                    graphicalComposer = it.graphicalComposer,
+                    controlsOnMobile = it.controlsOnMobile,
+                    controlsOnDesktop = it.controlsOnDesktop,
+                    acceptsPrivateMessages = it.acceptsPrivate,
+                )
+            }
+        }
 
     /** `GET /roles/{slug}`: a self-select role and the people holding it (TV-22). */
     private fun roleCard(slug: String): MockResponse {
@@ -1754,7 +1785,7 @@ class FakeIdejo(
         val composer = composerOf(record, person)
         val held = composer.heldUntil?.takeIf { it > clock.now }
         val open = composer.openMessageId
-        val text = punctuate(commit.bodyMd)
+        val text = punctuate(person, commit.bodyMd)
 
         if (commit.new && open != null) {
             // A reply while a message is open: it closes, and the reply starts at once if
@@ -1826,9 +1857,13 @@ class FakeIdejo(
         )
 
     /** The server adds a full stop after unpunctuated text (API guide §6). */
-    private fun punctuate(text: String): String {
+    private fun punctuate(
+        author: Person,
+        text: String,
+    ): String {
         val trimmed = text.trimEnd()
-        if (!settings.autoPunctuation || trimmed.isEmpty()) return trimmed
+        val on = settings.autoPunctuation && reader(author).autoPunctuation
+        if (!on || trimmed.isEmpty()) return trimmed
         return if (trimmed.last().isLetterOrDigit()) "$trimmed." else trimmed
     }
 

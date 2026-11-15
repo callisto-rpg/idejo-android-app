@@ -19,6 +19,7 @@ import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.MePatch
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
@@ -26,7 +27,6 @@ import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
-import org.idejo.app.core.model.PrivateMessagesChoice
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -317,8 +317,8 @@ internal interface IdejoService {
     ): Conversation
 
     @PATCH("me")
-    suspend fun privateMessages(
-        @Body body: PrivateMessagesChoice,
+    suspend fun updateMe(
+        @Body body: MePatch,
     ): Me
 
     @DELETE("scheduled/{id}")

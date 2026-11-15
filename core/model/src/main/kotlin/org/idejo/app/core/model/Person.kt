@@ -65,17 +65,36 @@ data class Me(
     val welcomed: Boolean = false,
     /** The getting-started card is due (BR-11, IX-07); false from older servers. */
     @SerialName("intro_due") val introDue: Boolean = false,
-    @SerialName("auto_punctuation") val autoPunctuation: Boolean = true,
-    /** "Use the graphical composer" (CO-10, IX-15); on where the server does not say. */
-    @SerialName("graphical_composer") val graphicalComposer: Boolean = true,
-    /** "Show message controls on mobile" (MA-01, IX-15). */
-    @SerialName("controls_on_mobile") val controlsOnMobile: Boolean = false,
-    @SerialName("controls_on_desktop") val controlsOnDesktop: Boolean = false,
-    @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean = true,
+    /**
+     * "Automatic punctuation" (ST-02). This and the member's other choices below are null
+     * where the server does not send them (an older idejo): Profile and account hides their
+     * rows instead of guessing.
+     */
+    @SerialName("auto_punctuation") val autoPunctuation: Boolean? = null,
+    /** "Use the graphical composer" (CO-10, ST-02, IX-15); readers take null as on. */
+    @SerialName("graphical_composer") val graphicalComposer: Boolean? = null,
+    /** "Show message controls on mobile" (MA-01, IX-15); readers take null as off. */
+    @SerialName("controls_on_mobile") val controlsOnMobile: Boolean? = null,
+    @SerialName("controls_on_desktop") val controlsOnDesktop: Boolean? = null,
+    /** "Members can send me private messages" (PC-03). */
+    @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean? = null,
     @SerialName("warning_pending") val warningPending: Boolean = false,
     val administrator: Boolean = false,
     val moderator: Boolean = false,
     @SerialName("server_moderator") val serverModerator: Boolean = false,
+)
+
+/**
+ * `PATCH /me`: only the fields set are sent (the API's JSON leaves nulls out), the others
+ * kept as they are. The server answers with `GET /me`.
+ */
+@Serializable
+data class MePatch(
+    @SerialName("auto_punctuation") val autoPunctuation: Boolean? = null,
+    @SerialName("graphical_composer") val graphicalComposer: Boolean? = null,
+    @SerialName("controls_on_mobile") val controlsOnMobile: Boolean? = null,
+    @SerialName("controls_on_desktop") val controlsOnDesktop: Boolean? = null,
+    @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean? = null,
 )
 
 /** `POST /me/intro`: Getting started closed, for good with [hide] (BR-11, IX-07). */

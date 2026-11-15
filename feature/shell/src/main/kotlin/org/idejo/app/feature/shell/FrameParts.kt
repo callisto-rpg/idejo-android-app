@@ -53,6 +53,7 @@ internal fun Place.label(): Int =
         Place.Rules -> R.string.place_rules
         Place.Help -> R.string.place_help
         Place.AppSettings -> R.string.place_app_settings
+        is Place.ProfileAndAccount -> R.string.place_profile_and_account
         Place.Conversations -> R.string.place_conversations
         is Place.NewTopic -> R.string.place_new_topic
         Place.Home, is Place.Category, is Place.Topic -> R.string.sidebar_all_categories
@@ -101,6 +102,8 @@ internal fun userMenuActions(
         override fun themeMode(mode: ThemeMode) = viewModel.themeMode(mode)
 
         override fun tutorialBubbles(choice: TutorialBubbles) = viewModel.tutorialBubbles(choice)
+
+        override fun profileAndAccount() = go(Place.ProfileAndAccount())
 
         override fun appSettings() = go(Place.AppSettings)
 

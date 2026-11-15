@@ -41,9 +41,3 @@ data class ConversationLast(
 data class ConversationStart(
     @SerialName("user_id") val userId: String,
 )
-
-/** `PATCH /me`'s private messages choice (PC-03); other fields stay as they are. */
-@Serializable
-data class PrivateMessagesChoice(
-    @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean,
-)

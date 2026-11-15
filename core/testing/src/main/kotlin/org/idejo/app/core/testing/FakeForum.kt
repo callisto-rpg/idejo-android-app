@@ -114,6 +114,16 @@ internal class Reader(
 
     /** "Members can send me private messages" (PC-03). */
     var acceptsPrivate: Boolean = true
+
+    /** "Automatic punctuation" (ST-02), on at first; off only with the forum's on. */
+    var autoPunctuation: Boolean = true
+
+    /** "Use the graphical composer" (CO-10, ST-02), on for new accounts. */
+    var graphicalComposer: Boolean = true
+
+    /** "Show message controls on mobile / desktop" (MA-01), off at first. */
+    var controlsOnMobile: Boolean = false
+    var controlsOnDesktop: Boolean = false
 }
 
 /** Unread messages in a topic and the strongest reason (SH-32). */

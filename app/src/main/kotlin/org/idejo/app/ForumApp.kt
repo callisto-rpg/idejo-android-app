@@ -118,6 +118,7 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
+            profileAndAccountPage(navigation) { content -> Page(session, signIn, content) }
             conversationsPage(navigation) { content -> Page(session, signIn, content) }
             newTopicPage(navigation) { content -> Page(session, signIn, content) }
             cards(navigation)
@@ -251,7 +252,7 @@ private fun NavGraphBuilder.newTopicPage(
 }
 
 /** Home is the start of the back stack; going there again pops back to it. */
-private fun NavHostController.go(place: Place) {
+internal fun NavHostController.go(place: Place) {
     if (place == Place.Home) {
         popBackStack(Place.Home, inclusive = false)
     } else {
@@ -265,6 +266,7 @@ private fun NavBackStackEntry.place(): Place? =
         destination.hasRoute<Place.Topic>() -> toRoute<Place.Topic>()
         destination.hasRoute<Place.Tags>() -> toRoute<Place.Tags>()
         destination.hasRoute<Place.NewTopic>() -> toRoute<Place.NewTopic>()
+        destination.hasRoute<Place.ProfileAndAccount>() -> toRoute<Place.ProfileAndAccount>()
         else -> SIMPLE.firstOrNull { destination.hasRoute(it::class) }
     }
 

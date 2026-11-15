@@ -118,6 +118,8 @@ interface UserMenuActions {
 
     fun tutorialBubbles(choice: TutorialBubbles)
 
+    fun profileAndAccount()
+
     fun appSettings()
 
     fun admin()
@@ -134,8 +136,8 @@ interface UserMenuActions {
 /**
  * The user menu (SH-20 to SH-25): the member's picture, name, tag and roles; **Theme**,
  * **Tutorial bubbles**, **App settings**, **Accounts**, **Admin** for administrators and
- * **Sign out**. A visitor gets **Sign in** and **Sign up** instead. Profile and account
- * settings come with M3 (steward decision, 2026-11-14).
+ * **Sign out**; **Profile and account** first, for a member signed in. A visitor gets
+ * **Sign in** and **Sign up** instead.
  */
 @Suppress("LongParameterList") // The menu's state, as the web's menu shows it.
 @Composable
@@ -151,6 +153,8 @@ fun UserMenu(
     modifier: Modifier = Modifier,
     avatar: @Composable () -> Unit = {},
     logo: (@Composable () -> Unit)? = null,
+    /** **Profile and account** (SH-21): for a member signed in to this forum. */
+    profileAndAccount: Boolean = member != null,
 ) {
     var accounts by rememberSaveable { mutableStateOf(false) }
     if (accounts) {
@@ -164,6 +168,13 @@ fun UserMenu(
             if (canSignUp) {
                 Item(R.drawable.ic_add, stringResource(R.string.user_menu_sign_up), actions::signUp)
             }
+        }
+        if (profileAndAccount) {
+            Item(
+                R.drawable.ic_person,
+                stringResource(R.string.user_menu_profile_and_account),
+                actions::profileAndAccount,
+            )
         }
         Preferences(themeMode, tutorialBubbles, actions)
         HorizontalDivider(Modifier.padding(vertical = 8.dp))

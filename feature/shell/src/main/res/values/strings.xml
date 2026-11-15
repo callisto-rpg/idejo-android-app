@@ -11,6 +11,7 @@ SPDX-License-Identifier: Apache-2.0
     <string name="place_rules">Rules &amp; Roles</string>
     <string name="place_help">Help</string>
     <string name="place_app_settings">App settings</string>
+    <string name="place_profile_and_account">Profile and account</string>
     <string name="place_conversations">Private Conversations</string>
     <plurals name="conversations_with_news">
         <item quantity="one">1 with something new</item>
@@ -65,6 +66,7 @@ SPDX-License-Identifier: Apache-2.0
     <string name="tutorial_all">All</string>
     <string name="tutorial_simple">Simple</string>
     <string name="tutorial_off">Off</string>
+    <string name="user_menu_profile_and_account">Profile and account</string>
     <string name="user_menu_app_settings">App settings</string>
     <string name="user_menu_accounts">Accounts</string>
     <string name="user_menu_admin">Admin</string>

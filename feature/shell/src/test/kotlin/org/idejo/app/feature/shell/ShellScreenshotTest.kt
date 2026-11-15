@@ -190,6 +190,8 @@ class ShellScreenshotTest {
 
         override fun tutorialBubbles(choice: TutorialBubbles) = Unit
 
+        override fun profileAndAccount() = Unit
+
         override fun appSettings() = Unit
 
         override fun admin() = Unit

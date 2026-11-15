@@ -19,6 +19,7 @@ import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
 import org.idejo.app.core.api.IdejoHttp
 import org.idejo.app.core.model.Commit
+import org.idejo.app.core.model.MePatch
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.realtime.SocketState
 import org.idejo.app.core.testing.FakeIdejo
@@ -157,9 +158,14 @@ class ConversationsDataTest {
             )
             assertTrue(session.call { startConversation(FakePeople.Leo.id!!) } is ApiResult.Failure)
 
-            val off = session.call { acceptPrivateMessages(false) }
-            assertFalse((off as ApiResult.Success).value.acceptsPrivateMessages)
-            assertFalse((session.call { me() } as ApiResult.Success).value.acceptsPrivateMessages)
+            val off = session.me.update(MePatch(acceptsPrivateMessages = false))
+            assertEquals(false, (off as ApiResult.Success).value.acceptsPrivateMessages)
+            assertEquals(
+                false,
+                session.me.state.value
+                    ?.acceptsPrivateMessages,
+            )
+            assertEquals(false, fake.choicesOf(ada).acceptsPrivateMessages)
         }
 
     @Test

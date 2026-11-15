@@ -61,6 +61,15 @@ sealed interface Place {
     data object AppSettings : Place
 
     /**
+     * **Profile and account** (ST), for the forum open: the overview, or with [section] the
+     * key of one of its sections (`SETTINGS_SECTIONS` in feature/settings).
+     */
+    @Serializable
+    data class ProfileAndAccount(
+        val section: String? = null,
+    ) : Place
+
+    /**
      * **New topic** (CO-19), from a topic's `!new-topic`: in [categoryId], continuing from
      * message [from] with its [body] as the first message, or a topic of its own.
      */
