@@ -7,29 +7,21 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -50,22 +42,12 @@ data class Licence(
  * and the licence of every library it ships, as the build's licence check lists them.
  */
 @Composable
-fun AppSettingsRoute(
-    modifier: Modifier = Modifier,
-    viewModel: PrivateMessagesViewModel = hiltViewModel(),
-) {
+fun AppSettingsRoute(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val licences by produceState(emptyList<Licence>()) {
         value = withContext(Dispatchers.IO) { context.shippedLicences() }
     }
-    val private by viewModel.state.collectAsStateWithLifecycle()
-    AppSettingsScreen(
-        context.versionName(),
-        licences,
-        modifier,
-        privateMessages = private,
-        onPrivateMessages = viewModel::accept,
-    )
+    AppSettingsScreen(context.versionName(), licences, modifier)
 }
 
 @Composable
@@ -73,15 +55,8 @@ fun AppSettingsScreen(
     version: String,
     licences: List<Licence>,
     modifier: Modifier = Modifier,
-    privateMessages: PrivateMessagesUi = PrivateMessagesUi(),
-    onPrivateMessages: (Boolean) -> Unit = {},
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp)) {
-        privateMessages.accepts?.let { accepts ->
-            item(key = "private") {
-                PrivateMessages(accepts, privateMessages, onPrivateMessages)
-            }
-        }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
@@ -118,44 +93,6 @@ private fun Library(licence: Licence) {
                 .ifEmpty { stringResource(R.string.about_licence_unknown) },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/**
- * **Private messages** (PC-03): "Members can send me private messages", saved on the forum
- * open (`PATCH /me`), as Profile and account's switch on the web.
- */
-@Composable
-private fun PrivateMessages(
-    accepts: Boolean,
-    state: PrivateMessagesUi,
-    onChange: (Boolean) -> Unit,
-) = Column(Modifier.padding(bottom = 24.dp)) {
-    Heading(stringResource(R.string.private_messages))
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .toggleable(
-                accepts,
-                enabled = !state.saving,
-                role = Role.Switch,
-                onValueChange = onChange,
-            ).padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            stringResource(R.string.private_messages_accept),
-            Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Switch(accepts, onCheckedChange = null, enabled = !state.saving)
-    }
-    state.problem?.let {
-        Text(
-            it,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
         )
     }
 }

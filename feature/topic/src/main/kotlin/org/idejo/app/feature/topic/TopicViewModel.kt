@@ -78,9 +78,8 @@ class TopicViewModel
                 )
             }
 
-        /** What the page reads besides the window: the member, the source, the pins. */
+        /** What the page reads besides the window and the member: the source, the pins. */
         private data class Extras(
-            val me: Me? = null,
             val continuedFrom: ContinuedFrom? = null,
             val pins: List<Message> = emptyList(),
         )
@@ -93,14 +92,17 @@ class TopicViewModel
                 session?.server ?: flowOf(null),
                 session?.access ?: flowOf(null),
                 extras,
-            ) { topic, server, access, extra ->
+                // The forum's one copy of `GET /me`: Profile and account's choices reach the
+                // open page at once (ST-02).
+                session?.me?.state ?: flowOf(null),
+            ) { topic, server, access, extra, me ->
                 TopicUi(
                     topic,
                     session?.origin.orEmpty(),
                     server?.emoji.orEmpty() + server?.defaultReactions.orEmpty(),
                     quick = server?.defaultReactions.orEmpty(),
                     signedIn = access == Access.SignedIn,
-                    me = extra.me.takeIf { access == Access.SignedIn },
+                    me = me.takeIf { access == Access.SignedIn },
                     continuedFrom = extra.continuedFrom,
                     pins = extra.pins,
                 )
@@ -119,12 +121,7 @@ class TopicViewModel
                     extras.update { it.copy(pins = pins) }
                 }
             }
-            if (session?.access?.value == Access.SignedIn) {
-                viewModelScope.launch {
-                    val me = session.call { me() }.getOrNull()
-                    extras.update { it.copy(me = me) }
-                }
-            }
+            session?.let { forum -> viewModelScope.launch { forum.me.load() } }
         }
 
         /**

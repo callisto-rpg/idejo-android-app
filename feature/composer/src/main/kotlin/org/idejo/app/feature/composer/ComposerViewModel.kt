@@ -10,12 +10,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.idejo.app.core.api.GifSearch
-import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.SessionManager
@@ -54,10 +52,8 @@ class ComposerViewModel
                 }
             }
 
-        private val mutableMe = MutableStateFlow<Me?>(null)
-
-        /** The author, drawn on the composer's head (CO-05). */
-        val me: StateFlow<Me?> = mutableMe.asStateFlow()
+        /** The author, drawn on the composer's head (CO-05), and their choices (ST-02). */
+        val me: StateFlow<Me?> = session?.me?.state ?: MutableStateFlow(null)
 
         /** **Tutorial bubbles**, one choice for the whole app (CO-06, SH-21). */
         val bubbles: StateFlow<TutorialBubbles> =
@@ -79,7 +75,9 @@ class ComposerViewModel
                 composer?.forward(forward)
             }
             session?.let { forum ->
-                viewModelScope.launch { mutableMe.value = forum.call { me() }.getOrNull() }
+                // The forum's one copy of `GET /me`: a choice changed in Profile and account
+                // reaches this composer at once (ST-02).
+                viewModelScope.launch { forum.me.load() }
             }
         }
     }

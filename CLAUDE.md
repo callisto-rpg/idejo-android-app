@@ -115,12 +115,50 @@ Rules:
 - One `ForumSession` per forum (Hilt scoped by forum id): its HTTP client with its token,
   its socket, its Room database, its theme. The active forum is a `StateFlow` the shell
   reads; switching forum swaps the session and cross-fades the theme.
+- `GET /me` has one copy per forum, `ForumSession.me` (`MeRepository`): the shell, the topic
+  page, the composer and Profile and account read its `state`; `update(MePatch)` sends
+  `PATCH /me` and publishes the server's answer, so a choice reaches open pages at once.
 - Screens: a stateless `@Composable XScreen(state, onEvent)` plus an `XViewModel` exposing
   `StateFlow<XUiState>`; repositories return `Flow` from Room and refresh from the network
   (cache-first, OF-01).
 - The composer is a state machine in `feature/composer` (`ComposerState`: text, sent
   range, unsent ranges, open message id, server composer state, pending commit, offline
   draft). Every transition has a unit test named after its CO/GM ID.
+
+### Adding a settings section
+
+Profile and account (ST) is one route, `Place.ProfileAndAccount(section)`, and one list,
+`SETTINGS_SECTIONS` in `feature/settings/.../ProfileAndAccount.kt`. **Writing** (ST-02) is
+the reference; copy it, never invent a new shape.
+
+1. Copy `feature/settings/.../writing/` to `<name>/` (package `...settings.<name>`) and
+   rename `Writing` → `<Name>` in both files: `<Name>Screen.kt` (`<Name>UiState`,
+   `<Name>Event`, `<Name>Route`, `<Name>Screen(state, onEvent)`, a `@Preview`) and
+   `<Name>ViewModel.kt`. Keep the SPDX header on every file.
+2. UiState: `loading`, `loadProblem`, one **nullable** field per server field (null = the
+   server did not send it: hide the row, never guess), `saving`, `problem`. Event: one
+   class per control, plus `Retry`.
+3. ViewModel: read `session.me.state` (`MeRepository`, the forum's one copy of `GET /me`);
+   `load()` calls `session.me.refresh()`. A change goes through `change(MePatch(field =
+   value)) { optimistic copy }`: shown at once, `PATCH /me` with only that field, back to
+   how it was on failure with the `ApiProblem` kept in `problem`. Never compute a rule the
+   server owns; branch only on `ApiError.code`. A field `MePatch`/`Me` lacks: add it there
+   (nullable), in `FakeIdejo`'s `PATCH me` route and its `Reader`, and in `choicesOf`.
+4. Screen: only `parts/SettingsParts.kt` (`SectionHeader`, `SwitchRow`, `RadioGroupRow`,
+   `ActionRow`, `LoadingState`, `ErrorState`, `ProblemText`); `ProblemText` already shows
+   the server's `message`, or "You are offline: nothing was changed." No literal colours.
+5. Register: one `SettingsSection(key, group, title, feature?) { <Name>Route(it) }` in
+   `SETTINGS_SECTIONS`, in the web's order (its tabs: Profile, Interface, Messages and
+   notifications, Account). `feature` names discovery's feature when the forum may lack it.
+6. Strings: in `feature/settings/src/main/res/values/strings.xml`, prefixed `<name>_`, in
+   the web's words (idejo's member guide and settings page).
+7. Tests: `<name>/<Name>ViewModelTest.kt` with `SignedInForum` (loads, patches only the
+   field, a refusal reverts with the server's message, offline reverts, a server without
+   the field hides the row), each named after its requirement ID; and two `shoot(...)`
+   lines (light and dark) in `ProfileAndAccountScreenshotTest`, then
+   `./gradlew :feature:settings:recordRoborazziDebug`.
+8. Run `./gradlew check` and `reuse lint`. A section that needs an endpoint idejo lacks:
+   stop and ask (IX).
 
 ### Growing-message invariants — never break these
 
@@ -328,9 +366,16 @@ Docker image) are added with them.
   changes, composer), which take conversation ids with the `private` scope; its channel is
   `conversation:<id>` (`Place.Topic.private`). It is named after the other participants
   (`GET /conversations/{id}`), has no Follow and no New Topic. The list page lives in
-  `feature/inbox`. "Members can send me private messages" sits in App settings, for the
-  forum open (`PATCH /me`), until Profile and account (M3). PC-02 (a chat service) waits for
-  M4 with IX-04.
+  `feature/inbox`. "Members can send me private messages" sat in App settings until Profile
+  and account (M3), where it is now its own section. PC-02 (a chat service) waits for M4
+  with IX-04.
+- 2026-11-15 — Profile and account (ST) is one typed route with a section key,
+  `Place.ProfileAndAccount(section)`, so a new section touches its own folder, one entry in
+  `SETTINGS_SECTIONS` and its strings, never `app` or the shell. Its overview groups the
+  sections under the web's tabs, listing only those that exist. On windows of 840 dp and
+  more (SH-60) the overview stays at the left and the section shows beside it, a plain
+  two-pane row (no new dependency). Writing follows the app spec: the open topic follows
+  at once (the web reloads).
 
 ## Milestones (spec §26)
 
@@ -343,9 +388,10 @@ Docker image) are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M3 — Notifications and settings** (not started). M2 closed on
-2026-11-15 (steward): the composer (CO), message actions (MA), private conversations
-(PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
+Current milestone: **M3 — Notifications and settings**: Profile and account with Writing
+(ST-02) and Private messages; the other sections follow "Adding a settings section". M2
+closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
+conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.
 The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the

@@ -238,6 +238,7 @@ private fun UserMenuPage(
         onClose = onClose,
         avatar = { MemberAvatar(shell, 72.dp) },
         logo = logo,
+        profileAndAccount = shell.signedIn && me != null,
     )
 }
 

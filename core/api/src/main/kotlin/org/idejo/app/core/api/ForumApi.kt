@@ -26,6 +26,7 @@ import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.MePatch
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
@@ -33,7 +34,6 @@ import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
-import org.idejo.app.core.model.PrivateMessagesChoice
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -301,9 +301,8 @@ class ForumApi(
     suspend fun startConversation(userId: String): ApiResult<Conversation> =
         call { startConversation(ConversationStart(userId)) }
 
-    /** "Members can send me private messages" (PC-03). */
-    suspend fun acceptPrivateMessages(accepts: Boolean): ApiResult<Me> =
-        call { privateMessages(PrivateMessagesChoice(accepts)) }
+    /** The member's choices (ST, PC-03): only [patch]'s fields change; answers `GET /me`. */
+    suspend fun updateMe(patch: MePatch): ApiResult<Me> = call { updateMe(patch) }
 
     /** A message reported to the moderators (MA-04). */
     suspend fun report(

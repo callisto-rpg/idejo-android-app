@@ -105,6 +105,9 @@ class ForumSession internal constructor(
      */
     val userEvents: SharedFlow<IdejoEvent> = mutableUserEvents.asSharedFlow()
 
+    /** The signed-in member (`GET /me`), one copy for every screen of this forum (ST-02). */
+    val me: MeRepository = MeRepository(this)
+
     val name: String get() = mutableRecord.value.name
     val origin: String get() = mutableRecord.value.origin
 
