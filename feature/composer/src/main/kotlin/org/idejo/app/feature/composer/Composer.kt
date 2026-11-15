@@ -94,7 +94,7 @@ class Composer(
         scope.launch {
             val composer = backend.composer().getOrNull() ?: return@launch
             val open = composer.openMessageId?.let { backend.message(it).getOrNull() }
-            dispatch(ComposerEvent.Server(composer, open))
+            dispatch(ComposerEvent.Server(composer, open, clock()))
         }
     }
 
@@ -137,13 +137,15 @@ class Composer(
         scope.launch {
             when (effect) {
                 ComposerEffect.Typing -> {
-                    backend.typing().getOrNull()?.let { dispatch(ComposerEvent.Server(it)) }
+                    backend.typing().getOrNull()?.let {
+                        dispatch(ComposerEvent.Server(it, atMillis = clock()))
+                    }
                 }
 
                 is ComposerEffect.Send -> {
                     when (val result = backend.commit(effect.commit)) {
                         is ApiResult.Success -> {
-                            dispatch(ComposerEvent.Answered(effect.commit, result.value))
+                            dispatch(ComposerEvent.Answered(effect.commit, result.value, clock()))
                         }
 
                         is ApiResult.Failure -> {

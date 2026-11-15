@@ -9,6 +9,7 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Message
 import java.time.Duration
+import java.time.Instant
 import org.idejo.app.core.model.ComposerState as ServerComposer
 
 /** Three Enters in a row, each within this of the last, complete the message (CO-03). */
@@ -65,7 +66,14 @@ data class ComposerState(
     val justSent: IntRange? = null,
     /** The message the last commit completed: "sent & committed" (CO-05). */
     val committedId: String? = null,
+    /** When [server] came, on the device's clock: its `now` sets the offset (CO-07). */
+    val serverAtMillis: Long = 0,
+    /** When the open message opened, where its timer line starts (CO-07). */
+    val openedAt: Instant? = null,
 ) {
+    /** Slow mode's line, from the server's state (CO-07). */
+    val line: TimerLine? get() = timerLine(server, openedAt, serverAtMillis)
+
     /** The part of [text] the server does not hold yet (CO-04), or null. */
     val unsent: IntRange? get() = unsentRange(sent, text)
 
@@ -105,6 +113,8 @@ sealed interface ComposerEvent {
     data class Answered(
         val attempt: Commit,
         val result: CommitResult,
+        /** When the answer came, on the device's clock. */
+        val atMillis: Long = 0,
     ) : ComposerEvent
 
     /** The commit [attempt] failed. */
@@ -120,6 +130,8 @@ sealed interface ComposerEvent {
     data class Server(
         val composer: ServerComposer,
         val open: Message? = null,
+        /** When the state came, on the device's clock. */
+        val atMillis: Long = 0,
     ) : ComposerEvent
 
     /** The "sent & committed" bubble's 3 s are over (CO-05). */
@@ -154,14 +166,37 @@ object ComposerMachine {
         event: ComposerEvent,
     ): ComposerStep =
         when (event) {
-            is ComposerEvent.Typed -> typed(state, event.text)
-            is ComposerEvent.Enter -> enter(state, event.atMillis)
-            ComposerEvent.Complete -> send(state.copy(enterRun = 0, lastEnterAt = null), true)
-            is ComposerEvent.Answered -> answered(state, event.attempt, event.result)
-            is ComposerEvent.Failed -> failed(state, event.problem)
-            is ComposerEvent.Server -> server(state, event.composer, event.open)
-            ComposerEvent.CommittedShown -> ComposerStep(state.copy(committedId = null))
-            ComposerEvent.ErrorSeen -> ComposerStep(state.copy(error = null))
+            is ComposerEvent.Typed -> {
+                typed(state, event.text)
+            }
+
+            is ComposerEvent.Enter -> {
+                enter(state, event.atMillis)
+            }
+
+            ComposerEvent.Complete -> {
+                send(state.copy(enterRun = 0, lastEnterAt = null), true)
+            }
+
+            is ComposerEvent.Answered -> {
+                answered(state.copy(serverAtMillis = event.atMillis), event.attempt, event.result)
+            }
+
+            is ComposerEvent.Failed -> {
+                failed(state, event.problem)
+            }
+
+            is ComposerEvent.Server -> {
+                server(state.copy(serverAtMillis = event.atMillis), event.composer, event.open)
+            }
+
+            ComposerEvent.CommittedShown -> {
+                ComposerStep(state.copy(committedId = null))
+            }
+
+            ComposerEvent.ErrorSeen -> {
+                ComposerStep(state.copy(error = null))
+            }
         }
 
     private fun typed(
@@ -237,6 +272,7 @@ object ComposerMachine {
                     typingSent = false,
                     justSent = null,
                     committedId = message?.id.takeIf { attempt.breakMessage },
+                    openedAt = null,
                 )
             } else {
                 val text =
@@ -251,6 +287,7 @@ object ComposerMachine {
                     openMessageId = result.composer.openMessageId,
                     justSent = glowRange(state.sent, stored),
                     committedId = null,
+                    openedAt = message?.openedAt ?: state.openedAt,
                 )
             }
         return flushQueued(next.copy(server = result.composer, inFlight = null, error = null))
@@ -283,6 +320,7 @@ object ComposerMachine {
                     sent = body,
                     openMessageId = open.id,
                     typingSent = true,
+                    openedAt = open.openedAt,
                 )
             } else {
                 state

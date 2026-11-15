@@ -1212,9 +1212,11 @@ class FakeIdejo(
     ): ComposerState {
         val composer = composerOf(record, person)
         val held = composer.heldUntil?.takeIf { it > clock.now }
+        // The window from the open message's opening (idejo's start_new_at, simplified).
+        val opened = composer.lastOpenedAt.takeIf { composer.openMessageId != null }
         return ComposerState(
             openMessageId = composer.openMessageId,
-            mayStartNewAt = held,
+            mayStartNewAt = held ?: opened?.plusSeconds(settings.windowSeconds.toLong()),
             heldUntil = held,
             typingSince = composer.typingSince,
             windowSeconds = settings.windowSeconds,

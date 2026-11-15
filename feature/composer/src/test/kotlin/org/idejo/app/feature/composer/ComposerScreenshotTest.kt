@@ -17,6 +17,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.Instant
+import org.idejo.app.core.model.ComposerState as ServerComposer
 
 /** The composer in both themes; `./gradlew recordRoborazziDebug` records. */
 @RunWith(RobolectricTestRunner::class)
@@ -50,6 +52,33 @@ class ComposerScreenshotTest {
                 )
             }
         }
+
+    @Test
+    fun `CO-06 CO-07 slow mode's line and the tutorial bubbles`() {
+        val now = Instant.now()
+        val sent =
+            ComposerState(
+                text = "Tomatoes need staking early. ",
+                sent = "Tomatoes need staking early.",
+                openMessageId = "m_1",
+                server =
+                    ServerComposer(
+                        openMessageId = "m_1",
+                        mayStartNewAt = now.plusSeconds(10),
+                        windowSeconds = 15,
+                        unansweredSeconds = 600,
+                        now = now,
+                    ),
+                serverAtMillis = now.toEpochMilli(),
+                openedAt = now.minusSeconds(5),
+            )
+        snapshots("ComposerSlowMode") {
+            Column {
+                ComposerBox(sent, ada, "", ComposerEvents())
+                ComposerBox(sent.copy(text = sent.text + "Which"), ada, "", ComposerEvents())
+            }
+        }
+    }
 
     private fun snapshots(
         name: String,

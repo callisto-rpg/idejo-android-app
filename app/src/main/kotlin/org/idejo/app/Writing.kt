@@ -20,10 +20,11 @@ internal fun rememberTopicWriting(viewModel: ComposerViewModel = hiltViewModel()
     val composer = viewModel.composer ?: return TopicWriting()
     val state by composer.state.collectAsStateWithLifecycle()
     val me by viewModel.me.collectAsStateWithLifecycle()
+    val bubbles by viewModel.bubbles.collectAsStateWithLifecycle()
     return TopicWriting(
         openMessageId = state.openMessageId,
         mayWrite = state.server?.mayPost == true,
         onComplete = composer::complete,
-        box = { modifier -> ComposerRoute(composer, me, viewModel.origin, modifier) },
+        box = { modifier -> ComposerRoute(composer, me, viewModel.origin, bubbles, modifier) },
     )
 }

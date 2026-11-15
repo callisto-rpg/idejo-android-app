@@ -20,4 +20,19 @@ SPDX-License-Identifier: Apache-2.0
         <item quantity="one">Try again in %d second.</item>
         <item quantity="other">Try again in %d seconds.</item>
     </plurals>
+    <!-- CO-07: slow mode's line, its bubble and the web's hints. -->
+    <string name="composer_slow_mode">slow mode</string>
+    <string name="composer_start_new_keys">Ctrl+Enter to start new message</string>
+    <string name="composer_start_new_touch">Enter 3× to start new message</string>
+    <string-array name="composer_slow_hints">
+        <item>You cannot start a new message…</item>
+        <item>…but you can continue the one above.</item>
+        <item>[Enter] to send always works.</item>
+    </string-array>
+    <string name="composer_held_hint">Message sent. You can start a new one when the line is full.</string>
+    <!-- CO-06: the tutorial bubbles beside the caret. -->
+    <string name="composer_tip_send">Enter to send</string>
+    <string name="composer_tip_sent">Sent!</string>
+    <string name="composer_tip_visible">Message now visible to all!</string>
+    <string name="composer_tip_continue">Continue typing to add to your message</string>
 </resources>

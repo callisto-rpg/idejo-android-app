@@ -8,12 +8,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
+import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.SessionManager
+import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.model.Me
 import javax.inject.Inject
 
@@ -28,6 +32,7 @@ class ComposerViewModel
     constructor(
         savedState: SavedStateHandle,
         sessions: SessionManager,
+        choices: AppChoices,
     ) : ViewModel() {
         private val session = sessions.active?.takeIf { it.access.value == Access.SignedIn }
         private val topicId: String = checkNotNull(savedState["id"])
@@ -40,6 +45,14 @@ class ComposerViewModel
 
         /** The author, drawn on the composer's head (CO-05). */
         val me: StateFlow<Me?> = mutableMe.asStateFlow()
+
+        /** **Tutorial bubbles**, one choice for the whole app (CO-06, SH-21). */
+        val bubbles: StateFlow<TutorialBubbles> =
+            choices.tutorialBubbles.stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                TutorialBubbles.All,
+            )
 
         /** The forum's address, for pictures. */
         val origin: String = session?.origin.orEmpty()

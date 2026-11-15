@@ -40,12 +40,14 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
@@ -53,6 +55,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.delay
+import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.StatusBubble
 import org.idejo.app.core.designsystem.theme.IdejoTheme
@@ -75,6 +79,7 @@ fun ComposerRoute(
     composer: Composer,
     author: Me?,
     origin: String,
+    bubbles: TutorialBubbles,
     modifier: Modifier = Modifier,
 ) {
     val state by composer.state.collectAsStateWithLifecycle()
@@ -89,6 +94,7 @@ fun ComposerRoute(
             onErrorSeen = composer::errorSeen,
         ),
         modifier,
+        bubbles,
     )
 }
 
@@ -104,6 +110,7 @@ fun ComposerBox(
     origin: String,
     events: ComposerEvents,
     modifier: Modifier = Modifier,
+    bubbles: TutorialBubbles = TutorialBubbles.All,
 ) {
     Column(
         modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -111,6 +118,8 @@ fun ComposerBox(
     ) {
         Head(state.status, author, origin)
         Editor(state, events)
+        Tip(state, bubbles)
+        state.line?.let { SlowModeLine(it, bubbles) }
         state.error?.let { ErrorLine(it, events.onErrorSeen) }
     }
 }
@@ -206,6 +215,54 @@ private fun Editor(
     }
 }
 
+/**
+ * The tutorial bubble at the end of the text (CO-06): **Enter to send**, then **Sent!** with
+ * "Message now visible to all!" for 2 s, then "Continue typing to add to your message".
+ */
+@Composable
+private fun Tip(
+    state: ComposerState,
+    bubbles: TutorialBubbles,
+) {
+    var justSent by remember { mutableStateOf(false) }
+    LaunchedEffect(state.sent) {
+        justSent = state.sent.isNotEmpty()
+        delay(VISIBLE_MILLIS)
+        justSent = false
+    }
+    val tip = tutorialTip(state, justSent, bubbles) ?: return
+    Row(
+        Modifier.fillMaxWidth().clearAndSetSemantics {},
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (tip == TutorialTip.Sent && bubbles == TutorialBubbles.All) {
+            Hint(stringResource(R.string.composer_tip_visible))
+        }
+        if (tip == TutorialTip.Continue) {
+            Hint(stringResource(R.string.composer_tip_continue))
+        } else {
+            val text =
+                if (tip ==
+                    TutorialTip.Sent
+                ) {
+                    R.string.composer_tip_sent
+                } else {
+                    R.string.composer_tip_send
+                }
+            StatusBubble(stringResource(text))
+        }
+    }
+}
+
+@Composable
+private fun Hint(text: String) =
+    Text(
+        text,
+        style = IdejoTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
 @Composable
 private fun ErrorLine(
     error: ComposerError,
@@ -243,3 +300,4 @@ internal fun absolute(
 ): String = if (url.startsWith("/")) origin.trimEnd('/') + url else url
 
 private const val FADED = 0.6f
+private const val VISIBLE_MILLIS = 2_000L
