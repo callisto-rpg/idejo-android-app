@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -93,7 +94,7 @@ class SessionManager(
                 userId = grant?.user?.id,
                 signedOut = false,
             )
-        store.update { AppState(forums = listOf(record), active = origin) }
+        store.update { it.copy(forums = listOf(record), active = origin) }
         open(record)
     }
 
@@ -135,7 +136,7 @@ class SessionManager(
         lock.withLock {
             store.current().forum(origin)?.let { revoke(it) }
             store.update { state ->
-                AppState(forums = state.forums.filterNot { it.origin == origin })
+                state.copy(forums = state.forums.filterNot { it.origin == origin }, active = null)
             }
             open(null)
         }

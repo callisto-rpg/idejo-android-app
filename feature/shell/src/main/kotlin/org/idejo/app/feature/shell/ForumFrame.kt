@@ -233,7 +233,7 @@ private fun UserMenuPage(
             shell.record.discovery.account
                 ?.signUpUrl != null,
         themeMode = shell.record.themeMode,
-        tutorialBubbles = shell.record.tutorialBubbles,
+        tutorialBubbles = shell.tutorialBubbles,
         actions = actions,
         onClose = onClose,
         avatar = { MemberAvatar(shell, 72.dp) },

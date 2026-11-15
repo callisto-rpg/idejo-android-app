@@ -300,6 +300,9 @@ Docker image) are added with them.
   tabletop: page above), from `material3-adaptive`'s window posture. Visible focus is the
   theme's indication: Material's ripple plus a 2 dp ring in the forum's primary colour. A
   right-click does what a long-press does. The composer's keys (CO-03) come with M2.
+- 2026-11-15 — **Tutorial bubbles** (SH-21) is one choice for the whole app, kept on the
+  device (`AppState.tutorialBubbles`, `AppChoices`); idejo's API has no such setting.
+  Theme stays per forum.
 
 ## Milestones (spec §26)
 

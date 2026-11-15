@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.idejo.app.core.api.ApiResult
@@ -42,6 +43,7 @@ class SessionManagerTest {
     private val vault = TokenVault(AesGcmBox { key })
     private val file by lazy { folder.root.resolve("app.json") }
     private val stores = mutableListOf<CoroutineScope>()
+    private lateinit var store: ForumStore
 
     @After
     fun stop() {
@@ -55,8 +57,9 @@ class SessionManagerTest {
         val storeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO).also(stores::add)
         // The last store must be gone before another opens the same file (DataStore's rule).
         runBlocking { stores.dropLast(1).forEach { it.coroutineContext[Job]?.cancelAndJoin() } }
+        store = ForumStore.create(file, storeScope)
         return SessionManager(
-            ForumStore.create(file, storeScope),
+            store,
             vault,
             http,
             scope,
@@ -216,6 +219,20 @@ class SessionManagerTest {
             val record = requireNotNull(again.active).record.value
             assertEquals(ThemeMode.Dark, record.themeMode)
             assertEquals(TopicView.Expanded, record.topicView)
+        }
+
+    @Test
+    fun `SH-21 Tutorial bubbles are one choice for the app, kept when a forum is removed`() =
+        runBlocking {
+            val sessions = manager()
+            sessions.add(found(), grant())
+            AppChoices(store).tutorialBubbles(TutorialBubbles.Off)
+            sessions.remove(requireNotNull(sessions.active).origin)
+            sessions.add(found())
+            assertEquals(TutorialBubbles.Off, AppChoices(store).tutorialBubbles.first())
+
+            manager().restore()
+            assertEquals(TutorialBubbles.Off, AppChoices(store).tutorialBubbles.first())
         }
 }
 
