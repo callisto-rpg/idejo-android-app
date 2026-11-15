@@ -3,6 +3,10 @@
 
 package org.idejo.app.core.designsystem.component
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
@@ -57,6 +64,20 @@ class ComponentScreenshotTest {
     @Test
     fun `BR-03 topic row expanded`() =
         snapshots("TopicRowExpanded") { TopicRowSample(expanded = true) }
+
+    @Test
+    fun `SH-62 visible focus, a ring in the forum's colour`() =
+        snapshots("FocusRing") {
+            // What a keyboard's focus sends the theme's indication (touch mode takes none).
+            val source = remember { MutableInteractionSource() }
+            Text(
+                "Tomato plans for spring",
+                Modifier
+                    .indication(source, LocalIndication.current)
+                    .padding(12.dp),
+            )
+            LaunchedEffect(Unit) { source.emit(FocusInteraction.Focus()) }
+        }
 
     @Test
     fun `TV-02 TH-05 message header`() = snapshots("MessageHeader") { MessageHeaderSample() }

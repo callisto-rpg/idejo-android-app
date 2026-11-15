@@ -295,6 +295,11 @@ Docker image) are added with them.
   `my_last_message_id`, IX-13, callisto-rpg/Idejo#369; hidden on servers without it), then
   the pinned messages (author and 60 characters). It shows once the header has scrolled
   away; at ≥ 1200 dp it is a card beside the topic (SH-60).
+- 2026-11-15 — Large screens (SH-60 to SH-62): ≥ 840 dp docks the sidebar; a separating
+  fold puts the sidebar and the page on either side of the hinge (book: sidebar left;
+  tabletop: page above), from `material3-adaptive`'s window posture. Visible focus is the
+  theme's indication: Material's ripple plus a 2 dp ring in the forum's primary colour. A
+  right-click does what a long-press does. The composer's keys (CO-03) come with M2.
 
 ## Milestones (spec §26)
 
@@ -312,7 +317,8 @@ markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, 
 welcome and getting-started cards, the user card; topic: the page, its window, live
 changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
 mention glows, inline cards, the image viewer, plugin blocks, "Continued from", the jump
-button).
+button; large screens, foldables, keyboard and mouse). Left unticked until the steward
+closes M1.
 The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
 window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs) and #369

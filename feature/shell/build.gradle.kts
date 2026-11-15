@@ -17,6 +17,7 @@ android {
 dependencies {
     implementation(project(":core:data"))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.compose.material3.adaptive)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.hilt.viewmodel.compose)

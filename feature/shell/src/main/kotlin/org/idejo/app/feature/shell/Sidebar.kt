@@ -56,6 +56,7 @@ import org.idejo.app.core.designsystem.component.Dot
 import org.idejo.app.core.designsystem.component.dot
 import org.idejo.app.core.designsystem.component.unreadLevel
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.designsystem.theme.onSecondaryClick
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Topic
 
@@ -312,6 +313,7 @@ private fun TopicRow(
                 .padding(start = 8.dp, end = 4.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(highlight)
+                .onSecondaryClick { menu = true }
                 .combinedClickable(
                     role = Role.Button,
                     onLongClick = { menu = true },

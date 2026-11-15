@@ -49,6 +49,7 @@ import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.MessageHeader
 import org.idejo.app.core.designsystem.component.relativeTime
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.designsystem.theme.onSecondaryClick
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
 import org.idejo.app.core.markdown.IdejoMarkdown
@@ -134,7 +135,7 @@ private fun Author(
     val copy = stringResource(R.string.message_copy_link)
     val permalink =
         message.url?.let { url ->
-            Modifier.combinedClickable(
+            Modifier.onSecondaryClick { android.copyLink(url) }.combinedClickable(
                 onLongClickLabel = copy,
                 onLongClick = { android.copyLink(url) },
                 onClick = {},
