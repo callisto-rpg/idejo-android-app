@@ -42,12 +42,20 @@ import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PluginBlock
+import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
+import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.PollOption
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.RoleCard
+import org.idejo.app.core.model.ScheduleCreate
+import org.idejo.app.core.model.Scheduled
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
+import org.idejo.app.core.model.Spoiler
+import org.idejo.app.core.model.SpoilerSet
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.TokenGrant
@@ -56,6 +64,7 @@ import org.idejo.app.core.model.TopicPreview
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UnreadCounter
 import org.idejo.app.core.model.UnreadMark
+import org.idejo.app.core.model.Upload
 import org.idejo.app.core.model.UserCard
 import org.idejo.app.core.model.Vote
 import org.idejo.app.core.model.Warning
@@ -97,6 +106,7 @@ class FakeIdejo(
 
     /** Each poll's votes: poll id, then person id, then their answers (TV-27). */
     private val votes = mutableMapOf<String, MutableMap<String, List<String>>>()
+    private val scheduled = mutableListOf<Pair<String, Scheduled>>()
     private val composers = mutableMapOf<Pair<String, String>, ComposerRecord>()
     private val tokens = mutableMapOf<String, Person>()
     private val codes = mutableMapOf<String, PendingCode>()
@@ -588,6 +598,97 @@ class FakeIdejo(
             ) { call -> findMessage(call["id"])?.let(::ok) ?: notFound() },
             Route("PUT", "messages/{id}") { call -> editOwn(call) },
             Route("DELETE", "messages/{id}") { call -> deleteOwn(call) },
+            Route("GET", "topics/{id}/commands") { ok(ListBody(FAKE_COMMANDS)) },
+            Route("POST", "uploads") { call ->
+                if (call.viewer == null) return@Route unauthenticated()
+                val id = "up_" + nextId++
+                ok(Upload(id, "/uploads/$id.png", "![image](/uploads/$id.png)", 640, 480))
+            },
+            Route("GET", "topics/{id}/scheduled") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                ok(
+                    ListBody(
+                        scheduled
+                            .filter {
+                                it.first == person.id &&
+                                    it.second.topicId == call["id"]
+                            }.map { it.second },
+                    ),
+                )
+            },
+            Route("POST", "topics/{id}/scheduled") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                val body =
+                    IdejoJson.decodeFromString<ScheduleCreate>(call.request.body?.utf8() ?: "{}")
+                if (body.hours <= 0 || body.hours > MAX_HOURS) {
+                    return@Route error(
+                        HTTP_UNPROCESSABLE_ENTITY,
+                        "invalid_request",
+                        "At most 168 hours.",
+                    )
+                }
+                val item =
+                    Scheduled(
+                        "s_" + nextId++,
+                        clock.now.plusSeconds((body.hours * SECONDS_PER_HOUR).toLong()),
+                        call["id"],
+                        body.bodyMd,
+                    )
+                scheduled.add(person.id.orEmpty() to item)
+                ok(item)
+            },
+            Route("DELETE", "scheduled/{id}") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                val removed =
+                    scheduled.removeAll {
+                        it.first == person.id &&
+                            it.second.id == call["id"]
+                    }
+                if (removed) status(HTTP_NO_CONTENT) else notFound()
+            },
+            Route("POST", "topics/{id}/polls") { call ->
+                val body = IdejoJson.decodeFromString<PollCreate>(call.request.body?.utf8() ?: "{}")
+                val poll =
+                    Poll(
+                        "p_" + nextId++,
+                        body.question,
+                        body.multiple,
+                        options = body.options.mapIndexed { i, text -> PollOption("o_$i", text) },
+                    )
+                underOrAlone(call, body.messageId, body.question) { it.copy(poll = poll) }
+            },
+            Route("POST", "topics/{id}/plugins/{command}") { call ->
+                val body = IdejoJson.decodeFromString<PluginRun>(call.request.body?.utf8() ?: "{}")
+                val block =
+                    PluginBlock(
+                        call["command"],
+                        "button",
+                        kotlinx.serialization.json.JsonObject(
+                            body.params.mapValues {
+                                kotlinx.serialization.json.JsonPrimitive(
+                                    it.value,
+                                )
+                            },
+                        ),
+                    )
+                underOrAlone(
+                    call,
+                    body.messageId,
+                    body.params.values
+                        .firstOrNull()
+                        .orEmpty(),
+                ) {
+                    it.copy(plugins = it.plugins + block)
+                }
+            },
+            Route("PUT", "messages/{id}/spoiler") { call ->
+                val set = IdejoJson.decodeFromString<SpoilerSet>(call.request.body?.utf8() ?: "{}")
+                own(call) { it.copy(spoiler = Spoiler(set.overlay)) }
+            },
+            Route(
+                "DELETE",
+                "messages/{id}/spoiler",
+            ) { call -> own(call) { it.copy(spoiler = null) } },
             Route("GET", "emoji") { call ->
                 val q =
                     call.request.url
@@ -794,6 +895,34 @@ class FakeIdejo(
                 it.copy(bodyMd = edit.bodyMd, edited = it.edited || edit.bodyMd != it.bodyMd)
             },
         )
+    }
+
+    /** A change to the viewer's own message [call]'s `{id}` (CO-13). */
+    private fun own(
+        call: Call,
+        change: (Message) -> Message,
+    ): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val record = topics.values.firstOrNull { r -> r.messages.any { it.id == call["id"] } }
+        val message = record?.messages?.first { it.id == call["id"] } ?: return notFound()
+        if (message.author.id != person.id) return error(HTTP_FORBIDDEN, "forbidden", "Not yours.")
+        return ok(replace(record, message.id, "message.edited", change))
+    }
+
+    /** A poll or plugin block under [messageId], or a closed message of its own (CO-13). */
+    private fun underOrAlone(
+        call: Call,
+        messageId: String?,
+        text: String,
+        change: (Message) -> Message,
+    ): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val record = topics[call["id"]] ?: return notFound()
+        val id =
+            messageId
+                ?: openMessage(record, person, text).id.also { close(record, it, held = false) }
+        if (record.messages.none { it.id == id }) return notFound()
+        return ok(replace(record, id, "message.edited", change))
     }
 
     /** `DELETE /messages/{id}` (CO-18): the author's own, never a topic's first. */
@@ -1626,3 +1755,15 @@ private val FAKE_EMOJI =
         Emoji("+1", "👍"),
         Emoji("agree", imageUrl = "/emoji/agree.png"),
     )
+
+private const val MAX_HOURS = 168.0
+private const val SECONDS_PER_HOUR = 3600
+private const val HTTP_UNPROCESSABLE_ENTITY = 422
+
+private val FAKE_COMMANDS =
+    listOf("image", "gif", "new-topic", "poll", "schedule", "spoiler", "forward").map {
+        org.idejo.app.core.model
+            .Command(it, "builtin")
+    } +
+        org.idejo.app.core.model
+            .Command("youtube", "plugin", argument = "link", block = "video")

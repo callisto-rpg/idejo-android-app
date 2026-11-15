@@ -4,7 +4,18 @@
 package org.idejo.app.feature.composer
 
 /** How a part of the box's text looks (CO-11). */
-internal enum class Mark { Bold, Italic, Strike, Highlight, Code, Spoiler, Link, Title, Quote }
+internal enum class Mark {
+    Bold,
+    Italic,
+    Strike,
+    Highlight,
+    Code,
+    Spoiler,
+    Link,
+    Title,
+    Quote,
+    Image,
+}
 
 /** [mark] on the box's characters [start] until [end]. */
 internal data class Styled(
@@ -32,6 +43,7 @@ internal data class Look(
 internal fun markdownLook(
     text: String,
     graphical: Boolean,
+    imageLabel: (String) -> String = { "image: $it" },
 ): Look {
     val styles = mutableListOf<Styled>()
     val swaps = mutableListOf<Swap>()
@@ -41,7 +53,25 @@ internal fun markdownLook(
         inline(text, lineStart + body, lineStart + line.length, styles, swaps)
         lineStart += line.length + 1
     }
-    return Look(styles, if (graphical) clean(swaps) else emptyList())
+    // An uploaded image shows as the web's "image:" pill, with or without the graphical
+    // composer (CO-14).
+    val images = mutableListOf<Swap>()
+    for (found in IMAGE.findAll(text)) {
+        val start = found.range.first
+        val end = found.range.last + 1
+        images += Swap(start, end, imageLabel(found.groupValues[1].ifBlank { "image" }))
+        styles.removeAll { it.start >= start && it.end <= end }
+        styles += Styled(Mark.Image, start, end)
+    }
+    val kept =
+        if (graphical) {
+            swaps.filter { s ->
+                images.none { s.start < it.end && it.start < s.end }
+            }
+        } else {
+            emptyList()
+        }
+    return Look(styles, clean(kept + images))
 }
 
 /** A line's block sign; gives where its text starts. */
@@ -167,6 +197,7 @@ internal class Swapped(
 }
 
 private val BLOCK = Regex("""^(#{1,3} |> ?|\s*[-*] |\s*\d+\. )""")
+private val IMAGE = Regex("""!\[([^\]\n]*)]\((/uploads/[^)\s]+)\)""")
 private val CODE = Regex("""`[^`\n]+`""")
 private val LINK = Regex("""\[([^\]\n]+)]\([^)\s]+\)""")
 private val WRAPS =

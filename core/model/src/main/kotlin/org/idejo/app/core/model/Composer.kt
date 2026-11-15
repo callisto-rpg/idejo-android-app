@@ -66,3 +66,56 @@ data class Suggestion(
     val label: String,
     val id: String? = null,
 )
+
+/** `POST /uploads` (CO-14): the image's Markdown, as the web composer inserts it. */
+@Serializable
+data class Upload(
+    @SerialName("upload_id") val uploadId: String,
+    val url: String,
+    val markdown: String,
+    val width: Int? = null,
+    val height: Int? = null,
+)
+
+/** One of the member's scheduled messages in a topic (CO-20). */
+@Serializable
+data class Scheduled(
+    val id: String,
+    @SerialName("post_at") val postAt: Time,
+    @SerialName("topic_id") val topicId: String? = null,
+    @SerialName("body_md") val bodyMd: String? = null,
+)
+
+/** `!schedule` (CO-13): what is not sent yet, posted in [hours] (at most 168). */
+@Serializable
+data class ScheduleCreate(
+    @SerialName("body_md") val bodyMd: String,
+    val hours: Double,
+    @SerialName("reply_to") val replyTo: String? = null,
+)
+
+/** `!poll` (CO-13): under [messageId], or on its own. */
+@Serializable
+data class PollCreate(
+    val question: String,
+    val options: List<String>,
+    val hours: Double,
+    val multiple: Boolean = false,
+    val hidden: Boolean = false,
+    @SerialName("message_id") val messageId: String? = null,
+    @SerialName("reply_to") val replyTo: String? = null,
+)
+
+/** `!spoiler` (CO-13), with `!spoiler:overlay:`'s words. */
+@Serializable
+data class SpoilerSet(
+    val overlay: String? = null,
+)
+
+/** A plugin's command (CO-13): its block's [params], under [messageId] or on its own. */
+@Serializable
+data class PluginRun(
+    val params: Map<String, String> = emptyMap(),
+    @SerialName("message_id") val messageId: String? = null,
+    @SerialName("reply_to") val replyTo: String? = null,
+)

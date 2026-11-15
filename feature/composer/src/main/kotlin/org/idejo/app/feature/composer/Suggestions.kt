@@ -129,7 +129,7 @@ internal fun SuggestionList(
                 ) {
                     Text(item.label, Modifier.weight(1f), style = IdejoTheme.typography.bodyMedium)
                     val at = suggesting.at
-                    if (at != null && item.insert != item.label) {
+                    if (at != null && at.sign != '!' && item.insert != item.label) {
                         Text(
                             "${at.sign}${item.insert}",
                             style = IdejoTheme.typography.labelMedium,

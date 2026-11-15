@@ -194,9 +194,7 @@ private fun NavGraphBuilder.topicPage(
             onTopic = { id, messageId -> navigation.go(Place.Topic(id, messageId)) },
             writing =
                 rememberTopicWriting(
-                    onForward = { message ->
-                        navigation.navigate(ForwardDialog(message.id, message.topicId))
-                    },
+                    onForward = { id, topicId -> navigation.navigate(ForwardDialog(id, topicId)) },
                 ),
         )
     }

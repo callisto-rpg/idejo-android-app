@@ -35,7 +35,7 @@ class ComposerViewModel
         choices: AppChoices,
     ) : ViewModel() {
         private val session = sessions.active?.takeIf { it.access.value == Access.SignedIn }
-        private val topicId: String = checkNotNull(savedState["id"])
+        val topicId: String = checkNotNull(savedState["id"])
 
         /** Null for visitors: no composer. */
         val composer: Composer? =

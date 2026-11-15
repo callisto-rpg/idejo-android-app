@@ -19,7 +19,8 @@ import org.idejo.app.feature.topic.TopicWriting
  */
 @Composable
 internal fun rememberTopicWriting(
-    onForward: (Message) -> Unit,
+    /** The forward card for a message ([id], [topic id]) (CO-17). */
+    onForward: (String, String) -> Unit,
     viewModel: ComposerViewModel = hiltViewModel(),
 ): TopicWriting {
     val composer = viewModel.composer ?: return TopicWriting()
@@ -32,8 +33,17 @@ internal fun rememberTopicWriting(
         mayWrite = state.server?.mayPost == true,
         onComplete = composer::complete,
         onReply = reply,
-        onForward = onForward,
+        onForward = { message: Message -> onForward(message.id, message.topicId) },
         onEdit = composer::edit,
-        box = { modifier -> ComposerRoute(composer, me, viewModel.origin, bubbles, modifier) },
+        box = { modifier ->
+            ComposerRoute(
+                composer,
+                me,
+                viewModel.origin,
+                bubbles,
+                modifier,
+                onForward = { id -> onForward(id, viewModel.topicId) },
+            )
+        },
     )
 }

@@ -39,6 +39,7 @@ internal class Tools(
     val onValue: (TextFieldValue) -> Unit,
     val events: ComposerEvents,
     val onEmoji: () -> Unit,
+    val commanding: Commanding? = null,
 )
 
 /**
@@ -55,7 +56,13 @@ internal fun Toolbar(
     IconButton(onClick = tools.onEmoji) {
         Icon(painterResource(R.drawable.ic_mood), stringResource(R.string.composer_emoji))
     }
+    tools.commanding?.let { commanding ->
+        IconButton(onClick = { commanding.pickImage(false) }) {
+            Icon(painterResource(R.drawable.ic_image), stringResource(R.string.composer_image))
+        }
+    }
     Pencil(tools)
+    tools.commanding?.let { More(it) }
     Spacer(Modifier.weight(1f))
     SendButton(tools, editing, waiting)
 }
@@ -81,6 +88,30 @@ private fun Pencil(tools: Tools) {
             Item(R.string.composer_quote) { change { value -> value.lines { "> " } } }
             Item(R.string.composer_bullets) { change { value -> value.lines { "- " } } }
             Item(R.string.composer_numbers) { change { value -> value.lines { "$it. " } } }
+        }
+    }
+}
+
+/** **+**: the commands, as typing `!` (CO-13). */
+@Composable
+private fun More(commanding: Commanding) {
+    var open by remember { mutableStateOf(false) }
+    val more = commanding.more
+    if (more.isEmpty()) return
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(painterResource(R.drawable.ic_add), stringResource(R.string.composer_commands))
+        }
+        DropdownMenu(open, onDismissRequest = { open = false }) {
+            more.forEach { command ->
+                DropdownMenuItem(
+                    text = { Text("!${command.name}") },
+                    onClick = {
+                        open = false
+                        commanding.run(command)
+                    },
+                )
+            }
         }
     }
 }

@@ -8,24 +8,33 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.ForumApi
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.ForumSession
+import org.idejo.app.core.model.Command
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.PluginRun
+import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.ScheduleCreate
+import org.idejo.app.core.model.Scheduled
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.Upload
 import org.idejo.app.core.model.ComposerState as ServerComposer
 
 /** How long "sent & committed" shows (CO-05). */
 const val COMMITTED_SHOWN_MILLIS = 3_000L
 
 /** The composer's calls for one topic (API guide §6). */
+@Suppress("TooManyFunctions") // One for each call the composer makes.
 interface ComposerBackend {
     suspend fun composer(): ApiResult<ServerComposer>
 
@@ -53,6 +62,36 @@ interface ComposerBackend {
 
     /** The emoji whose names hold [query] (CO-10). */
     suspend fun emoji(query: String): ApiResult<List<Emoji>>
+
+    /** The `!` commands the member may use here (CO-13). */
+    suspend fun commands(): ApiResult<List<Command>>
+
+    suspend fun upload(
+        bytes: ByteArray,
+        fileName: String,
+        type: String,
+    ): ApiResult<Upload>
+
+    suspend fun scheduled(): ApiResult<List<Scheduled>>
+
+    suspend fun schedule(body: ScheduleCreate): ApiResult<Scheduled>
+
+    suspend fun cancelScheduled(id: String): ApiResult<Unit>
+
+    suspend fun poll(body: PollCreate): ApiResult<Message>
+
+    suspend fun spoiler(
+        messageId: String,
+        on: Boolean,
+        overlay: String?,
+    ): ApiResult<Message>
+
+    suspend fun plugin(
+        command: String,
+        body: PluginRun,
+    ): ApiResult<Message>
+
+    suspend fun automessage(name: String): ApiResult<Message>
 }
 
 /** Something that calls a forum's API: its session, or in tests a bare client. */
@@ -61,6 +100,7 @@ interface ForumCalls {
 }
 
 /** The calls of topic [topicId]. */
+@Suppress("TooManyFunctions") // One for each call the composer makes.
 class ApiComposerBackend(
     private val topicId: String,
     private val calls: ForumCalls,
@@ -89,6 +129,35 @@ class ApiComposerBackend(
     ) = calls.call { suggest(sign, query, topicId) }
 
     override suspend fun emoji(query: String) = calls.call { emoji(query) }
+
+    override suspend fun commands() = calls.call { commands(topicId) }
+
+    override suspend fun upload(
+        bytes: ByteArray,
+        fileName: String,
+        type: String,
+    ) = calls.call { upload(bytes, fileName, type) }
+
+    override suspend fun scheduled() = calls.call { scheduled(topicId) }
+
+    override suspend fun schedule(body: ScheduleCreate) = calls.call { schedule(topicId, body) }
+
+    override suspend fun cancelScheduled(id: String) = calls.call { cancelScheduled(id) }
+
+    override suspend fun poll(body: PollCreate) = calls.call { createPoll(topicId, body) }
+
+    override suspend fun spoiler(
+        messageId: String,
+        on: Boolean,
+        overlay: String?,
+    ) = calls.call { spoiler(messageId, on, overlay) }
+
+    override suspend fun plugin(
+        command: String,
+        body: PluginRun,
+    ) = calls.call { runPlugin(topicId, command, body) }
+
+    override suspend fun automessage(name: String) = calls.call { automessage(topicId, name) }
 
     companion object {
         /** Through the forum's session, which notices a refused token (SI-09). */
@@ -196,6 +265,121 @@ class Composer(
 
     fun cancelDelete() = dispatch(ComposerEvent.CancelDelete)
 
+    private val mutableScheduled = MutableStateFlow(emptyList<Scheduled>())
+
+    /** The member's scheduled messages here, under the box (CO-20). */
+    val scheduled: StateFlow<List<Scheduled>> = mutableScheduled.asStateFlow()
+
+    private var commandList: List<Command>? = null
+
+    /** The `!` commands, asked once (CO-13); those of later pull requests left out. */
+    suspend fun commands(): List<Command> =
+        commandList ?: backend
+            .commands()
+            .getOrNull()
+            ?.filter { it.name !in LATER && it.block != "forum" }
+            ?.also { commandList = it }
+            .orEmpty()
+
+    fun refreshScheduled() {
+        scope.launch { backend.scheduled().getOrNull()?.let { mutableScheduled.value = it } }
+    }
+
+    /** **Cancel** on a scheduled message (CO-20). */
+    fun cancelScheduled(id: String) {
+        scope.launch { backend.cancelScheduled(id).then { refreshScheduled() } }
+    }
+
+    /** `!schedule` (CO-13): what is not sent yet, posted in [hours]. */
+    fun schedule(hours: Double) {
+        val current = state.value
+        val text = scheduledText(current) ?: return
+        scope.launch {
+            backend.schedule(ScheduleCreate(text, hours, current.replying?.id)).then {
+                typed(afterScheduled(current))
+                refreshScheduled()
+            }
+        }
+    }
+
+    /** An image for the box (CO-14); null when refused, the server's reason shown. */
+    suspend fun upload(
+        bytes: ByteArray,
+        fileName: String,
+        type: String,
+    ): Upload? =
+        when (val result = backend.upload(bytes, fileName, type)) {
+            is ApiResult.Success -> result.value
+            is ApiResult.Failure -> null.also { failed(result.problem) }
+        }
+
+    /** `!poll` (CO-13): what is new sent first, then the poll under it, or on its own. */
+    fun poll(poll: PollCreate) {
+        scope.launch {
+            val id = flushed() ?: return@launch
+            backend.poll(poll.copy(messageId = id.value, replyTo = replyTo(id))).then {}
+        }
+    }
+
+    /** `!spoiler`, or `!spoiler:overlay:` (CO-13): on, or off when it was on already. */
+    fun spoiler(overlay: String? = null) {
+        scope.launch {
+            val open = flushed() ?: return@launch
+            val id = open.value
+            if (id == null) {
+                dispatch(ComposerEvent.CommandFailed(ComposerError.NothingToHide))
+                return@launch
+            }
+            val on = overlay != null || backend.message(id).getOrNull()?.spoiler == null
+            backend.spoiler(id, on, overlay).then {}
+        }
+    }
+
+    /** A plugin's block (CO-13), with its dialog's [params]. */
+    fun plugin(
+        command: String,
+        params: Map<String, String>,
+    ) {
+        scope.launch {
+            val id = flushed() ?: return@launch
+            backend.plugin(command, PluginRun(params, id.value, replyTo(id))).then {}
+        }
+    }
+
+    fun automessage(name: String) {
+        scope.launch { backend.automessage(name).then {} }
+    }
+
+    private class Open(
+        val value: String?,
+    )
+
+    /**
+     * What is not sent yet, sent (CO-13); the open message then, or null on a failure (the
+     * server's reason shown).
+     */
+    private suspend fun flushed(): Open? {
+        val current = state.value
+        val unsent = unsentRange(current.sent, current.text)
+        if (unsent != null && !unsent.isEmpty() && current.editing == null) {
+            enter()
+            if (state.first { it.inFlight == null }.error != null) return null
+        }
+        return Open(state.value.openMessageId)
+    }
+
+    private fun replyTo(open: Open) = if (open.value == null) state.value.replying?.id else null
+
+    private fun failed(problem: ApiProblem) =
+        dispatch(ComposerEvent.CommandFailed(errorOf(problem)))
+
+    private inline fun <T> ApiResult<T>.then(done: (T) -> Unit) {
+        when (this) {
+            is ApiResult.Success -> done(value)
+            is ApiResult.Failure -> failed(problem)
+        }
+    }
+
     private fun dispatch(event: ComposerEvent) {
         var effects = emptyList<ComposerEffect>()
         mutableState.update { state ->
@@ -267,3 +451,6 @@ class Composer(
         }
     }
 }
+
+/** Commands that come with GIFs and New topic (CO-15, CO-19). */
+private val LATER = setOf("gif", "new-topic")

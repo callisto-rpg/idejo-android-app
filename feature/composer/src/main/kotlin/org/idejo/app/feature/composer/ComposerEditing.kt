@@ -121,6 +121,18 @@ internal fun TextFieldValue.accept(
     return TextFieldValue(next, TextRange(at.start + chosen.length))
 }
 
-private const val SIGNS = "@+#/$&"
+private const val SIGNS = "@+#/$&!"
 private const val WORD = "-_."
 private val ITEM = Regex("""^\s*(?:[-*]|\d+\.) """)
+
+/** The commands after `!` as suggestions, narrowing as typed (CO-13). */
+internal fun commandSuggestions(
+    commands: List<org.idejo.app.core.model.Command>,
+    query: String,
+): List<org.idejo.app.core.model.Suggestion> =
+    commands
+        .filter { it.name.startsWith(query, ignoreCase = true) }
+        .map {
+            org.idejo.app.core.model
+                .Suggestion("command", it.name, "!" + it.name)
+        }

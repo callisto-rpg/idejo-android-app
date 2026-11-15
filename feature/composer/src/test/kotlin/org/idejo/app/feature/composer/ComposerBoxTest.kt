@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.withKeyDown
 import org.idejo.app.core.model.ApiError
+import org.idejo.app.core.model.Command
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Suggestion
 import org.junit.Assert.assertEquals
@@ -153,6 +154,35 @@ class ComposerBoxTest {
             )
         }
         rule.onNodeWithContentDescription("Send").assertDoesNotExist()
+    }
+
+    // The commands' dialogs hold text fields, which never go idle in a dialog under
+    // Robolectric: their logic is tested in ComposerCommandsTest.
+    @Test
+    fun `CO-13 the exclamation mark lists the commands, Enter runs the one picked`() {
+        val spoilers = mutableListOf<String?>()
+        rule.setContent {
+            var state by remember { mutableStateOf(ComposerState()) }
+            ComposerBox(
+                state,
+                ada,
+                "",
+                ComposerEvents(
+                    onTyped = { state = state.copy(text = it) },
+                    commands =
+                        CommandEvents(
+                            commands = { listOf(Command("poll"), Command("spoiler")) },
+                            onSpoiler = { spoilers += it },
+                        ),
+                ),
+            )
+        }
+        box().performTextInput("!sp")
+        rule.mainClock.advanceTimeBy(SUGGEST_WAIT)
+        rule.onNodeWithText("!spoiler").assertExists()
+        box().performKeyInput { pressKey(Key.Enter) }
+        box().performTextInput("!spoiler:Book 3:")
+        assertEquals(listOf(null, "Book 3"), spoilers)
     }
 }
 

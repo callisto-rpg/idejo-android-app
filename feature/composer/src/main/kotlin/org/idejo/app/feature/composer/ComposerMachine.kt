@@ -43,7 +43,17 @@ sealed interface ComposerError {
 
     /** No answer (offline, timed out): the app's own words. */
     data object Unreachable : ComposerError
+
+    /** `!spoiler` with nothing written to hide (CO-13). */
+    data object NothingToHide : ComposerError
 }
+
+/** What the member sees of [problem]. */
+internal fun errorOf(problem: ApiProblem): ComposerError =
+    when (problem) {
+        is ApiProblem.Server -> ComposerError.Refused(problem.error, problem.retryAfter)
+        is ApiProblem.Network, is ApiProblem.Malformed -> ComposerError.Unreachable
+    }
 
 /**
  * The composer: the author's open message (idejo GM-08, CLAUDE.md → Growing-message
@@ -164,6 +174,11 @@ sealed interface ComposerEvent {
     data object CommittedShown : ComposerEvent
 
     data object ErrorSeen : ComposerEvent
+
+    /** A command's call refused or unanswered (CO-13), or [error] of the app's own. */
+    data class CommandFailed(
+        val error: ComposerError,
+    ) : ComposerEvent
 
     /**
      * **Reply** on [quote] (CO-16): [above] when it stands above the author's open message.
@@ -309,6 +324,10 @@ object ComposerMachine {
                 ComposerStep(state.copy(error = null))
             }
 
+            is ComposerEvent.CommandFailed -> {
+                ComposerStep(state.copy(error = event.error))
+            }
+
             else -> {
                 ComposerModes.reduce(state, event)
             }
@@ -432,11 +451,7 @@ object ComposerMachine {
         state: ComposerState,
         problem: ApiProblem,
     ): ComposerStep {
-        val error =
-            when (problem) {
-                is ApiProblem.Server -> ComposerError.Refused(problem.error, problem.retryAfter)
-                is ApiProblem.Network, is ApiProblem.Malformed -> ComposerError.Unreachable
-            }
+        val error = errorOf(problem)
         // Nothing typed is ever lost (invariant 4): the text stays, unsent.
         return ComposerStep(
             state.copy(inFlight = null, queuedBreak = null, queuedNew = null, error = error),
@@ -523,3 +538,19 @@ fun softReturn(
     val without = after.removeRange(at, at + 1)
     return without.takeIf { it == before }
 }
+
+/**
+ * What `!schedule` posts (CO-13): the text not sent yet, never sent text; null when sent
+ * text was changed or nothing new is there.
+ */
+internal fun scheduledText(state: ComposerState): String? {
+    if (!state.text.startsWith(state.sent)) return null
+    return state.text
+        .substring(state.sent.length)
+        .trim()
+        .ifEmpty { null }
+}
+
+/** The box once [scheduledText] went: the sent text, as it stood. */
+internal fun afterScheduled(state: ComposerState): String =
+    if (state.sent.isEmpty()) "" else state.text.substring(0, state.sent.length) + " "

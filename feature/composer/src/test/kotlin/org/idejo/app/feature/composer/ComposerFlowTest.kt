@@ -12,6 +12,7 @@ import org.idejo.app.core.testing.FakeIdejo
 import org.idejo.app.core.testing.FakePeople
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -160,4 +161,108 @@ class ComposerFlowTest {
             assertEquals(listOf("ada"), composer.suggestions('@', "ad").map { it.insert })
             assertEquals(listOf("tada"), composer.emoji("tad").map { it.name })
         }
+
+    @Test
+    fun `CO-13 the commands of the topic, those to come later left out`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            val names = composer.commands().map { it.name }
+            assertTrue("poll" in names && "youtube" in names)
+            assertTrue("gif" !in names && "new-topic" !in names)
+        }
+
+    @Test
+    fun `CO-13 a poll goes under the message, what is new sent first`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.typed("Which tomato")
+            composer.poll(
+                org.idejo.app.core.model
+                    .PollCreate("Which?", listOf("Sungold", "Brandywine"), 2.0),
+            )
+            val id = composer.state.first { it.openMessageId != null }.openMessageId
+            waitFor { fake.messages("t_1").firstOrNull { it.id == id && it.poll != null } }.let {
+                assertEquals("Which tomato.", it.bodyMd)
+                assertEquals(listOf("Sungold", "Brandywine"), it.poll!!.options.map { o -> o.text })
+            }
+        }
+
+    @Test
+    fun `CO-13 spoiler hides the message, again shows it`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.spoiler()
+            assertEquals(
+                ComposerError.NothingToHide,
+                composer.state.first { it.error != null }.error,
+            )
+            composer.errorSeen()
+            composer.typed("The end")
+            composer.spoiler("Book 3")
+            val id = composer.state.first { it.openMessageId != null }.openMessageId
+            val hidden = waitFor { fake.messages("t_1").first { it.id == id }.spoiler }
+            assertEquals("Book 3", hidden.overlay)
+            composer.spoiler()
+            assertNull(
+                waitFor {
+                    fake.messages("t_1").first { it.id == id }.takeIf {
+                        it.spoiler ==
+                            null
+                    }
+                }.spoiler,
+            )
+        }
+
+    @Test
+    fun `CO-20 a scheduled message takes the unsent text, listed until cancelled`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.typed("Water at dawn")
+            composer.schedule(0.5)
+            val listed = composer.scheduled.first { it.isNotEmpty() }.single()
+            assertEquals("Water at dawn", listed.bodyMd)
+            assertEquals("", composer.state.value.text)
+            composer.cancelScheduled(listed.id)
+            composer.scheduled.first { it.isEmpty() }
+        }
+
+    @Test
+    fun `CO-14 an image is uploaded and its Markdown comes back`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            val upload = composer.upload(byteArrayOf(1, 2, 3), "image.png", "image/png")
+            assertTrue(upload!!.markdown.startsWith("![image](/uploads/"))
+        }
+
+    @Test
+    fun `CO-13 a plugin's block goes under the message`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.typed("Watch")
+            composer.plugin("youtube", mapOf("link" to "https://youtu.be/x"))
+            val id = composer.state.first { it.openMessageId != null }.openMessageId
+            val block =
+                waitFor {
+                    fake
+                        .messages("t_1")
+                        .first { it.id == id }
+                        .plugins
+                        .firstOrNull()
+                }
+            assertEquals("youtube", block.command)
+        }
+
+    /** What [read] gives once it is there, the fake answering on its own thread. */
+    private suspend fun <T : Any> waitFor(read: () -> T?): T {
+        repeat(WAITS) {
+            read()?.let { return it }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                kotlinx.coroutines.delay(WAIT_MILLIS)
+            }
+        }
+        return requireNotNull(read())
+    }
 }
+
+private const val WAITS = 50
+private const val WAIT_MILLIS = 20L

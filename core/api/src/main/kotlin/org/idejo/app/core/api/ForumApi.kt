@@ -7,7 +7,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.idejo.app.core.model.AccessToken
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.Changes
@@ -24,16 +27,22 @@ import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
+import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.RoleCard
+import org.idejo.app.core.model.ScheduleCreate
+import org.idejo.app.core.model.Scheduled
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.SpoilerSet
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
+import org.idejo.app.core.model.Upload
 import org.idejo.app.core.model.UserCard
 import org.idejo.app.core.model.Vote
 import org.idejo.app.core.model.Warning
@@ -217,6 +226,53 @@ class ForumApi(
 
     suspend fun commands(topicId: String): ApiResult<List<Command>> =
         call { commands(topicId).data }
+
+    /** An image for the composer (CO-14): JPEG, PNG, GIF or WebP, as multipart `image`. */
+    suspend fun upload(
+        bytes: ByteArray,
+        fileName: String,
+        type: String,
+    ): ApiResult<Upload> =
+        call {
+            val body = bytes.toRequestBody(type.toMediaTypeOrNull())
+            upload(MultipartBody.Part.createFormData("image", fileName, body))
+        }
+
+    /** The member's scheduled messages in a topic (CO-20). */
+    suspend fun scheduled(topicId: String): ApiResult<List<Scheduled>> =
+        call { scheduled(topicId).data }
+
+    suspend fun schedule(
+        topicId: String,
+        body: ScheduleCreate,
+    ): ApiResult<Scheduled> = call { schedule(topicId, body) }
+
+    suspend fun cancelScheduled(id: String): ApiResult<Unit> =
+        call { cancelScheduled(id).let { if (!it.isSuccessful) throw HttpException(it) } }
+
+    suspend fun createPoll(
+        topicId: String,
+        body: PollCreate,
+    ): ApiResult<Message> = call { createPoll(topicId, body) }
+
+    /** `!spoiler` (CO-13): on, with [overlay]'s words, or off. */
+    suspend fun spoiler(
+        messageId: String,
+        on: Boolean,
+        overlay: String? = null,
+    ): ApiResult<Message> =
+        call { if (on) spoiler(messageId, SpoilerSet(overlay)) else unspoiler(messageId) }
+
+    suspend fun runPlugin(
+        topicId: String,
+        command: String,
+        body: PluginRun,
+    ): ApiResult<Message> = call { runPlugin(topicId, command, body) }
+
+    suspend fun automessage(
+        topicId: String,
+        name: String,
+    ): ApiResult<Message> = call { automessage(topicId, name) }
 
     /** Read up to [messageId], or all of the topic (TV-06). */
     suspend fun read(

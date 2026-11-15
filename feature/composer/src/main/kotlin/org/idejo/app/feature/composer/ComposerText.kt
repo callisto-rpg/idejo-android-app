@@ -161,6 +161,7 @@ internal fun TextColors.style(mark: Mark): SpanStyle =
         Mark.Link -> SpanStyle(color = link, textDecoration = TextDecoration.Underline)
         Mark.Title -> SpanStyle(fontWeight = FontWeight.SemiBold, fontSize = title)
         Mark.Quote -> SpanStyle(color = faded, fontStyle = FontStyle.Italic)
+        Mark.Image -> SpanStyle(background = code, color = link)
     }
 
 /**
@@ -171,9 +172,10 @@ internal class SentText(
     private val state: ComposerState,
     private val colors: TextColors,
     private val graphical: Boolean = false,
+    private val imageLabel: String = "image: %1\$s",
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
-        val look = markdownLook(text.text, graphical)
+        val look = markdownLook(text.text, graphical) { imageLabel.format(it) }
         val swapped = Swapped(text.text, look.swaps)
         val unsent = unsentRange(state.sent, text.text)
         val styled =
@@ -211,7 +213,8 @@ internal class SentText(
         other is SentText &&
             other.state == state &&
             other.colors == colors &&
-            other.graphical == graphical
+            other.graphical == graphical &&
+            other.imageLabel == imageLabel
 
     override fun hashCode() =
         (state.hashCode() * HASH + colors.hashCode()) * HASH + graphical.hashCode()

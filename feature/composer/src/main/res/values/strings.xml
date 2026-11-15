@@ -72,4 +72,34 @@ SPDX-License-Identifier: Apache-2.0
     <string name="composer_save">Save</string>
     <string name="composer_save_line">Save &amp; new line</string>
     <string name="composer_save_end">Save and end the edit</string>
+    <!-- CO-13: the ! commands' dialogs, in the web's words. -->
+    <string name="composer_nothing_to_hide">Write your message first, then choose !spoiler.</string>
+    <string name="composer_image">Add an image</string>
+    <string name="composer_commands">Commands</string>
+    <string name="command_cancel">Cancel</string>
+    <string name="command_save">Save</string>
+    <string name="command_skip">Skip</string>
+    <string name="command_add">Add</string>
+    <string name="command_hours">Hours (decimals work, at most 168)</string>
+    <string name="command_schedule_title">Schedule the text not sent yet</string>
+    <string name="command_schedule">Schedule</string>
+    <string name="command_poll_title">Poll</string>
+    <string name="command_poll_question">Question</string>
+    <string name="command_poll_answer">Answer %1$d</string>
+    <string name="command_poll_add">Add an answer</string>
+    <string name="command_poll_multiple">Allow several answers</string>
+    <string name="command_poll_hidden">Hide the results until the poll closes</string>
+    <string name="command_poll">Post poll</string>
+    <string name="command_field_link">Link</string>
+    <string name="command_field_code">Code or address to embed</string>
+    <string name="command_field_label">Label</string>
+    <string name="command_field_url">Link</string>
+    <string name="command_field_body">Text</string>
+    <string name="command_alt_title">Describe the image</string>
+    <string name="command_alt">What the image shows</string>
+    <!-- CO-14 -->
+    <string name="composer_image_pill">image: %1$s</string>
+    <!-- CO-20 -->
+    <string name="scheduled_at">Scheduled for %1$s</string>
+    <string name="scheduled_cancel">Cancel</string>
 </resources>
