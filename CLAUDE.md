@@ -333,6 +333,8 @@ Docker image) are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
+Current milestone: **M2 — Write** (not started). M1 closed on 2026-11-15 (steward):
+single-forum mode, sign-in, the shell, browsing, the topic page, large screens.
 Current milestone: **M2 — Write** (in progress): first the composer's state machine
 (`ComposerMachine`, run against the API by `Composer` through a `ComposerBackend`). M1
 closed on 2026-11-15 (steward): single-forum mode, sign-in, the shell, browsing, the topic
