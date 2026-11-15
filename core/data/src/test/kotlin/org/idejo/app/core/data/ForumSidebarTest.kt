@@ -216,8 +216,9 @@ class ForumSidebarTest {
         }
 
     @Test
-    fun `IX-02 fallback reads at most three pages of each category`() =
+    fun `IX-02 on an older server, the fallback reads at most three pages of each category`() =
         runBlocking {
+            fake.followedList = false
             repeat(320) { fake.addTopic("Topic $it", "c_veg") }
             sidebar().loaded()
 
@@ -227,6 +228,21 @@ class ForumSidebarTest {
                         "/api/v1/categories/c_veg/topics"
                 }
             assertEquals(3, pages)
+        }
+
+    @Test
+    fun `IX-02 the followed topics, in the order followed, however old`() =
+        runBlocking {
+            val old = fake.addTopic("Seed swap", "c_veg")
+            repeat(320) { fake.addTopic("Topic $it", "c_veg") }
+            fake.follow(Ada, old.id)
+            fake.follow(Ada, "t_1")
+
+            val state = sidebar().loaded()
+
+            val topics = state.sections.flatMap { s -> s.categories.flatMap { it.topics } }
+            assertEquals(listOf("Seed swap", "Tomato plans for spring"), topics.map { it.title })
+            assertEquals(0, fake.requests.count { it.url.encodedPath.endsWith("/topics") })
         }
 
     private fun category(

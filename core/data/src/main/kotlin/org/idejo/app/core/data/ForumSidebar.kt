@@ -57,10 +57,11 @@ data class SidebarState(
  * The left sidebar's categories and followed topics, and the **Unread** counter, for one
  * forum, kept up to date from the category channels and `user:me` (SH-31, SH-32, SH-34).
  *
- * idejo has no list of followed topics yet (IX-02): they come from each category's topics,
- * filtered by `followed` (the spec's fallback), the most recently active [PAGES] pages of
- * each, plus every followed topic `GET /unread` lists. The order joined is not known, so
- * topics keep the category's order (latest activity first).
+ * The followed topics come from `GET /me/followed` (IX-02), in the order followed, up to
+ * [FOLLOWED_PAGES] pages. A server without it (before idejo 0.3.16) gets the spec's
+ * fallback: each category's topics filtered by `followed`, the most recently active [PAGES]
+ * pages of each, in the category's order (latest activity first). Either way with every
+ * followed topic `GET /unread` lists.
  */
 @Suppress("TooManyFunctions") // One per thing the sidebar does or hears.
 class ForumSidebar(
@@ -134,7 +135,7 @@ class ForumSidebar(
         val withNews = (unread as? ApiResult.Success)?.value
         val followed =
             if (signedIn) {
-                when (val result = followedIn(categories)) {
+                when (val result = followedList() ?: followedIn(categories)) {
                     is ApiResult.Failure -> return failed(result.problem)
                     is ApiResult.Success -> result.value
                 }
@@ -155,6 +156,28 @@ class ForumSidebar(
 
     private fun failed(problem: ApiProblem) =
         mutableState.update { it.copy(loading = false, problem = problem) }
+
+    /** `GET /me/followed` (IX-02), page after page; null on a server without it (404). */
+    private suspend fun followedList(): ApiResult<List<Topic>>? {
+        val found = mutableListOf<Topic>()
+        var cursor: String? = null
+        repeat(FOLLOWED_PAGES) {
+            val page =
+                when (val result = session.call { followed(cursor, SIZE) }) {
+                    is ApiResult.Failure -> {
+                        val missing = (result.problem as? ApiProblem.Server)?.status == NOT_FOUND
+                        return if (missing) null else result
+                    }
+
+                    is ApiResult.Success -> {
+                        result.value
+                    }
+                }
+            found += page.data.filterNot { it.muted }
+            cursor = page.nextCursor ?: return ApiResult.Success(found)
+        }
+        return ApiResult.Success(found)
+    }
 
     private suspend fun followedIn(categories: List<Category>): ApiResult<List<Topic>> =
         coroutineScope {
@@ -303,6 +326,10 @@ class ForumSidebar(
     private companion object {
         /** Pages of each category read for followed topics (IX-02 fallback). */
         const val PAGES = 3
+
+        /** Pages of `GET /me/followed` read (IX-02): a thousand topics. */
+        const val FOLLOWED_PAGES = 10
+        private const val NOT_FOUND = 404
         const val SIZE = 100
         const val SETTLE_MILLIS = 300L
     }

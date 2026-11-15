@@ -55,6 +55,10 @@ data class Topic(
     @SerialName("first_message_id") val firstMessageId: String? = null,
     /** The reader's last message here, not deleted: the jump button's (SH-04, IX-13). */
     @SerialName("my_last_message_id") val myLastMessageId: String? = null,
+    /** From `GET /me/followed` (IX-02): unread @ and + mentions of the member. */
+    @SerialName("mentions_count") val mentionsCount: Int = 0,
+    /** From `GET /me/followed` (IX-02): others' reactions to the member's messages since read. */
+    @SerialName("reactions_count") val reactionsCount: Int = 0,
     /** With `expanded=true` (BR-03). */
     val preview: TopicPreview? = null,
 )

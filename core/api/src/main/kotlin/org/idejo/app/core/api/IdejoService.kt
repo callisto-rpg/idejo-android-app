@@ -130,6 +130,12 @@ internal interface IdejoService {
         @Query("limit") limit: Int?,
     ): Page<Topic>
 
+    @GET("me/followed")
+    suspend fun followed(
+        @Query("cursor") cursor: String?,
+        @Query("limit") limit: Int?,
+    ): Page<Topic>
+
     @GET("unread")
     suspend fun unread(
         @Query("cursor") cursor: String?,

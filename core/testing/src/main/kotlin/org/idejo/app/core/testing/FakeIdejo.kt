@@ -84,6 +84,9 @@ class FakeIdejo(
     private val random = SecureRandom()
     private var nextId = 100L
 
+    /** False plays a server older than idejo 0.3.16: no `GET /me/followed` (IX-02). */
+    @Volatile var followedList: Boolean = true
+
     private val categories = seedCategories().toMutableList()
     private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
     private val readers = mutableMapOf<String, Reader>()
@@ -499,6 +502,24 @@ class FakeIdejo(
             },
             Route("GET", "topics") { call -> tagged(call.viewer, call.request) },
             Route("GET", "search") { call -> search(call.viewer, call.request) },
+            Route("GET", "me/followed") { call ->
+                val viewer = call.viewer
+                when {
+                    !followedList -> {
+                        notFound()
+                    }
+
+                    viewer == null -> {
+                        unauthenticated()
+                    }
+
+                    else -> {
+                        val followed = reader(viewer).followed.toList()
+                        val all = followed.mapNotNull { topics[it]?.topic?.seenBy(viewer) }
+                        ok(paged(all, call.request))
+                    }
+                }
+            },
             Route("GET", "unread") { call ->
                 call.viewer?.let { ok(unreadOf(it)) }
                     ?: unauthenticated()

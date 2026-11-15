@@ -452,7 +452,7 @@ falls back as stated.
 | ID | Change in idejo | Needed by | Fallback |
 | --- | --- | --- | --- |
 | IX-01 | `GET /server` adds `theme: {primary, secondary, tertiary, light_bg, dark_bg}` | TH-01 | idejo's default colours |
-| IX-02 | `GET /me/followed`: the topics the member follows, by category (for the sidebar) and with `unread`, `mentions`, `reactions` counts (as `/community/topics` gives the inbox) | SH-31, IB-04 | Sidebar from category topic lists filtered by `followed`; inbox Topics from `/unread` (unread only, no reactions) |
+| IX-02 | `GET /me/followed`: the topics the member follows, by category (for the sidebar) and with `unread`, `mentions`, `reactions` counts (as `/community/topics` gives the inbox), in the order followed, as `mentions_count` and `reactions_count` on each topic (callisto-rpg/Idejo#371) | SH-31, IB-04 | Sidebar from category topic lists filtered by `followed`; inbox Topics from `/unread` (unread only, no reactions) |
 | IX-03 | `/.well-known/assetlinks.json` naming `org.idejo.app` and the release fingerprints | DL-01 | Links open in the browser |
 | IX-04 | Discovery says whether the forum uses a chat service (`community.chat_url`, `community.inbox_url`), and the inbox's API can start a conversation with an idejo ID subject (the web's `/chat/new?with=`); `GET /users/{id}` gives a linked member's subject to that end | PC-02, IB-07 | **Private Message** opens the web's link in a Custom Tab |
 | IX-05 | Presence on the topic channel (idejo TP-16) | RS-03 | Not shown |
