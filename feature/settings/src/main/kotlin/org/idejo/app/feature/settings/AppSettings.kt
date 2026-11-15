@@ -112,6 +112,7 @@ private val BUNDLED =
         R.string.about_bundled_rubik,
         R.string.about_bundled_symbols,
         R.string.about_bundled_logo,
+        R.string.about_bundled_category_icons,
     )
 
 private fun Context.versionName(): String =

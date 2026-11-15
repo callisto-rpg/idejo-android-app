@@ -140,7 +140,7 @@ internal fun CategoryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val color = IdejoTheme.colors.category(category.colour, MaterialTheme.colorScheme)
+    val color = IdejoTheme.colors.category(category, MaterialTheme.colorScheme)
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -153,7 +153,7 @@ internal fun CategoryCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CategoryMark(category.title, color, size = CategoryMarkSize.Card)
+                CategoryMark(category, size = CategoryMarkSize.Card)
                 Text(
                     category.title,
                     Modifier.semantics { heading() },

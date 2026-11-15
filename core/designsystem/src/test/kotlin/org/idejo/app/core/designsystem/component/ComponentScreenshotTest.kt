@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -49,6 +50,17 @@ class ComponentScreenshotTest {
     fun `TH-05 SH-38 category marks, logo and picture`() =
         snapshots("CategoryMark") {
             CategoryMarkSample()
+        }
+
+    @Test
+    fun `TH-05 idejo's category icons, every one`() =
+        snapshots("CategoryIcons") {
+            val assets = LocalContext.current.assets
+            CategoryIconsSample(
+                assets.list("category-icons").orEmpty().sorted().map {
+                    it.removeSuffix(".svg")
+                },
+            )
         }
 
     @Test

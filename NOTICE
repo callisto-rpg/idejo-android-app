@@ -10,6 +10,8 @@ This product includes:
 - The idejo logo (the launcher icon in app/src/main/res/drawable/ic_launcher_*.xml),
   copyright Mariano Pictet, CC-BY-4.0 (LICENSES/CC-BY-4.0.txt). "idejo" and its logo are
   used under idejo's trademark policy.
+- idejo's category icons (core/designsystem/src/main/assets/category-icons/, from idejo's
+  graphics/category-icons), copyright Mariano Pictet, CC-BY-4.0 (LICENSES/CC-BY-4.0.txt).
 - Fraunces 1.000 (core/designsystem/src/main/res/font/fraunces.ttf), copyright 2020 The
   Fraunces Project Authors (github.com/undercasetype/Fraunces), designed by Phaedra
   Charles and Flavia Zimbardi, SIL Open Font License 1.1 (LICENSES/OFL-1.1.txt).

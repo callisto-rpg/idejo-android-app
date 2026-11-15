@@ -52,7 +52,7 @@ internal fun TopicCard(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CategoryMark(category.title, categoryColour(category.colour))
+            CategoryMark(category)
             Meta(category.title)
         }
     }
@@ -117,7 +117,7 @@ internal fun CategoryCard(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CategoryMark(category.title, categoryColour(category.colour))
+        CategoryMark(category)
         Title(category.title)
     }
     category.description?.takeIf { it.isNotBlank() }?.let {
@@ -221,10 +221,6 @@ private fun Meta(text: String) =
         style = IdejoTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-
-@Composable
-private fun categoryColour(colour: String?) =
-    parseHexColor(colour) ?: MaterialTheme.colorScheme.primary
 
 private const val EXCERPT = 200
 private const val SHOWN = 3

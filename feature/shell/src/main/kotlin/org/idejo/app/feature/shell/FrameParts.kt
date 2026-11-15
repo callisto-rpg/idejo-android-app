@@ -18,6 +18,7 @@ import org.idejo.app.core.designsystem.component.Crumb
 import org.idejo.app.core.designsystem.component.Unread
 import org.idejo.app.core.designsystem.component.dot
 import org.idejo.app.core.designsystem.component.unreadLevel
+import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Topic
 
@@ -165,6 +166,7 @@ internal fun categoryCrumb(
 ): Crumb.Category =
     Crumb.Category(
         name = category.title,
-        color = parseHexColor(category.colour) ?: MaterialTheme.colorScheme.secondary,
+        color = IdejoTheme.colors.category(category, MaterialTheme.colorScheme),
         onClick = { go(Place.Category(category.id)) },
+        icon = category.icon,
     )

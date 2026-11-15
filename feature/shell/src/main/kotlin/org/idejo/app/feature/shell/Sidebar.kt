@@ -249,7 +249,6 @@ private fun CategoryRow(
     actions: SidebarActions,
 ) {
     val category = entry.category
-    val color = parseHexColor(category.colour) ?: MaterialTheme.colorScheme.secondary
     Row(
         Modifier
             .fillMaxWidth()
@@ -266,7 +265,7 @@ private fun CategoryRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CategoryMark(category.title, color, size = CategoryMarkSize.Sidebar)
+            CategoryMark(category, size = CategoryMarkSize.Sidebar)
             Text(
                 category.title,
                 Modifier.weight(1f).semantics { heading() },

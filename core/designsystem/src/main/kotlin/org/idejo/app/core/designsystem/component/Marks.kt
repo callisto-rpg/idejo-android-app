@@ -3,18 +3,22 @@
 
 package org.idejo.app.core.designsystem.component
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.onColorFor
+import org.idejo.app.core.model.Category
 
 /** The sizes of a category's tile: in the breadcrumbs, the sidebar (SH-38) and on cards. */
 enum class CategoryMarkSize(
@@ -36,8 +41,9 @@ enum class CategoryMarkSize(
 }
 
 /**
- * A category's tile (TH-05): its colour, its icon in white or `#111111` (whichever reads
- * better), or its initial when it has no icon. [icon] draws the icon in the tint it is given.
+ * A category's tile (TH-05): idejo's drawing of [icon] on [color], its shapes in white or
+ * `#111111` (whichever reads better), or the category's initial when it has no icon the app
+ * knows.
  */
 @Composable
 fun CategoryMark(
@@ -45,9 +51,10 @@ fun CategoryMark(
     color: Color,
     modifier: Modifier = Modifier,
     size: CategoryMarkSize = CategoryMarkSize.Sidebar,
-    icon: (@Composable (tint: Color) -> Unit)? = null,
+    icon: String? = null,
 ) {
     val tint = onColorFor(color)
+    val drawing = rememberCategoryIcon(icon)
     Box(
         modifier
             .size(size.tile)
@@ -56,13 +63,28 @@ fun CategoryMark(
             .semantics { contentDescription = name },
         contentAlignment = Alignment.Center,
     ) {
-        if (icon != null) {
-            Box(Modifier.size(size.icon), contentAlignment = Alignment.Center) { icon(tint) }
+        if (drawing != null) {
+            val vector = remember(drawing, color, tint) { drawing.vector(color, tint) }
+            Image(rememberVectorPainter(vector), null, Modifier.fillMaxSize())
         } else {
             Initial(name, tint, (size.tile.value * INITIAL_SCALE).sp)
         }
     }
 }
+
+/** [category]'s tile, in the colour the web draws it in (`mark_colour`, IX-14). */
+@Composable
+fun CategoryMark(
+    category: Category,
+    modifier: Modifier = Modifier,
+    size: CategoryMarkSize = CategoryMarkSize.Sidebar,
+) = CategoryMark(
+    category.title,
+    IdejoTheme.colors.category(category, MaterialTheme.colorScheme),
+    modifier,
+    size,
+    category.icon,
+)
 
 /**
  * A forum's logo in the top bar and menus (SH-01): [image] when there is one, else the

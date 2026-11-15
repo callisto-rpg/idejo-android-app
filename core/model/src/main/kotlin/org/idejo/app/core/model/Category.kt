@@ -47,6 +47,8 @@ data class Category(
     val description: String? = null,
     val icon: String? = null,
     val colour: String? = null,
+    /** The colour of its mark, as the web draws it: [colour], else a tint from its id (IX-14). */
+    @SerialName("mark_colour") val markColour: String? = null,
     val group: CategoryGroup? = null,
     val position: Int = 0,
     val archive: Boolean = false,

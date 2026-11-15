@@ -111,11 +111,7 @@ private fun Head(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CategoryMark(
-                    category.title,
-                    IdejoTheme.colors.category(category.colour, MaterialTheme.colorScheme),
-                    size = CategoryMarkSize.Card,
-                )
+                CategoryMark(category, size = CategoryMarkSize.Card)
                 Text(
                     category.title,
                     Modifier.weight(1f).semantics { heading() },
