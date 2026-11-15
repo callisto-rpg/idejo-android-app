@@ -23,6 +23,8 @@ data class FakeSettings(
     /** `gm_early_reply`: a reply may start before the timers run out. */
     val earlyReply: Boolean = true,
     val autoPunctuation: Boolean = true,
+    /** `GET /gifs`'s provider (CO-15); null while GIFs are off. */
+    val gifs: org.idejo.app.core.model.GifConfig? = null,
     /** `GET /server`'s theme (TH-01): the Garden sample's colours. */
     val theme: org.idejo.app.core.model.ServerTheme =
         org.idejo.app.core.model.ServerTheme(

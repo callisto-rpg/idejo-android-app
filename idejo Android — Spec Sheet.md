@@ -465,6 +465,7 @@ falls back as stated.
 | IX-12 | Each role of `GET /me` and user cards gives its `slug`, as a message's `+role` mention names it, so the app knows which mentions are of the member's roles (callisto-rpg/Idejo#368) | TV-07 | Only @mentions glow; +role mentions do not |
 | IX-13 | `GET /topics/{id}` gives `my_last_message_id`: the reader's last message in the topic, not deleted, null without one (callisto-rpg/Idejo#369) | SH-04 | **My last message** is left out |
 | IX-14 | A category gives `mark_colour`, the colour the web draws its mark in (its `colour`, else one of eight tints from its id); idejo's category icons are CC-BY-4.0 drawings the app bundles (callisto-rpg/Idejo#370) | TH-05 | Tiles without a colour take the forum's; icons as initials |
+| IX-15 | `GET /me` gives `graphical_composer`, `controls_on_mobile` and `controls_on_desktop`, and `PATCH /me` changes them (callisto-rpg/Idejo#372) | CO-10, CO-11, MA-01, ST | The graphical composer on (new accounts' default); message controls on a tap |
 
 ## 23. Non-functional requirements
 

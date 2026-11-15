@@ -24,6 +24,8 @@ sealed interface Place {
     data class Topic(
         val id: String,
         val messageId: String? = null,
+        /** A message forwarded here from the forward card (CO-17). */
+        val forward: String? = null,
     ) : Place
 
     @Serializable
@@ -49,7 +51,26 @@ sealed interface Place {
 
     @Serializable
     data object AppSettings : Place
+
+    /**
+     * **New topic** (CO-19), from a topic's `!new-topic`: in [categoryId], continuing from
+     * message [from] with its [body] as the first message, or a topic of its own.
+     */
+    @Serializable
+    data class NewTopic(
+        val categoryId: String? = null,
+        val from: String? = null,
+        val title: String? = null,
+        val body: String = "",
+    ) : Place
 }
+
+/** The forward card over the page (CO-17): a dialog, so the breadcrumbs stay. */
+@Serializable
+data class ForwardDialog(
+    val messageId: String,
+    val topicId: String,
+)
 
 /** A member's card over the page (BR-09): a dialog, not a place, so the breadcrumbs stay. */
 @Serializable

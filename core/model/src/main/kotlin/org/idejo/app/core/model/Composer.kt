@@ -38,3 +38,136 @@ data class CommitResult(
     val message: Message? = null,
     val composer: ComposerState,
 )
+
+/** `PUT /messages/{id}`: the whole text of one's closed message; `finish` ends the edit. */
+@Serializable
+data class MessageEdit(
+    @SerialName("body_md") val bodyMd: String,
+    val finish: Boolean = false,
+)
+
+/** A topic or private conversation to forward to (`GET /forward-targets`, CO-17). */
+@Serializable
+data class ForwardTarget(
+    val id: String,
+    val title: String,
+    val url: String? = null,
+    val private: Boolean = false,
+    val place: String? = null,
+)
+
+/** What follows `@ + # / $ &` in the composer (`GET /suggest`, CO-12). */
+@Serializable
+data class Suggestion(
+    /** `user`, `role`, `topic`, `category`, `tag`, `forum`. */
+    val kind: String,
+    /** What goes after the sign. */
+    val insert: String,
+    val label: String,
+    val id: String? = null,
+)
+
+/** `POST /uploads` (CO-14): the image's Markdown, as the web composer inserts it. */
+@Serializable
+data class Upload(
+    @SerialName("upload_id") val uploadId: String,
+    val url: String,
+    val markdown: String,
+    val width: Int? = null,
+    val height: Int? = null,
+)
+
+/** One of the member's scheduled messages in a topic (CO-20). */
+@Serializable
+data class Scheduled(
+    val id: String,
+    @SerialName("post_at") val postAt: Time,
+    @SerialName("topic_id") val topicId: String? = null,
+    @SerialName("body_md") val bodyMd: String? = null,
+)
+
+/** `!schedule` (CO-13): what is not sent yet, posted in [hours] (at most 168). */
+@Serializable
+data class ScheduleCreate(
+    @SerialName("body_md") val bodyMd: String,
+    val hours: Double,
+    @SerialName("reply_to") val replyTo: String? = null,
+)
+
+/** `!poll` (CO-13): under [messageId], or on its own. */
+@Serializable
+data class PollCreate(
+    val question: String,
+    val options: List<String>,
+    val hours: Double,
+    val multiple: Boolean = false,
+    val hidden: Boolean = false,
+    @SerialName("message_id") val messageId: String? = null,
+    @SerialName("reply_to") val replyTo: String? = null,
+)
+
+/** `!spoiler` (CO-13), with `!spoiler:overlay:`'s words. */
+@Serializable
+data class SpoilerSet(
+    val overlay: String? = null,
+)
+
+/** A plugin's command (CO-13): its block's [params], under [messageId] or on its own. */
+@Serializable
+data class PluginRun(
+    val params: Map<String, String> = emptyMap(),
+    @SerialName("message_id") val messageId: String? = null,
+    @SerialName("reply_to") val replyTo: String? = null,
+)
+
+/** `GET /gifs` (CO-15): on, and the provider the app calls itself. */
+@Serializable
+data class GifSettings(
+    val enabled: Boolean = false,
+    val config: GifConfig? = null,
+)
+
+@Serializable
+data class GifConfig(
+    val provider: String? = null,
+    val key: String = "",
+    val filter: String? = null,
+    /** The provider's required wording for the search box, untranslated. */
+    val placeholder: String? = null,
+    /** Named under the results. */
+    val name: String? = null,
+    /** Where its GIFs load from: a GIF's Markdown shows as a "GIF:" pill. */
+    val hosts: List<String> = emptyList(),
+)
+
+/** A new topic (CO-19): in [categoryId], from a message when forked. */
+@Serializable
+data class TopicCreate(
+    val title: String,
+    @SerialName("body_md") val bodyMd: String,
+    @SerialName("tag_ids") val tagIds: List<String> = emptyList(),
+    @SerialName("icon_id") val iconId: String? = null,
+    val topical: Boolean = false,
+    @SerialName("category_id") val categoryId: String? = null,
+)
+
+/** The topic started, or the one waiting for a moderator's approval. */
+@Serializable
+data class TopicCreated(
+    val topic: Topic? = null,
+    val pending: PendingTopic? = null,
+)
+
+@Serializable
+data class PendingTopic(
+    val id: String? = null,
+    val title: String? = null,
+)
+
+/** An icon a topical topic may take (`GET /topic-icons`, CO-19). */
+@Serializable
+data class TopicIcon(
+    val id: String,
+    val name: String,
+    val url: String? = null,
+)
