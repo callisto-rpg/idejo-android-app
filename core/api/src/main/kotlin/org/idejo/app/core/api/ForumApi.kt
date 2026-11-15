@@ -115,6 +115,12 @@ class ForumApi(
         limit: Int? = null,
     ): ApiResult<Changes> = call { changes(topicId, since, limit) }
 
+    /** The topics the member follows, in the order followed (IX-02, idejo 0.3.16). */
+    suspend fun followed(
+        cursor: String? = null,
+        limit: Int? = null,
+    ): ApiResult<Page<Topic>> = call { followed(cursor, limit) }
+
     suspend fun pins(topicId: String): ApiResult<List<Message>> = call { pins(topicId).data }
 
     suspend fun message(id: String): ApiResult<Message> = call { message(id) }

@@ -309,6 +309,9 @@ Docker image) are added with them.
   tile's `#6567e7` becomes the category's `mark_colour` (IX-14), the shapes' `#ffffff`
   white or `#111111`. An icon the app lacks (a newer server's) shows the initial. To
   update the icons, copy idejo's folder over.
+- 2026-11-15 — The sidebar's followed topics come from `GET /me/followed` (IX-02,
+  callisto-rpg/Idejo#371), in the order followed, ten pages of 100 at most; a server
+  without it (404) gets the spec's fallback (three pages of each category).
 
 ## Milestones (spec §26)
 
