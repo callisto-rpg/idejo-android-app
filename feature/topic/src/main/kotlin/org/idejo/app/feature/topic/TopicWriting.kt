@@ -34,6 +34,8 @@ data class TopicWriting(
     val onForward: (Message) -> Unit = {},
     /** **Edit** one's closed message (CO-18). */
     val onEdit: (Message) -> Unit = {},
+    /** **New Topic** from a message, in the topic's category (MA-05). */
+    val onNewTopic: (Message, String?) -> Unit = { _, _ -> },
     val box: @Composable (Modifier) -> Unit = {},
 )
 

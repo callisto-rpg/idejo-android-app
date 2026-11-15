@@ -38,6 +38,9 @@ internal fun rememberTopicWriting(
         onReply = reply,
         onForward = { message: Message -> onForward(message.id, message.topicId) },
         onEdit = composer::edit,
+        onNewTopic = { message, category ->
+            onNewTopic(NewTopicStart(category, message.id, null, ""))
+        },
         box = { modifier ->
             ComposerRoute(
                 composer,

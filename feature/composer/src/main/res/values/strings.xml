@@ -53,7 +53,6 @@ SPDX-License-Identifier: Apache-2.0
     <string name="composer_no">No</string>
     <!-- CO-10: the graphical composer, in the web's words. -->
     <string name="composer_emoji">Emoji</string>
-    <string name="composer_emoji_search">Search emoji</string>
     <string name="composer_format">Text controls</string>
     <string name="composer_new_line">New line</string>
     <string name="composer_bold">Bold</string>

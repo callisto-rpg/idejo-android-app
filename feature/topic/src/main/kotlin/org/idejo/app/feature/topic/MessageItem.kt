@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -89,6 +90,12 @@ data class MessageContext(
     val voting: Set<String> = emptySet(),
     /** The member, whose tags pulse in a glowing message (TV-07). */
     val me: Me? = null,
+    /** What the member may do with a message (MA-01). */
+    val actions: MessageActions = MessageActions(),
+    /** The message whose actions are open, if any. */
+    val actionsOpen: String? = null,
+    /** A message tapped: its actions open, or close when they were (MA-01). */
+    val onTapMessage: (String?) -> Unit = {},
 )
 
 /**
@@ -104,9 +111,32 @@ fun MessageItem(
     pulse: MentionPulse? = null,
 ) {
     val open = stringResource(R.string.message_open)
+    val actionsShown = context.actions.always || context.actionsOpen == message.id
+    val tap =
+        if (context.actions.always || message.state == MessageState.Deleted) {
+            Modifier
+        } else {
+            // A long-press is the text's, to select it (MA-07), never a tap.
+            Modifier.combinedClickable(
+                onClickLabel = stringResource(R.string.message_actions),
+                onLongClick = {},
+                onClick = {
+                    context.onTapMessage(
+                        if (context.actionsOpen ==
+                            message.id
+                        ) {
+                            null
+                        } else {
+                            message.id
+                        },
+                    )
+                },
+            )
+        }
     Column(
         modifier
             .fillMaxWidth()
+            .then(tap)
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .semantics(mergeDescendants = false) {
                 if (message.state == MessageState.Open) contentDescription = open
@@ -120,6 +150,7 @@ fun MessageItem(
             else -> Shown(message, context, pulse)
         }
         Banners(message, context)
+        if (actionsShown) ActionsBar(message, context.actions, context.origin)
     }
 }
 
@@ -222,7 +253,7 @@ private fun Shown(
             message.poll?.let { PollView(message.id, it, context) }
             if (message.plugins.isNotEmpty()) PluginBlocks(message.plugins, context)
             MetaLine(message)
-            if (message.reactions.isNotEmpty()) Reactions(message.reactions, context)
+            if (message.reactions.isNotEmpty()) Reactions(message, context)
         }
         if (!revealed) {
             SpoilerCover(
@@ -268,29 +299,32 @@ private fun Body(
                 .animateContentSize()
                 .then(if (expanded) Modifier else Modifier.heightIn(max = screen).clipToBounds()),
         ) {
-            MarkdownBody(
-                document,
-                Modifier.onSizeChanged { tall = it.height >= limit },
-                actions =
-                    MarkdownActions(
-                        onLink = context.onLink,
-                        onInlineLink = context.onInlineLink,
-                        onReveal = { spoilers = spoilers + it },
-                        emoji = { name -> context.emoji.firstOrNull { it.name == name } },
-                    ),
-                revealed = spoilers,
-                pulse = pulse,
-                image = { MessageImage(it, message, context) },
-                emojiImage = { emoji ->
-                    emoji.imageUrl?.let { url ->
-                        AsyncImage(
-                            absolute(context.origin, url),
-                            emoji.name,
-                            Modifier.heightIn(max = 22.dp),
-                        )
-                    }
-                },
-            )
+            // A long-press on the text selects it (MA-07).
+            SelectionContainer {
+                MarkdownBody(
+                    document,
+                    Modifier.onSizeChanged { tall = it.height >= limit },
+                    actions =
+                        MarkdownActions(
+                            onLink = context.onLink,
+                            onInlineLink = context.onInlineLink,
+                            onReveal = { spoilers = spoilers + it },
+                            emoji = { name -> context.emoji.firstOrNull { it.name == name } },
+                        ),
+                    revealed = spoilers,
+                    pulse = pulse,
+                    image = { MessageImage(it, message, context) },
+                    emojiImage = { emoji ->
+                        emoji.imageUrl?.let { url ->
+                            AsyncImage(
+                                absolute(context.origin, url),
+                                emoji.name,
+                                Modifier.heightIn(max = 22.dp),
+                            )
+                        }
+                    },
+                )
+            }
         }
         if (tall && !expanded) {
             TextButton(onClick = { expanded = true }) {

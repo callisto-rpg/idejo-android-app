@@ -3,6 +3,7 @@
 
 package org.idejo.app.feature.topic
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +53,8 @@ import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -65,8 +69,10 @@ import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.data.Glow
 import org.idejo.app.core.data.TopicState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Mention
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 
@@ -90,6 +96,12 @@ data class TopicActions(
     val onMessage: (String) -> Unit = {},
     val onTopic: (String) -> Unit = {},
     val onVote: (String, String, List<String>) -> Unit = { _, _, _ -> },
+    /** A reaction by its emoji's name, added or taken back (MA-03). */
+    val onReact: (String, String, Boolean) -> Unit = { _, _, _ -> },
+    val reactors: suspend (String) -> List<Reactor> = { emptyList() },
+    val searchEmoji: suspend (String) -> List<Emoji> = { emptyList() },
+    /** A report and its reason; true once sent (MA-04). */
+    val onReport: suspend (String, String) -> Boolean = { _, _ -> false },
 )
 
 /**
@@ -132,6 +144,10 @@ fun TopicRoute(
             },
             onTopic = { onTopic(it, null) },
             onVote = { message, poll, options -> viewModel.vote(message, poll, options) },
+            onReact = viewModel::react,
+            reactors = viewModel::reactors,
+            searchEmoji = viewModel::searchEmoji,
+            onReport = viewModel::report,
         ),
         writing = writing,
     )
@@ -207,6 +223,8 @@ private fun Messages(
 ) {
     val topic = state.topic
     val open = topic.topic?.let { !it.locked && !it.archived } == true
+    var actionsOpen by rememberActionsOpen(list)
+    val close = { actionsOpen = null }
     val context =
         MessageContext(
             state.origin,
@@ -221,6 +239,9 @@ private fun Messages(
             mayVote = open && state.signedIn,
             voting = topic.voting,
             me = state.me,
+            actions = messageActions(state, actions, writing, open, close),
+            actionsOpen = actionsOpen,
+            onTapMessage = { actionsOpen = it },
         )
     val glowing = rememberGlowing(list, state.glows)
     LazyColumn(

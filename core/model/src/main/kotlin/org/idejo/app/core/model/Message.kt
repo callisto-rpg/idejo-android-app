@@ -177,6 +177,20 @@ data class Reaction(
     val mine: Boolean = false,
 )
 
+/** Who reacted to a message, and with what (`GET /messages/{id}/reactions`, MA-03). */
+@Serializable
+data class Reactor(
+    val user: Person,
+    /** `:name:` of each emoji. */
+    val emoji: List<String> = emptyList(),
+)
+
+/** `POST /messages/{id}/report` (MA-04). */
+@Serializable
+data class ReportBody(
+    val reason: String,
+)
+
 /** `GET /topics/{id}/messages`: a window, the first message always included. */
 @Serializable
 data class MessageWindow(

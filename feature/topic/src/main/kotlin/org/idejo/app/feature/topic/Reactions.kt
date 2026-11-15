@@ -5,6 +5,7 @@ package org.idejo.app.feature.topic
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -40,6 +42,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -62,24 +66,39 @@ import org.idejo.app.core.model.Reaction
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun Reactions(
-    reactions: List<Reaction>,
+    message: Message,
     context: MessageContext,
 ) {
+    var who by remember { mutableStateOf(false) }
     val label = stringResource(R.string.message_reactions)
     FlowRow(
         Modifier.semantics { contentDescription = label },
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        reactions.forEach { reaction -> ReactionChip(reaction, context) }
+        message.reactions.forEach { reaction ->
+            ReactionChip(
+                reaction,
+                context,
+                onTap =
+                    context.actions.onReact?.let { react ->
+                        { react(message.id, reaction.name, !reaction.mine) }
+                    },
+                onLongPress = { who = true },
+            )
+        }
     }
+    if (who) ReactorsDialog(message.id, context.actions.reactors) { who = false }
 }
 
 @Composable
 private fun ReactionChip(
     reaction: Reaction,
     context: MessageContext,
+    onTap: (() -> Unit)?,
+    onLongPress: () -> Unit,
 ) {
+    val whoLabel = stringResource(R.string.reactors_title)
     val sign = reaction.char ?: ":${reaction.name}:"
     val description =
         pluralStringResource(
@@ -96,7 +115,27 @@ private fun ReactionChip(
             } else {
                 MaterialTheme.colorScheme.surfaceContainerHigh
             },
-        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .combinedClickable(
+                    onClickLabel = onTap?.let { stringResource(R.string.action_react) },
+                    onLongClickLabel = whoLabel,
+                    onLongClick = onLongPress,
+                    onClick = { onTap?.invoke() },
+                ).clearAndSetSemantics {
+                    contentDescription = description
+                    onLongClick(whoLabel) {
+                        onLongPress()
+                        true
+                    }
+                    onTap?.let { tap ->
+                        onClick {
+                            tap()
+                            true
+                        }
+                    }
+                },
     ) {
         Row(
             Modifier.padding(horizontal = 8.dp, vertical = 2.dp),

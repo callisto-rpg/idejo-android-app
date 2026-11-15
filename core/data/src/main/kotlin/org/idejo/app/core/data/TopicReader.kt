@@ -246,6 +246,20 @@ class TopicReader(
         }
     }
 
+    /** A reaction added or taken back (MA-03); the server's answer replaces the message's. */
+    fun react(
+        messageId: String,
+        name: String,
+        on: Boolean,
+    ) {
+        scope.launch {
+            when (val result = session.call { react(messageId, name, on) }) {
+                is ApiResult.Success -> edit(messageId) { it.copy(reactions = result.value) }
+                is ApiResult.Failure -> mutableState.update { it.copy(problem = result.problem) }
+            }
+        }
+    }
+
     /**
      * Where message [messageId] is, for a quote or a banner leading to it: in this topic
      * (the window loads around it unless it is shown), or in another topic, whose id comes

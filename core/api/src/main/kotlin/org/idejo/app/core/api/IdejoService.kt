@@ -24,7 +24,10 @@ import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.Reaction
+import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.ReportBody
 import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.ScheduleCreate
 import org.idejo.app.core.model.Scheduled
@@ -273,6 +276,29 @@ internal interface IdejoService {
         @Path("id") id: String,
         @Body body: ScheduleCreate,
     ): Scheduled
+
+    @PUT("messages/{id}/reactions/{emoji}")
+    suspend fun react(
+        @Path("id") id: String,
+        @Path("emoji") emoji: String,
+    ): ListBody<Reaction>
+
+    @DELETE("messages/{id}/reactions/{emoji}")
+    suspend fun unreact(
+        @Path("id") id: String,
+        @Path("emoji") emoji: String,
+    ): ListBody<Reaction>
+
+    @GET("messages/{id}/reactions")
+    suspend fun reactors(
+        @Path("id") id: String,
+    ): ListBody<Reactor>
+
+    @POST("messages/{id}/report")
+    suspend fun report(
+        @Path("id") id: String,
+        @Body body: ReportBody,
+    ): Response<Unit>
 
     @DELETE("scheduled/{id}")
     suspend fun cancelScheduled(

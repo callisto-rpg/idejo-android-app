@@ -46,4 +46,5 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Bubbles (NT-01). -->
     <string name="bubble_dismiss">Dismiss</string>
+    <string name="emoji_search">Search emoji</string>
 </resources>
