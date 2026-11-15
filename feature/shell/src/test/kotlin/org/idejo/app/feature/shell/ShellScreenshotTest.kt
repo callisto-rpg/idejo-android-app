@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
+import org.idejo.app.core.data.ConversationsState
 import org.idejo.app.core.data.SidebarCategory
 import org.idejo.app.core.data.SidebarSection
 import org.idejo.app.core.data.SidebarState
@@ -24,6 +25,7 @@ import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.CategoryGroup
+import org.idejo.app.core.model.Conversation
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Role
 import org.idejo.app.core.model.Topic
@@ -54,7 +56,7 @@ class ShellScreenshotTest {
         }
 
     @Test
-    fun `SH-33 SH-35 a folded category and the links rolled into icons`() =
+    fun `SH-33 SH-35 PC-01 folded, the links rolled, Private Conversations at the foot`() =
         snapshots("SidebarFolded") {
             Sidebar(
                 SIDEBAR,
@@ -63,6 +65,17 @@ class ShellScreenshotTest {
                 signedIn = true,
                 openTopic = null,
                 actions = NoActions,
+                conversations =
+                    ConversationsState(
+                        available = true,
+                        conversations =
+                            listOf(
+                                Conversation("p_1", unreadCount = 2),
+                                Conversation("p_2"),
+                                Conversation("p_3", unreadCount = 1),
+                            ),
+                        loading = false,
+                    ),
             )
         }
 

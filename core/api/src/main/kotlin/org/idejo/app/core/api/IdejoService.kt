@@ -11,6 +11,8 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Conversation
+import org.idejo.app.core.model.ConversationStart
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifSettings
@@ -24,6 +26,7 @@ import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.PrivateMessagesChoice
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -299,6 +302,24 @@ internal interface IdejoService {
         @Path("id") id: String,
         @Body body: ReportBody,
     ): Response<Unit>
+
+    @GET("conversations")
+    suspend fun conversations(): ListBody<Conversation>
+
+    @GET("conversations/{id}")
+    suspend fun conversation(
+        @Path("id") id: String,
+    ): Conversation
+
+    @POST("conversations")
+    suspend fun startConversation(
+        @Body body: ConversationStart,
+    ): Conversation
+
+    @PATCH("me")
+    suspend fun privateMessages(
+        @Body body: PrivateMessagesChoice,
+    ): Me
 
     @DELETE("scheduled/{id}")
     suspend fun cancelScheduled(

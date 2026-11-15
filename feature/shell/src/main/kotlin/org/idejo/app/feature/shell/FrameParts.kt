@@ -53,6 +53,7 @@ internal fun Place.label(): Int =
         Place.Rules -> R.string.place_rules
         Place.Help -> R.string.place_help
         Place.AppSettings -> R.string.place_app_settings
+        Place.Conversations -> R.string.place_conversations
         is Place.NewTopic -> R.string.place_new_topic
         Place.Home, is Place.Category, is Place.Topic -> R.string.sidebar_all_categories
     }
@@ -141,6 +142,21 @@ internal fun crumbs(
                 forum,
                 category?.let { categoryCrumb(it, go) },
                 category?.let { Crumb.Page(it.title) },
+            )
+        }
+
+        is Place.Topic if place.private -> {
+            // "› Private Conversations › the other's name", as the web's (PC-01).
+            val name =
+                shell.conversations.named(place.id)?.name
+                    ?: shell.openTopic?.takeIf { it.id == place.id }?.title
+            listOfNotNull(
+                forum,
+                Crumb.Page(
+                    stringResource(R.string.place_conversations),
+                    onClick = { go(Place.Conversations) },
+                ),
+                name?.let { Crumb.Page(it, onLongClick = { showWhole(it) }) },
             )
         }
 

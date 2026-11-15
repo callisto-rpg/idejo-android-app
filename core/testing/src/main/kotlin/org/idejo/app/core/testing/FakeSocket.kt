@@ -149,6 +149,10 @@ internal class FakeSocket(
                     fake.joinTopic(topic.removePrefix("topic:"))
                 }
 
+                topic.startsWith("conversation:") -> {
+                    fake.joinConversation(topic.removePrefix("conversation:"), token)
+                }
+
                 topic.startsWith("category:") -> {
                     fake.joinCategory(topic.removePrefix("category:"))
                 }

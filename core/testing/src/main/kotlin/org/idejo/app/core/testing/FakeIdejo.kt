@@ -28,6 +28,9 @@ import org.idejo.app.core.model.Changes
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Conversation
+import org.idejo.app.core.model.ConversationLast
+import org.idejo.app.core.model.ConversationStart
 import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ErrorBody
@@ -52,6 +55,7 @@ import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.PollOption
+import org.idejo.app.core.model.PrivateMessagesChoice
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -272,6 +276,40 @@ class FakeIdejo(
 
     /** A category added to the forum, as an administrator would. */
     fun addCategory(category: Category) = synchronized(lock) { categories += category }
+
+    /** [person]'s "Members can send me private messages" (PC-03). */
+    fun acceptPrivateMessages(
+        person: Person,
+        accepts: Boolean,
+    ) = synchronized(lock) { reader(person).acceptsPrivate = accepts }
+
+    /** The private conversation between [a] and [b], found or started (PC-01). */
+    fun conversation(
+        a: Person,
+        b: Person,
+    ): String =
+        synchronized(lock) {
+            val pair = setOfNotNull(a.id, b.id)
+            topics.values
+                .firstOrNull { it.participants == pair }
+                ?.topic
+                ?.id
+                ?: run {
+                    val id = "p_" + nextId++
+                    val topic =
+                        Topic(
+                            id = id,
+                            title = "Private conversation",
+                            url = url.resolve("/p/$id")?.toString(),
+                            author = a,
+                            private = true,
+                            createdAt = clock.now,
+                            lastActivityAt = clock.now,
+                        )
+                    topics[id] = TopicRecord(topic, participants = pair)
+                    id
+                }
+        }
 
     /** A topic [author] started in [categoryId], with its opening message. */
     fun addTopic(
@@ -500,6 +538,21 @@ class FakeIdejo(
             Route("DELETE", "me/roles/{id}") { call ->
                 member(call) { it.roles -= call["id"] }
             },
+            Route("PATCH", "me") { call ->
+                val body = call.request.body?.utf8() ?: "{}"
+                val choice = IdejoJson.decodeFromString<PrivateMessagesChoice>(body)
+                member(call) { it.acceptsPrivate = choice.acceptsPrivateMessages }
+            },
+            Route("GET", "conversations") { call ->
+                call.viewer?.let { ok(ListBody(conversationsOf(it))) } ?: unauthenticated()
+            },
+            Route("POST", "conversations") { call -> startConversation(call) },
+            Route("GET", "conversations/{id}") { call ->
+                call.viewer
+                    ?.let { viewer -> conversationsOf(viewer).firstOrNull { it.id == call["id"] } }
+                    ?.let { ok(it) }
+                    ?: notFound()
+            },
             Route("GET", "me/communities") { ok(ListBody<Topic>(emptyList())) },
             Route("GET", "me/warnings") { call ->
                 call.viewer?.let { ok(ListBody(reader(it).warnings.toList())) } ?: unauthenticated()
@@ -552,7 +605,7 @@ class FakeIdejo(
                     ?: unauthenticated()
             },
             Route("GET", "topics/{id}") { call ->
-                topics[call["id"]]?.let { record ->
+                topics[call["id"]]?.takeIf { readable(it, call.viewer) }?.let { record ->
                     ok(
                         record.topic
                             .seenBy(call.viewer)
@@ -846,6 +899,7 @@ class FakeIdejo(
         val reader = reader(person)
         val seen =
             topics.values
+                .filterNot { it.topic.private }
                 .map { it.topic.seenBy(person) }
                 .filter { it.unreadCount > 0 && !it.muted }
         val (following, others) = seen.partition { it.followed }
@@ -854,9 +908,11 @@ class FakeIdejo(
 
     /** The **Unread** button: replies and mentions counted, the strongest kind named. */
     private fun counterOf(reader: Reader): UnreadCounter {
-        val strong = reader.unread.values.filter { it.state > MentionState.New }
+        // Conversations never count in Unread (PC-04).
+        val unread = reader.unread.filterKeys { topics[it]?.topic?.private != true }
+        val strong = unread.values.filter { it.state > MentionState.New }
         val level =
-            reader.unread.values
+            unread.values
                 .maxOfOrNull { it.state }
                 ?.takeIf { it > MentionState.None }
         return UnreadCounter(strong.sumOf { it.count }, level?.let(::levelName))
@@ -878,6 +934,7 @@ class FakeIdejo(
         record: TopicRecord,
         author: Person,
     ) {
+        if (record.topic.private) return conversationNews(record, author)
         readers.forEach { (id, reader) ->
             if (id == author.id || record.topic.id !in reader.followed) return@forEach
             val seen = reader.unread[record.topic.id]
@@ -907,6 +964,68 @@ class FakeIdejo(
     internal fun joinCategory(id: String): JsonObject? =
         synchronized(lock) { category(id)?.let { JsonObject(emptyMap()) } }
 
+    /** A topic, or a conversation [viewer] takes part in. */
+    private fun readable(
+        record: TopicRecord,
+        viewer: Person?,
+    ): Boolean = !record.topic.private || viewer?.id in record.participants
+
+    /** `GET /conversations`: [person]'s, the latest active first. */
+    private fun conversationsOf(person: Person): List<Conversation> =
+        topics.values
+            .filter { it.topic.private && person.id in it.participants }
+            .sortedByDescending { it.messages.lastOrNull()?.openedAt ?: it.topic.createdAt }
+            .map { record ->
+                val last = record.messages.lastOrNull { it.state != MessageState.Deleted }
+                Conversation(
+                    id = record.topic.id,
+                    url = record.topic.url,
+                    with =
+                        FakePeople.all.filter {
+                            it.id in record.participants &&
+                                it.id != person.id
+                        },
+                    unreadCount = reader(person).unread[record.topic.id]?.count ?: 0,
+                    lastMessage =
+                        last?.let {
+                            ConversationLast(it.id, it.author.displayName, it.bodyMd, it.openedAt)
+                        },
+                    createdAt = record.topic.createdAt,
+                    lastActivityAt = last?.openedAt ?: record.topic.createdAt,
+                )
+            }
+
+    /** `POST /conversations` (PC-03): refused when the other takes no private messages. */
+    private fun startConversation(call: Call): MockResponse {
+        val viewer = call.viewer ?: return unauthenticated()
+        val body = call.request.body?.utf8() ?: "{}"
+        val userId = IdejoJson.decodeFromString<ConversationStart>(body).userId
+        val other =
+            FakePeople.all
+                .firstOrNull { it.id == userId && it.id != viewer.id }
+                ?.takeIf { reader(it).acceptsPrivate }
+                ?: return error(HTTP_FORBIDDEN, "forbidden", "They take no private messages.")
+        val id = conversation(viewer, other)
+        return ok(conversationsOf(viewer).first { it.id == id })
+    }
+
+    /** A message in a conversation: new for the other participant, `conversation.updated`. */
+    private fun conversationNews(
+        record: TopicRecord,
+        author: Person,
+    ) {
+        val payload = buildJsonObject { put("conversation_id", record.topic.id) }
+        FakePeople.all
+            .filter { it.id in record.participants && it.id != author.id }
+            .forEach { person ->
+                val reader = reader(person)
+                val seen = reader.unread[record.topic.id]
+                reader.unread[record.topic.id] =
+                    Unseen((seen?.count ?: 0) + 1, MentionState.New)
+                socketsOf(person).forEach { it.push("user:me", "conversation.updated", payload) }
+            }
+    }
+
     /** `unread.changed` on [person]'s user:me channels. */
     private fun pushUnread(person: Person) {
         val counter = counterOf(reader(person))
@@ -930,6 +1049,7 @@ class FakeIdejo(
     ): MockResponse {
         val record = topics[call["id"]] ?: return notFound()
         val person = call.viewer ?: return unauthenticated()
+        if (!readable(record, person)) return notFound()
         return handle(record, person)
     }
 
@@ -1076,7 +1196,7 @@ class FakeIdejo(
                         scopes = IdejoClient.SCOPES,
                         codeChallengeMethods = listOf("S256"),
                     ),
-                features = listOf("polls"),
+                features = listOf("polls", "private_messages"),
             ),
         )
     }
@@ -1172,6 +1292,7 @@ class FakeIdejo(
             welcomed = reader.welcomed,
             introDue = reader.introDue && reader.welcomed && !reader.introHidden,
             warningPending = reader.warnings.isNotEmpty(),
+            acceptsPrivateMessages = reader.acceptsPrivate,
         )
     }
 
@@ -1197,6 +1318,7 @@ class FakeIdejo(
                 colour = person.colour,
                 bioMd = "I grow *tomatoes* and ||secret|| peppers.",
                 ignoredByMe = viewer?.takeIf { it.id != id }?.let { id in reader(it).ignored },
+                mayMessage = viewer != null && viewer.id != id && reader(person).acceptsPrivate,
             ),
         )
     }
@@ -1264,6 +1386,7 @@ class FakeIdejo(
         val category = request.url.queryParameter("category_id")
         val hits =
             topics.values
+                .filterNot { it.topic.private }
                 .map { it.topic.seenBy(viewer) to it.messages }
                 .filter { (topic, _) -> category == null || topic.categoryId == category }
                 .flatMap { (topic, messages) ->
@@ -1556,7 +1679,7 @@ class FakeIdejo(
             )
         sockets.toList().forEach {
             it.push(
-                "topic:" + record.topic.id,
+                record.channel,
                 "reaction.changed",
                 payload,
             )
@@ -1593,11 +1716,11 @@ class FakeIdejo(
         val opened = composer.lastOpenedAt.takeIf { composer.openMessageId != null }
         return ComposerState(
             openMessageId = composer.openMessageId,
-            mayStartNewAt = held ?: opened?.plusSeconds(settings.windowSeconds.toLong()),
+            mayStartNewAt = held ?: opened?.plusSeconds(windowOf(record).toLong()),
             heldUntil = held,
             typingSince = composer.typingSince,
-            windowSeconds = settings.windowSeconds,
-            unansweredSeconds = settings.unansweredSeconds,
+            windowSeconds = windowOf(record),
+            unansweredSeconds = if (record.topic.private) 0 else settings.unansweredSeconds,
             replyAllowedEarly = settings.earlyReply,
             mayPost = true,
             now = clock.now,
@@ -1636,7 +1759,7 @@ class FakeIdejo(
         if (commit.new && open != null) {
             // A reply while a message is open: it closes, and the reply starts at once if
             // early replies are allowed, else not before the timers run out.
-            if (!settings.earlyReply && withinWindow(composer)) return tooSoon()
+            if (!settings.earlyReply && withinWindow(record, composer)) return tooSoon()
             close(record, open, held = false)
             composer.openMessageId = null
         } else if (open == null && held != null) {
@@ -1646,22 +1769,18 @@ class FakeIdejo(
         val message =
             if (composer.openMessageId == null) {
                 if (text.isBlank()) return ok(CommitResult(null, composerState(record, person)))
-                openMessage(record, person, text, commit.replyTo).also {
-                    composer.openMessageId = it.id
-                    composer.lastOpenedAt = it.openedAt
-                    composer.typingSince = null
-                }
+                opened(record, person, composer, text, commit.replyTo)
             } else {
                 append(record, requireNotNull(composer.openMessageId), text)
             }
 
         val result =
             if (commit.breakMessage) {
-                val early = withinWindow(composer)
+                val early = withinWindow(record, composer)
                 composer.openMessageId = null
                 if (early) {
                     composer.heldUntil =
-                        composer.lastOpenedAt?.plusSeconds(settings.windowSeconds.toLong())
+                        composer.lastOpenedAt?.plusSeconds(windowOf(record).toLong())
                 }
                 close(record, message.id, held = early)
             } else {
@@ -1670,12 +1789,34 @@ class FakeIdejo(
         return ok(CommitResult(result, composerState(record, person)))
     }
 
-    private fun withinWindow(composer: ComposerRecord): Boolean =
+    /** A message the commit opens; in a conversation, news for the other participant. */
+    private fun opened(
+        record: TopicRecord,
+        person: Person,
+        composer: ComposerRecord,
+        text: String,
+        replyTo: List<String>,
+    ): Message {
+        val message = openMessage(record, person, text, replyTo)
+        composer.openMessageId = message.id
+        composer.lastOpenedAt = message.openedAt
+        composer.typingSince = null
+        if (record.topic.private) conversationNews(record, person)
+        return message
+    }
+
+    private fun withinWindow(
+        record: TopicRecord,
+        composer: ComposerRecord,
+    ): Boolean =
         composer.lastOpenedAt?.let {
-            Duration.between(it, clock.now).seconds <
-                settings.windowSeconds
+            Duration.between(it, clock.now).seconds < windowOf(record)
         }
             ?: false
+
+    /** A conversation has no slow mode (PC-01): its window and unanswered time are 0. */
+    private fun windowOf(record: TopicRecord): Int =
+        if (record.topic.private) 0 else settings.windowSeconds
 
     private fun tooSoon() =
         error(
@@ -1768,7 +1909,7 @@ class FakeIdejo(
                     "cursor" to json(message.cursor),
                 ),
             )
-        sockets.toList().forEach { it.push("topic:" + record.topic.id, event, payload) }
+        sockets.toList().forEach { it.push(record.channel, event, payload) }
     }
 
     // §7 The socket.
@@ -1796,10 +1937,21 @@ class FakeIdejo(
             .build()
     }
 
+    /** A conversation's channel: its participants only (PC-01). */
+    internal fun joinConversation(
+        id: String,
+        token: String,
+    ): JsonObject? =
+        synchronized(lock) {
+            val record = topics[id]?.takeIf { it.topic.private } ?: return null
+            if (tokens[token]?.id !in record.participants) return null
+            buildJsonObject { put("cursor", record.changeSeq) }
+        }
+
     /** A topic channel's join: the topic must exist and be visible. */
     internal fun joinTopic(id: String): JsonObject? =
         synchronized(lock) {
-            topics[id]?.let { record ->
+            topics[id]?.takeIf { !it.topic.private }?.let { record ->
                 if (categories.any { it.id == record.topic.categoryId && it.permissions.view }) {
                     buildJsonObject { put("cursor", record.changeSeq) }
                 } else {

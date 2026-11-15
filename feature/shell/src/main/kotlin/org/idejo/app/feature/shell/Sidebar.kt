@@ -20,12 +20,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,12 +44,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.idejo.app.core.data.ConversationsState
 import org.idejo.app.core.data.SidebarCategory
 import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.designsystem.component.CategoryMark
@@ -98,6 +105,7 @@ fun Sidebar(
     openTopic: Topic?,
     actions: SidebarActions,
     modifier: Modifier = Modifier,
+    conversations: ConversationsState = ConversationsState(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
@@ -128,6 +136,11 @@ fun Sidebar(
                     actions = actions,
                     onExpand = { expanded = expanded + entry.category.id },
                 )
+            }
+        }
+        if (conversations.available) {
+            item(key = "conversations") {
+                ConversationsRow(conversations.withNews) { actions.open(Place.Conversations) }
             }
         }
     }
@@ -437,10 +450,10 @@ internal val links =
 private const val SHOWN = 4
 
 /** SH-38: rows at least 54 dp, categories 56 dp, each small button a 44 dp target. */
-private val ROW_HEIGHT = 54.dp
+internal val ROW_HEIGHT = 54.dp
 private val CATEGORY_HEIGHT = 56.dp
 private val TARGET = 44.dp
 private val DOT_SPACE = 14.dp
 
-private val TEXT
+internal val TEXT
     @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp)

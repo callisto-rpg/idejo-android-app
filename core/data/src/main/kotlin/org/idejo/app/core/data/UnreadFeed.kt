@@ -42,8 +42,9 @@ class UnreadFeed(
     private val others =
         Pages<Topic>(scope, key = { it.id }) { cursor ->
             session.call { unread(cursor) }.map { unread ->
-                if (cursor == null) following.value = unread.following
-                unread.others
+                // Conversations never show in Unread (PC-04), whatever a server sends.
+                if (cursor == null) following.value = unread.following.filterNot { it.private }
+                unread.others.copy(data = unread.others.data.filterNot { it.private })
             }
         }
     private var listening: Job? = null

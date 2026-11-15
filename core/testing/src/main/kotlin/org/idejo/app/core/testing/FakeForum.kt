@@ -82,7 +82,13 @@ internal class TopicRecord(
     var topic: Topic,
     val messages: MutableList<Message> = mutableListOf(),
     var changeSeq: Long = 0,
-)
+    /** A private conversation's participants, by id (PC-01); empty for a topic. */
+    val participants: Set<String> = emptySet(),
+) {
+    /** The channel its events go to: `conversation:<id>` or `topic:<id>`. */
+    val channel: String
+        get() = (if (topic.private) "conversation:" else "topic:") + topic.id
+}
 
 /** What one member follows, muted and has not read, by topic id. */
 internal class Reader(
@@ -105,6 +111,9 @@ internal class Reader(
 
     /** The people ignored, by id (AC-06). */
     val ignored: MutableSet<String> = mutableSetOf()
+
+    /** "Members can send me private messages" (PC-03). */
+    var acceptsPrivate: Boolean = true
 }
 
 /** Unread messages in a topic and the strongest reason (SH-32). */

@@ -11,6 +11,11 @@ SPDX-License-Identifier: Apache-2.0
     <string name="place_rules">Rules &amp; Roles</string>
     <string name="place_help">Help</string>
     <string name="place_app_settings">App settings</string>
+    <string name="place_conversations">Private Conversations</string>
+    <plurals name="conversations_with_news">
+        <item quantity="one">1 with something new</item>
+        <item quantity="other">%d with something new</item>
+    </plurals>
     <string name="place_new_topic">New topic</string>
     <string name="sign_in">Sign in</string>
     <string name="close">Close</string>

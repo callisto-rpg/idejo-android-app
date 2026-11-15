@@ -47,6 +47,7 @@ import org.idejo.app.feature.browse.UserCardRoute
 import org.idejo.app.feature.composer.ForwardRoute
 import org.idejo.app.feature.composer.NewTopicRoute
 import org.idejo.app.feature.composer.ShareViewModel
+import org.idejo.app.feature.inbox.ConversationsRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
@@ -117,6 +118,7 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
+            conversationsPage(navigation) { content -> Page(session, signIn, content) }
             newTopicPage(navigation) { content -> Page(session, signIn, content) }
             cards(navigation)
         }
@@ -135,7 +137,13 @@ private fun NavGraphBuilder.cards(navigation: NavHostController) {
     dialog<UserCardDialog>(
         dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        UserCardRoute(onClose = { navigation.popBackStack() })
+        UserCardRoute(
+            onClose = { navigation.popBackStack() },
+            onConversation = { id ->
+                navigation.popBackStack()
+                navigation.go(Place.Topic(id, private = true))
+            },
+        )
     }
     inlineCard(navigation)
     forwardCard(navigation)
@@ -216,6 +224,16 @@ private fun NavGraphBuilder.topicPage(
     }
 }
 
+/** **Private Conversations** (PC-01): a card opens its conversation. */
+private fun NavGraphBuilder.conversationsPage(
+    navigation: NavHostController,
+    page: @Composable (@Composable () -> Unit) -> Unit,
+) = composable<Place.Conversations> {
+    page {
+        ConversationsRoute(onConversation = { navigation.go(Place.Topic(it, private = true)) })
+    }
+}
+
 /** **New topic** (CO-19): the topic started replaces it. */
 private fun NavGraphBuilder.newTopicPage(
     navigation: NavHostController,
@@ -258,6 +276,7 @@ private val SIMPLE =
         Place.Rules,
         Place.Help,
         Place.AppSettings,
+        Place.Conversations,
     )
 
 /**

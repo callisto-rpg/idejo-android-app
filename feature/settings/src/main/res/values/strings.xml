@@ -4,6 +4,10 @@ SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
 SPDX-License-Identifier: Apache-2.0
 -->
 <resources>
+    <!-- The forum's private messages choice (PC-03), in the web's words. -->
+    <string name="private_messages">Private messages</string>
+    <string name="private_messages_accept">Members can send me private messages</string>
+    <string name="private_messages_offline">You are offline: nothing was changed.</string>
     <!-- App settings → About (ST-23). -->
     <string name="about_app">idejo for Android</string>
     <string name="about_version">Version %1$s</string>

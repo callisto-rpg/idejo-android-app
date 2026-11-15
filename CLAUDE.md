@@ -321,24 +321,32 @@ Docker image) are added with them.
   (MA-01) follow the member's settings, which idejo's `GET /me` gives (`graphical_composer`,
   `controls_on_mobile`, `controls_on_desktop`; IX-15, callisto-rpg/Idejo#372). A server
   without them gets the graphical composer on (new accounts' default) and controls on a tap.
+- 2026-11-15 — Private conversations (PC-01, PC-03, PC-04) use idejo's API as it is: the
+  list and its cards from `GET /conversations` (read again on `user:me`'s
+  `conversation.updated`), **Private Message** from `POST /conversations`, and a
+  conversation opens on the topic page through the topic paths (`/topics/{id}`, messages,
+  changes, composer), which take conversation ids with the `private` scope; its channel is
+  `conversation:<id>` (`Place.Topic.private`). It is named after the other participants
+  (`GET /conversations/{id}`), has no Follow and no New Topic. The list page lives in
+  `feature/inbox`. "Members can send me private messages" sits in App settings, for the
+  forum open (`PATCH /me`), until Profile and account (M3). PC-02 (a chat service) waits for
+  M4 with IX-04.
 
 ## Milestones (spec §26)
 
 - [x] M0 — Foundations
 - [x] M1 — Read a forum
-- [ ] **M2 — Write**
-- [ ] M3 — Notifications and settings
+- [x] M2 — Write
+- [ ] **M3 — Notifications and settings**
 - [ ] M4 — idejo ID mode
 - [ ] M5 — 1.0, web parity
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M2 — Write** (not started). M1 closed on 2026-11-15 (steward):
-single-forum mode, sign-in, the shell, browsing, the topic page, large screens.
-Current milestone: **M2 — Write** (in progress): first the composer's state machine
-(`ComposerMachine`, run against the API by `Composer` through a `ComposerBackend`). M1
-closed on 2026-11-15 (steward): single-forum mode, sign-in, the shell, browsing, the topic
-page, large screens.
+Current milestone: **M3 — Notifications and settings** (not started). M2 closed on
+2026-11-15 (steward): the composer (CO), message actions (MA), private conversations
+(PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
+browsing, the topic page, large screens.
 The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
 window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the

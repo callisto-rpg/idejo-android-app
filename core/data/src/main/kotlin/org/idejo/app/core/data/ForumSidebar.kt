@@ -142,7 +142,11 @@ class ForumSidebar(
             } else {
                 emptyList()
             }
-        val topics = (followed + withNews?.following.orEmpty()).distinctBy { it.id }
+        // Conversations are never among the categories (PC-04): they have none.
+        val topics =
+            (followed + withNews?.following.orEmpty())
+                .filterNot { it.private }
+                .distinctBy { it.id }
         mutableState.update {
             it.copy(
                 sections = sections(categories, topics),
@@ -278,7 +282,7 @@ class ForumSidebar(
         following: List<Topic>,
         counter: UnreadCounter,
     ) {
-        val news = following.associateBy { it.id }
+        val news = following.filterNot { it.private }.associateBy { it.id }
         mutableState.update { state ->
             val known = state.topics.map { it.id }.toSet()
             val sections =
@@ -292,7 +296,7 @@ class ForumSidebar(
                     }
                 }
             // A followed topic with news the pages did not reach.
-            val added = following.filter { it.id !in known }
+            val added = news.values.filter { it.id !in known }
             state.copy(
                 sections = if (added.isEmpty()) sections else sections.with(added),
                 unread = counter,

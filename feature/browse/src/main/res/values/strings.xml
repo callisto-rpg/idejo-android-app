@@ -139,6 +139,7 @@
     <!-- The user card (BR-09). -->
     <string name="user_roles">Roles</string>
     <string name="user_ignore">Ignore</string>
+    <string name="user_private_message">Private Message</string>
     <string name="user_unignore">Stop ignoring</string>
     <string name="user_close">Close</string>
     <string name="user_picture">Picture of %1$s</string>

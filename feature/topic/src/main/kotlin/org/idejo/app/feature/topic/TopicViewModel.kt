@@ -74,6 +74,7 @@ class TopicViewModel
                     topicId,
                     viewModelScope,
                     landing = savedState["messageId"],
+                    private = savedState["private"] ?: false,
                 )
             }
 

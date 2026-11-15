@@ -28,7 +28,13 @@ sealed interface Place {
         val forward: String? = null,
         /** Pictures shared to the app go in its composer (CO-14). */
         val share: Boolean = false,
+        /** A private conversation (PC-01): its channel is `conversation:<id>`. */
+        val private: Boolean = false,
     ) : Place
+
+    /** **Private Conversations** (PC-01): the member's, as cards. */
+    @Serializable
+    data object Conversations : Place
 
     @Serializable
     data object Unread : Place

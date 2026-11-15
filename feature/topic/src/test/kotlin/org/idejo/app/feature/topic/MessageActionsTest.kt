@@ -186,4 +186,23 @@ class MessageActionsTest {
         rule.onNodeWithContentDescription("Reply").assertDoesNotExist()
         rule.onNodeWithText("Sungold every year.").assertExists()
     }
+
+    @Test
+    fun `PC-01 a private conversation has no Follow and no New Topic`() {
+        rule.setContent {
+            TopicScreen(
+                TopicUi(
+                    topic.copy(topic = topic.topic?.copy(private = true, categoryId = null)),
+                    signedIn = true,
+                    me = me,
+                ),
+                TopicActions(),
+                writing = TopicWriting(mayWrite = true),
+            )
+        }
+        rule.onNodeWithText("Follow").assertDoesNotExist()
+        rule.onNodeWithText("Sungold every year.").performClick()
+        rule.onNodeWithContentDescription("Reply").assertExists()
+        rule.onNodeWithContentDescription("New Topic").assertDoesNotExist()
+    }
 }
