@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.DiscoveryClient
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
@@ -281,6 +282,60 @@ class TopicDataTest {
             val reader = TopicReader(signedIn(), "t_missing", scope)
             reader.load()
             assertTrue(reader.state.until { !it.loading }.gone)
+        }
+
+    @Test
+    fun `MA-03 a reaction is added and taken back, and who reacted is listed`() =
+        runBlocking<Unit> {
+            val id = longTopic(3)
+            val target = fake.messages(id)[1]
+            val session = signedIn()
+            val reader = TopicReader(session, id, scope)
+            reader.load(target.id)
+            reader.state.until { !it.loading }
+
+            reader.react(target.id, "tada", on = true)
+            val reacted =
+                reader.state.until { s ->
+                    s.messages
+                        .first { it.id == target.id }
+                        .reactions
+                        .isNotEmpty()
+                }
+            val tada =
+                reacted.messages
+                    .first { it.id == target.id }
+                    .reactions
+                    .single()
+            assertEquals("tada" to 1, tada.name to tada.count)
+            assertTrue(tada.mine)
+            val who = (session.call { reactors(target.id) } as ApiResult.Success).value
+            assertEquals(
+                listOf(ada.displayName to listOf(":tada:")),
+                who.map {
+                    it.user.displayName to
+                        it.emoji
+                },
+            )
+
+            reader.react(target.id, "tada", on = false)
+            reader.state.until { s ->
+                s.messages
+                    .first { it.id == target.id }
+                    .reactions
+                    .isEmpty()
+            }
+        }
+
+    @Test
+    fun `MA-04 a report reaches the moderators with its reason`() =
+        runBlocking<Unit> {
+            val id = longTopic(2)
+            val target = fake.messages(id)[1]
+            val session = signedIn()
+            assertTrue(session.call { report(target.id, "Selling seeds") } is ApiResult.Success)
+            assertEquals(listOf("Selling seeds"), fake.reportsOf(target.id))
+            assertTrue(session.call { report(target.id, " ") } is ApiResult.Failure)
         }
 
     @Test

@@ -31,7 +31,10 @@ import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.Reaction
+import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.ReportBody
 import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.ScheduleCreate
 import org.idejo.app.core.model.Scheduled
@@ -272,6 +275,30 @@ class ForumApi(
         topicId: String,
         body: ScheduleCreate,
     ): ApiResult<Scheduled> = call { schedule(topicId, body) }
+
+    /** A reaction added or taken back (MA-03), by the emoji's name; the message's reactions. */
+    suspend fun react(
+        messageId: String,
+        name: String,
+        on: Boolean,
+    ): ApiResult<List<Reaction>> =
+        call { (if (on) react(messageId, name) else unreact(messageId, name)).data }
+
+    /** Who reacted to a message (MA-03). */
+    suspend fun reactors(messageId: String): ApiResult<List<Reactor>> =
+        call { reactors(messageId).data }
+
+    /** A message reported to the moderators (MA-04). */
+    suspend fun report(
+        messageId: String,
+        reason: String,
+    ): ApiResult<Unit> =
+        call {
+            report(
+                messageId,
+                ReportBody(reason),
+            ).let { if (!it.isSuccessful) throw HttpException(it) }
+        }
 
     suspend fun cancelScheduled(id: String): ApiResult<Unit> =
         call { cancelScheduled(id).let { if (!it.isSuccessful) throw HttpException(it) } }

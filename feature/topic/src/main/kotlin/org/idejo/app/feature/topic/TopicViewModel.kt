@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.ContinuedFrom
@@ -29,6 +30,7 @@ import org.idejo.app.core.data.mentionGlows
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.Reactor
 import javax.inject.Inject
 
 /** The topic page: its messages, and what draws them (the forum's address and emoji). */
@@ -36,6 +38,8 @@ data class TopicUi(
     val topic: TopicState = TopicState(),
     val origin: String = "",
     val emoji: List<Emoji> = emptyList(),
+    /** The ten quick reactions (`default_reactions`, MA-03). */
+    val quick: List<Emoji> = emptyList(),
     /** A member is signed in (polls take votes). */
     val signedIn: Boolean = false,
     /** The member, whose mentions glow and pulse (TV-07). */
@@ -93,6 +97,7 @@ class TopicViewModel
                     topic,
                     session?.origin.orEmpty(),
                     server?.emoji.orEmpty() + server?.defaultReactions.orEmpty(),
+                    quick = server?.defaultReactions.orEmpty(),
                     signedIn = access == Access.SignedIn,
                     me = extra.me.takeIf { access == Access.SignedIn },
                     continuedFrom = extra.continuedFrom,
@@ -152,6 +157,23 @@ class TopicViewModel
             pollId: String,
             optionIds: List<String>,
         ) = reader?.vote(messageId, pollId, optionIds)
+
+        fun react(
+            messageId: String,
+            name: String,
+            on: Boolean,
+        ) = reader?.react(messageId, name, on)
+
+        suspend fun reactors(messageId: String): List<Reactor> =
+            session?.call { reactors(messageId) }?.getOrNull().orEmpty()
+
+        suspend fun searchEmoji(query: String): List<Emoji> =
+            session?.call { emoji(query) }?.getOrNull().orEmpty()
+
+        suspend fun report(
+            messageId: String,
+            reason: String,
+        ): Boolean = session?.call { report(messageId, reason) } is ApiResult.Success
 
         /** Where message [messageId] is: this topic, another one, or null (not readable). */
         suspend fun reach(messageId: String): String? = reader?.reach(messageId)

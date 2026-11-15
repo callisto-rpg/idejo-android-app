@@ -146,4 +146,24 @@
     <string name="jump_last">Last message</string>
     <string name="jump_mine">My last message</string>
     <string name="jump_pinned">Pinned</string>
+    <string name="message_actions">Show its actions</string>
+    <string name="action_react">React</string>
+    <string name="action_more_emoji">Every emoji</string>
+    <string name="action_reply">Reply</string>
+    <string name="action_forward">Forward</string>
+    <string name="action_new_topic">New Topic</string>
+    <string name="action_quote">Quote</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_report">Report</string>
+    <string name="action_copy_text">Copy text</string>
+    <string name="action_share">Share</string>
+    <string name="action_close">Close</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="reactors_title">Who reacted</string>
+    <string name="reactors_loading">Loading…</string>
+    <string name="reactors_more">Show more</string>
+    <string name="report_title">Report this message</string>
+    <string name="report_reason">Why should the moderators look at it?</string>
+    <string name="report_sent">Thank you: the moderators will look at it.</string>
+    <string name="report_failed">The report could not be sent. Try again.</string>
 </resources>

@@ -3,8 +3,10 @@
 
 package org.idejo.app.core.testing
 
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import mockwebserver3.Dispatcher
@@ -50,7 +52,10 @@ import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.PollOption
+import org.idejo.app.core.model.Reaction
+import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
+import org.idejo.app.core.model.ReportBody
 import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.ScheduleCreate
 import org.idejo.app.core.model.Scheduled
@@ -108,6 +113,8 @@ class FakeIdejo(
 
     private val categories = seedCategories().toMutableList()
     private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
+    private val reactors = mutableMapOf<String, MutableList<Pair<Person, List<String>>>>()
+    private val reports = mutableListOf<Triple<String, String, String>>()
     private val readers = mutableMapOf<String, Reader>()
 
     /** Each poll's votes: poll id, then person id, then their answers (TV-27). */
@@ -654,6 +661,28 @@ class FakeIdejo(
                     )
                 scheduled.add(person.id.orEmpty() to item)
                 ok(item)
+            },
+            Route("PUT", "messages/{id}/reactions/{emoji}") { call -> react(call, on = true) },
+            Route("DELETE", "messages/{id}/reactions/{emoji}") { call -> react(call, on = false) },
+            Route("GET", "messages/{id}/reactions") { call ->
+                val message = findMessage(call["id"]) ?: return@Route notFound()
+                ok(
+                    ListBody(
+                        reactors[message.id].orEmpty().map { (who, names) ->
+                            Reactor(who, names.map { ":$it:" })
+                        },
+                    ),
+                )
+            },
+            Route("POST", "messages/{id}/report") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                val message = findMessage(call["id"]) ?: return@Route notFound()
+                val body = IdejoJson.decodeFromString<ReportBody>(call.request.body?.utf8() ?: "{}")
+                if (body.reason.isBlank()) {
+                    return@Route error(HTTP_UNPROCESSABLE_ENTITY, "invalid_request", "Say why.")
+                }
+                reports += Triple(person.id.orEmpty(), message.id, body.reason)
+                status(HTTP_NO_CONTENT)
             },
             Route("DELETE", "scheduled/{id}") { call ->
                 val person = call.viewer ?: return@Route unauthenticated()
@@ -1483,6 +1512,62 @@ class FakeIdejo(
         )
     }
 
+    /** `PUT` and `DELETE /messages/{id}/reactions/{emoji}` (MA-03), live as on the server. */
+    private fun react(
+        call: Call,
+        on: Boolean,
+    ): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val record = topics.values.firstOrNull { r -> r.messages.any { it.id == call["id"] } }
+        val message = record?.messages?.first { it.id == call["id"] } ?: return notFound()
+        val name = call["emoji"].trim(':')
+        val who = reactors.getOrPut(message.id) { mutableListOf() }
+        val index = who.indexOfFirst { it.first.id == person.id }
+        val mine = if (index >= 0) who[index].second else emptyList()
+        val next = if (on) (mine + name).distinct() else mine - name
+        if (index >= 0) who.removeAt(index)
+        if (next.isNotEmpty()) who += person to next
+        val reactions =
+            who
+                .flatMap { (p, names) -> names.map { it to p.id } }
+                .groupBy({ it.first }, { it.second })
+                .map { (n, ids) ->
+                    Reaction(
+                        ":$n:",
+                        n,
+                        ids.size,
+                        char = FAKE_EMOJI_CHARS[n],
+                        mine =
+                            person.id in ids,
+                    )
+                }
+        val at = record.messages.indexOfFirst { it.id == message.id }
+        record.messages[at] = message.copy(reactions = reactions, cursor = ++record.changeSeq)
+        val payload =
+            JsonObject(
+                mapOf(
+                    "message_id" to JsonPrimitive(message.id),
+                    "reactions" to
+                        output.encodeToJsonElement(
+                            ListSerializer(Reaction.serializer()),
+                            reactions,
+                        ),
+                ),
+            )
+        sockets.toList().forEach {
+            it.push(
+                "topic:" + record.topic.id,
+                "reaction.changed",
+                payload,
+            )
+        }
+        return ok(ListBody(reactions))
+    }
+
+    /** What was reported: reporter, message, reason (MA-04). */
+    fun reportsOf(messageId: String): List<String> =
+        synchronized(lock) { reports.filter { it.second == messageId }.map { it.third } }
+
     private fun findMessage(id: String): Message? =
         topics.values.firstNotNullOfOrNull { r ->
             r.messages.firstOrNull {
@@ -1839,3 +1924,6 @@ private val FAKE_COMMANDS =
 
 /** The fake's `upload_max_bytes` (CO-14). */
 const val FAKE_UPLOAD_MAX_BYTES = 8_000_000L
+
+/** The characters of the fake's reaction emoji. */
+private val FAKE_EMOJI_CHARS = mapOf("heart" to "❤️", "tada" to "🎉", "+1" to "👍", "joy" to "😂")
