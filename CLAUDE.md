@@ -331,3 +331,12 @@ Docker image) are added with them.
 
 Current milestone: **M2 — Write** (not started). M1 closed on 2026-11-15 (steward):
 single-forum mode, sign-in, the shell, browsing, the topic page, large screens.
+Current milestone: **M2 — Write** (in progress): first the composer's state machine
+(`ComposerMachine`, run against the API by `Composer` through a `ComposerBackend`). M1
+closed on 2026-11-15 (steward): single-forum mode, sign-in, the shell, browsing, the topic
+page, large screens.
+The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
+(the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
+window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the
+reader's last message), #370 (category icons, `mark_colour`) and #371 (followed topics)
+(Steward decisions, 2026-11-14 and 2026-11-15).
