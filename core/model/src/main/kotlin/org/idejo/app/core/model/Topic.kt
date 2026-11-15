@@ -53,6 +53,8 @@ data class Topic(
     @SerialName("continues_from") val continuesFrom: MessageRef? = null,
     /** The opening message, for its first words (TV-22's topic card). */
     @SerialName("first_message_id") val firstMessageId: String? = null,
+    /** The reader's last message here, not deleted: the jump button's (SH-04, IX-13). */
+    @SerialName("my_last_message_id") val myLastMessageId: String? = null,
     /** With `expanded=true` (BR-03). */
     val preview: TopicPreview? = null,
 )

@@ -264,6 +264,24 @@ class TopicScreenshotTest {
         }
 
     @Test
+    @Config(qualifiers = "w1280dp-h800dp-mdpi")
+    fun `SH-04 SH-60 a wide window shows the navigator as a card beside the topic`() =
+        snapshots("TopicWide") {
+            val pin = message("m_pin", MINA, "Seed swap on **Saturday** at ten.", 30)
+            TopicScreen(
+                TopicUi(
+                    TopicState(
+                        topic = TOPIC.copy(myLastMessageId = "m_2", unreadCount = 2),
+                        messages = listOf(message("m_2", LEO, "Planning this year's beds.", 20)),
+                        loading = false,
+                    ),
+                    pins = listOf(pin),
+                ),
+                TopicActions(),
+            )
+        }
+
+    @Test
     fun `TV-25 the image viewer, with zoom, Share and Save`() =
         snapshots(
             "ImageViewer",

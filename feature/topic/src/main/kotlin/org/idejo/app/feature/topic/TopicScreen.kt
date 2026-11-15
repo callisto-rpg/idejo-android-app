@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +68,10 @@ data class TopicActions(
     val onEarlier: () -> Unit = {},
     val onLater: () -> Unit = {},
     val onEnd: () -> Unit = {},
+    /** The jump button's First unread, when the window does not hold it (SH-04). */
+    val onFirstUnread: () -> Unit = {},
+    /** A jump to a message the window does not hold (SH-04). */
+    val onJump: (String) -> Unit = {},
     val onSeen: (String) -> Unit = {},
     val onUnreadShown: () -> Unit = {},
     val onFollow: (Boolean) -> Unit = {},
@@ -101,6 +107,8 @@ fun TopicRoute(
             onEarlier = { viewModel.earlier() },
             onLater = { viewModel.later() },
             onEnd = { viewModel.end() },
+            onFirstUnread = { viewModel.jump(null) },
+            onJump = { viewModel.jump(it) },
             onSeen = { viewModel.seen(it) },
             onUnreadShown = { viewModel.unreadShown() },
             onFollow = { viewModel.follow(it) },
@@ -129,26 +137,48 @@ fun TopicScreen(
 ) {
     val topic = state.topic
     var viewed by remember { mutableStateOf<ViewedImage?>(null) }
-    Box(modifier.fillMaxSize()) {
-        when {
-            topic.gone -> Gone()
-            topic.topic == null && topic.loading -> Spinner()
-            topic.topic == null -> topic.problem?.let { Problem(it, actions.onRetry) }
-            else -> Messages(state, actions, list) { viewed = it }
-        }
-        val bottom = Modifier.align(Alignment.BottomCenter)
-        val problem = topic.problem
-        when {
-            topic.topic != null && problem != null -> {
-                ProblemBar(problem, actions.onRetry, bottom)
-            }
-
-            !topic.atEnd && !topic.loading -> {
-                Floating(topic.newBelow, actions.onEnd, bottom)
+    val jumps = jumpsOf(state)
+    val jump = rememberJumpActions(topic, list, actions)
+    val beside = jumpCardBeside() && topic.topic != null
+    val scrolled by remember(list) { derivedStateOf { list.firstVisibleItemIndex > 0 } }
+    Row(modifier.fillMaxSize()) {
+        Box(Modifier.weight(1f).fillMaxHeight()) {
+            Page(state, actions, list) { viewed = it }
+            if (!beside && scrolled && topic.topic != null) {
+                JumpButton(jumps, jump, Modifier.align(Alignment.TopEnd))
             }
         }
+        if (beside) JumpCard(topic.topic?.title.orEmpty(), jumps, jump)
     }
     viewed?.let { ImageViewer(it) { viewed = null } }
+}
+
+/** The page's content, and what floats over its bottom: a problem, or the way down. */
+@Composable
+private fun Page(
+    state: TopicUi,
+    actions: TopicActions,
+    list: LazyListState,
+    onImage: (ViewedImage) -> Unit,
+) = Box(Modifier.fillMaxSize()) {
+    val topic = state.topic
+    when {
+        topic.gone -> Gone()
+        topic.topic == null && topic.loading -> Spinner()
+        topic.topic == null -> topic.problem?.let { Problem(it, actions.onRetry) }
+        else -> Messages(state, actions, list, onImage)
+    }
+    val bottom = Modifier.align(Alignment.BottomCenter)
+    val problem = topic.problem
+    when {
+        topic.topic != null && problem != null -> {
+            ProblemBar(problem, actions.onRetry, bottom)
+        }
+
+        !topic.atEnd && !topic.loading -> {
+            Floating(topic.newBelow, actions.onEnd, bottom)
+        }
+    }
 }
 
 @Composable
@@ -258,7 +288,7 @@ private fun Following(
     }
 }
 
-private fun indexOf(
+internal fun indexOf(
     topic: TopicState,
     key: String,
 ): Int {
@@ -275,7 +305,7 @@ private fun indexOf(
     return 0
 }
 
-private fun lastIndex(topic: TopicState): Int =
+internal fun lastIndex(topic: TopicState): Int =
     (if (topic.opening != null) 1 else 0) + (if (topic.earlier > 0) 1 else 0) +
         topic.messages.size + (if (topic.unread != null) 1 else 0)
 

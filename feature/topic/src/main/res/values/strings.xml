@@ -139,4 +139,11 @@
     <string name="frame_show">Show page</string>
     <!-- Over a topic started from a message (idejo TP-09), as the web. -->
     <string name="topic_continued_from">Continued from %1$s in “%2$s”</string>
+    <!-- The jump button (SH-04), as the web's topic navigator. -->
+    <string name="jump_open">Jump to a message</string>
+    <string name="jump_first">First message</string>
+    <string name="jump_unread">First unread</string>
+    <string name="jump_last">Last message</string>
+    <string name="jump_mine">My last message</string>
+    <string name="jump_pinned">Pinned</string>
 </resources>
