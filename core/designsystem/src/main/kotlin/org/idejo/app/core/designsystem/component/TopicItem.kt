@@ -70,11 +70,7 @@ fun TopicItem(
             },
         lead = {
             if (category != null) {
-                CategoryMark(
-                    category.title,
-                    IdejoTheme.colors.category(category.colour, scheme),
-                    size = CategoryMarkSize.Sidebar,
-                )
+                CategoryMark(category, size = CategoryMarkSize.Sidebar)
             } else if (author != null) {
                 val url = pictureUrl(author.avatarUrl, author.avatarDarkUrl, dark)
                 Avatar(

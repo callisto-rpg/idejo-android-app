@@ -303,6 +303,12 @@ Docker image) are added with them.
 - 2026-11-15 — **Tutorial bubbles** (SH-21) is one choice for the whole app, kept on the
   device (`AppState.tutorialBubbles`, `AppChoices`); idejo's API has no such setting.
   Theme stays per forum.
+- 2026-11-15 — Category icons (TH-05): the steward released idejo's icons under CC-BY-4.0
+  (`graphics/category-icons` in idejo, callisto-rpg/Idejo#370). The app bundles the same
+  SVGs (`core/designsystem/src/main/assets/category-icons`) and draws them natively: the
+  tile's `#6567e7` becomes the category's `mark_colour` (IX-14), the shapes' `#ffffff`
+  white or `#111111`. An icon the app lacks (a newer server's) shows the initial. To
+  update the icons, copy idejo's folder over.
 
 ## Milestones (spec §26)
 

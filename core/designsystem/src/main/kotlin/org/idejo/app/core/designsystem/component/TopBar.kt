@@ -61,7 +61,8 @@ sealed interface Crumb {
         val name: String,
         val color: Color,
         val onClick: () -> Unit,
-        val icon: (@Composable (tint: Color) -> Unit)? = null,
+        /** idejo's icon for the category (TH-05), drawn as its tile. */
+        val icon: String? = null,
     ) : Crumb
 
     /** The page: a topic's title, "Private Conversations", a person's name. One line. */

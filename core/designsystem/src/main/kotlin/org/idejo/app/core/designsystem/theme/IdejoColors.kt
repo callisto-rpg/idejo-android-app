@@ -7,6 +7,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import org.idejo.app.core.model.Category
 
 /** What a dot before a topic says, from the weakest to the strongest (SH-32). */
 enum class DotKind {
@@ -120,6 +121,12 @@ data class IdejoColors(
         hex: String?,
         scheme: ColorScheme,
     ): Color = parseHexColor(hex)?.copy(alpha = 1f) ?: scheme.secondary
+
+    /** [category]'s colour as the web draws its mark (`mark_colour`, IX-14; else its own). */
+    fun category(
+        category: Category,
+        scheme: ColorScheme,
+    ): Color = category(category.markColour ?: category.colour, scheme)
 }
 
 /** idejo's extras for a scheme made by [colorScheme]. */

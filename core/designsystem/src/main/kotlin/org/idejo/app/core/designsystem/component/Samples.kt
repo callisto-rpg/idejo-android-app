@@ -5,6 +5,8 @@ package org.idejo.app.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -56,7 +58,9 @@ internal fun CategoryMarkSample() {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CategoryMarkSize.entries.forEach { CategoryMark("Vegetables", Vegetables, size = it) }
+        CategoryMarkSize.entries.forEach {
+            CategoryMark("Vegetables", Vegetables, size = it, icon = "plants")
+        }
         CategoryMark("Flowers", Color(0xFFB03A6A))
         CategoryMark("Help", Color(0xFFF2C94C))
         ForumLogo("Garden club")
@@ -198,3 +202,31 @@ private fun TopicRowPreview() =
 @PreviewLightDark
 @Composable
 private fun MessageHeaderPreview() = IdejoTheme(SampleThemes.Tennis) { MessageHeaderSample() }
+
+/** Every icon idejo has (TH-05), on the eight tints and a light colour. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun CategoryIconsSample(names: List<String>) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        names.forEachIndexed { index, name ->
+            CategoryMark(name, Tints[index % Tints.size], icon = name)
+        }
+    }
+}
+
+// idejo's eight tints, then a light one (near-black shapes).
+private val Tints =
+    listOf(
+        0xFF6567E7,
+        0xFF008EC8,
+        0xFF009690,
+        0xFF0FA05C,
+        0xFFCE9200,
+        0xFFDC631E,
+        0xFFDD3858,
+        0xFFB740B1,
+        0xFFF2C94C,
+    ).map(::Color)
