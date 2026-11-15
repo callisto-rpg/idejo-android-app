@@ -312,26 +312,27 @@ Docker image) are added with them.
 - 2026-11-15 — The sidebar's followed topics come from `GET /me/followed` (IX-02,
   callisto-rpg/Idejo#371), in the order followed, ten pages of 100 at most; a server
   without it (404) gets the spec's fallback (three pages of each category).
+- 2026-11-15 — M1 closes (steward). Its parts that belong to later milestones wait for
+  them, under the "later milestone wins" rule: SH-36 (Private Conversations and All my
+  topics at the sidebar's foot: M2 and M4), SH-03 (the logo's dot for news in other
+  forums: M4), SH-12, SH-13 and SH-15 (the logo menu's forum list, shortcuts and
+  long-press: M4).
 
 ## Milestones (spec §26)
 
 - [x] M0 — Foundations
-- [ ] **M1 — Read a forum**
-- [ ] M2 — Write
+- [x] M1 — Read a forum
+- [ ] **M2 — Write**
 - [ ] M3 — Notifications and settings
 - [ ] M4 — idejo ID mode
 - [ ] M5 — 1.0, web parity
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, shell,
-markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
-welcome and getting-started cards, the user card; topic: the page, its window, live
-changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
-mention glows, inline cards, the image viewer, plugin blocks, "Continued from", the jump
-button; large screens, foldables, keyboard and mouse). Left unticked until the steward
-closes M1.
+Current milestone: **M2 — Write** (not started). M1 closed on 2026-11-15 (steward):
+single-forum mode, sign-in, the shell, browsing, the topic page, large screens.
 The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
-window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs) and #369
-(the reader's last message) (Steward decisions, 2026-11-14 and 2026-11-15).
+window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the
+reader's last message), #370 (category icons, `mark_colour`) and #371 (followed topics)
+(Steward decisions, 2026-11-14 and 2026-11-15).
