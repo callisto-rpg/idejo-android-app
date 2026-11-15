@@ -671,7 +671,10 @@ class FakeIdejo(
                         "p_" + nextId++,
                         body.question,
                         body.multiple,
-                        options = body.options.mapIndexed { i, text -> PollOption("o_$i", text) },
+                        options =
+                            body.options.mapIndexed { i, answer ->
+                                PollOption("o_$i", answer.text, answer.emoji, answer.colour)
+                            },
                     )
                 underOrAlone(call, body.messageId, body.question) { it.copy(poll = poll) }
             },
@@ -1124,6 +1127,8 @@ class FakeIdejo(
                     windowSeconds = settings.windowSeconds,
                     unansweredSeconds = settings.unansweredSeconds,
                     earlyReply = settings.earlyReply,
+                    uploadTypes = listOf("jpg", "jpeg", "png", "gif", "webp"),
+                    uploadMaxBytes = FAKE_UPLOAD_MAX_BYTES,
                 ),
         )
 
@@ -1831,3 +1836,6 @@ private val FAKE_COMMANDS =
     } +
         org.idejo.app.core.model
             .Command("youtube", "plugin", argument = "link", block = "video")
+
+/** The fake's `upload_max_bytes` (CO-14). */
+const val FAKE_UPLOAD_MAX_BYTES = 8_000_000L

@@ -36,9 +36,15 @@ class ComposerViewModel
         sessions: SessionManager,
         choices: AppChoices,
         http: OkHttpClient,
+        private val shared: SharedImages,
     ) : ViewModel() {
         private val session = sessions.active?.takeIf { it.access.value == Access.SignedIn }
         val topicId: String = checkNotNull(savedState["id"])
+
+        /** Opened from the share sheet's card: the shared pictures go in (CO-14). */
+        private val share: Boolean = savedState["share"] ?: false
+
+        fun takeShared(): List<ImageFile> = if (share) shared.take() else emptyList()
 
         /** Null for visitors: no composer. */
         val composer: Composer? =

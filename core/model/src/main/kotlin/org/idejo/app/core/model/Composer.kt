@@ -98,12 +98,23 @@ data class ScheduleCreate(
 @Serializable
 data class PollCreate(
     val question: String,
-    val options: List<String>,
+    val options: List<PollAnswer>,
     val hours: Double,
     val multiple: Boolean = false,
     val hidden: Boolean = false,
     @SerialName("message_id") val messageId: String? = null,
     @SerialName("reply_to") val replyTo: String? = null,
+)
+
+/**
+ * A poll's answer: an emoji's name and a bar colour `#rrggbb` beside it, each optional (none:
+ * the theme's colour).
+ */
+@Serializable
+data class PollAnswer(
+    val text: String,
+    val emoji: String? = null,
+    val colour: String? = null,
 )
 
 /** `!spoiler` (CO-13), with `!spoiler:overlay:`'s words. */

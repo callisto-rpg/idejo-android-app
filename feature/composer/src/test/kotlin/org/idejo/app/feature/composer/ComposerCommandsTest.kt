@@ -75,4 +75,24 @@ class ComposerCommandsTest {
                 .Gif("1", "cat", "A [cat]", "p", "https://f/1.gif")
         assertEquals("![A  cat](https://f/1.gif)", gifMarkdown(gif, "GIF"))
     }
+
+    @Test
+    fun `CO-13 a poll's answers keep their emoji and colour, blank ones left out`() {
+        val tada =
+            org.idejo.app.core.model
+                .Emoji("tada", char = "🎉")
+        val rows = listOf(AnswerRow(" Yes ", tada, "#43a047"), AnswerRow(""), AnswerRow("No"))
+        val poll = pollOf("Plant now?", rows, "24", multiple = false, hidden = true)!!
+        assertEquals(
+            listOf(
+                org.idejo.app.core.model
+                    .PollAnswer("Yes", "tada", "#43a047"),
+                org.idejo.app.core.model
+                    .PollAnswer("No"),
+            ),
+            poll.options,
+        )
+        assertEquals(null, pollOf("Plant now?", rows.take(2), "24", false, false))
+        assertEquals(null, pollOf(" ", rows, "24", false, false))
+    }
 }

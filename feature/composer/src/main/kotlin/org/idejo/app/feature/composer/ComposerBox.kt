@@ -99,6 +99,7 @@ fun ComposerRoute(
     modifier: Modifier = Modifier,
     onForward: (String) -> Unit = {},
     onNewTopic: (NewTopicStart) -> Unit = {},
+    takeShared: () -> List<ImageFile> = { emptyList() },
 ) {
     val state by composer.state.collectAsStateWithLifecycle()
     val scheduled by composer.scheduled.collectAsStateWithLifecycle()
@@ -128,7 +129,10 @@ fun ComposerRoute(
                     onPlugin = composer::plugin,
                     onAutomessage = composer::automessage,
                     onForward = onForward,
-                    upload = composer::upload,
+                    upload = { composer.upload(it.bytes, it.name, it.type) },
+                    limits = composer::uploadLimits,
+                    onImageRefused = composer::imageRefused,
+                    takeShared = takeShared,
                     onCancelScheduled = composer::cancelScheduled,
                     gifConfig = composer::gifConfig,
                     gifPage = composer::gifPage,
@@ -189,10 +193,11 @@ fun ComposerBox(
             pick,
             commanding::typed,
             commanding.gifs?.hosts.orEmpty(),
+            commanding.images,
         )
         SuggestionList(suggesting) { pick(it) }
         ScheduledList(scheduled, events.commands.onCancelScheduled)
-        CommandDialogs(commanding, events.commands)
+        CommandDialogs(commanding, events.commands, EmojiSource(origin, events.emoji))
         Tip(state, bubbles)
         state.line?.let { SlowModeLine(it, bubbles) }
         state.error?.let { error ->
@@ -292,10 +297,11 @@ private fun Editor(
     pick: (Suggestion) -> Unit,
     onChange: (TextFieldValue) -> Unit,
     gifHosts: List<String> = emptyList(),
+    images: ImageSources? = null,
 ) {
     val colors = textColors(rememberGlow(state.justSent))
     val label = stringResource(R.string.composer_label)
-    Box {
+    Box(Modifier.imagesIn(images)) {
         if (value.text.isEmpty()) {
             Text(
                 stringResource(R.string.composer_placeholder),
@@ -317,6 +323,7 @@ private fun Editor(
                     .semantics { contentDescription = label }
                     .onPreviewKeyEvent { key ->
                         suggesting.key(key) { pick(it) } ||
+                            images?.pasted(key) == true ||
                             keys(key, events) { onChange(value.newLine()) }
                     },
             textStyle = IdejoTheme.typography.bodyLarge.copy(color = colors.sent),

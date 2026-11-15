@@ -26,4 +26,8 @@ internal fun errorText(error: ComposerError): String =
         ComposerError.NothingToHide -> {
             stringResource(R.string.composer_nothing_to_hide)
         }
+
+        ComposerError.ImageRefused -> {
+            stringResource(R.string.composer_image_refused)
+        }
     }

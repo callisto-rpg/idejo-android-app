@@ -3,6 +3,7 @@
 
 package org.idejo.app.feature.composer
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -83,11 +84,13 @@ class ForwardViewModel
 fun ForwardRoute(
     onPick: (ForwardTarget) -> Unit,
     modifier: Modifier = Modifier,
+    /** The card's heading: **Forward**, or **Share to** for shared pictures (CO-14). */
+    @StringRes title: Int = R.string.forward_title,
     viewModel: ForwardViewModel = hiltViewModel(),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val targets by viewModel.targets.collectAsStateWithLifecycle()
-    ForwardCard(query, targets, viewModel::search, onPick, modifier)
+    ForwardCard(query, targets, viewModel::search, onPick, modifier, title)
 }
 
 @Composable
@@ -97,10 +100,11 @@ fun ForwardCard(
     onSearch: (String) -> Unit,
     onPick: (ForwardTarget) -> Unit,
     modifier: Modifier = Modifier,
+    @StringRes title: Int = R.string.forward_title,
 ) = Surface(modifier, shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
     Column(Modifier.padding(16.dp)) {
         Text(
-            stringResource(R.string.forward_title),
+            stringResource(title),
             Modifier.semantics { heading() },
             style = IdejoTheme.typography.titleMedium,
         )

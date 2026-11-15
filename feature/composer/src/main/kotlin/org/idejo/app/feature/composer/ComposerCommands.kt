@@ -55,7 +55,12 @@ data class CommandEvents(
     val onAutomessage: (String) -> Unit = {},
     /** `!forward`: the card for the message replied to. */
     val onForward: (String) -> Unit = {},
-    val upload: suspend (ByteArray, String, String) -> Upload? = { _, _, _ -> null },
+    val upload: suspend (ImageFile) -> Upload? = { null },
+    /** What the forum takes: pictures are made to fit it (CO-14). */
+    val limits: suspend () -> UploadLimits = { UploadLimits() },
+    val onImageRefused: () -> Unit = {},
+    /** Pictures shared to the app for this topic (CO-14), taken once. */
+    val takeShared: () -> List<ImageFile> = { emptyList() },
     val onCancelScheduled: (String) -> Unit = {},
     /** GIFs' provider, null while they are off (CO-15). */
     val gifConfig: suspend () -> GifConfig? = { null },
@@ -101,6 +106,9 @@ internal class Commanding(
 
     /** Opens the photo picker; the picture goes at the end or at the caret. */
     var pickImage: (atEnd: Boolean) -> Unit = {}
+
+    /** The camera, the clipboard, drops and the share sheet (CO-14). */
+    var images: ImageSources? = null
 
     fun named(name: String) = list.firstOrNull { it.name == name }
 
@@ -222,43 +230,10 @@ internal fun rememberCommanding(
         commanding.gifs = gifs
         commanding.list = source().filter { it.name != "gif" || gifs != null }
     }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var atEnd by remember { mutableStateOf(true) }
-    val upload by rememberUpdatedState(events.upload)
-    val picker =
-        rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
-            if (uri != null) {
-                scope.launch {
-                    val image = withContext(Dispatchers.IO) { read(context, uri) } ?: return@launch
-                    upload(
-                        image.bytes,
-                        image.name,
-                        image.type,
-                    )?.let { commanding.uploaded(it, atEnd) }
-                }
-            }
-        }
-    commanding.pickImage = { end ->
-        atEnd = end
-        picker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
-    }
+    val images = rememberImageSources(commanding, events)
+    commanding.images = images
+    commanding.pickImage = images.pick
     return commanding
-}
-
-private class Picked(
-    val bytes: ByteArray,
-    val name: String,
-    val type: String,
-)
-
-private fun read(
-    context: Context,
-    uri: Uri,
-): Picked? {
-    val type = context.contentResolver.getType(uri) ?: "image/jpeg"
-    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-    return Picked(bytes, "image." + type.substringAfter('/'), type)
 }
 
 /** Commands that run at the closing colon of `!command:argument:`. */
@@ -270,6 +245,7 @@ private fun runsTyped(command: Command) =
 internal fun CommandDialogs(
     commanding: Commanding,
     events: CommandEvents,
+    emoji: EmojiSource,
 ) {
     val close = { commanding.asking = null }
     when (val asking = commanding.asking) {
@@ -283,7 +259,7 @@ internal fun CommandDialogs(
         }
 
         Asking.Poll -> {
-            PollDialog({ poll ->
+            PollDialog(emoji, { poll ->
                 close()
                 events.onPoll(poll)
             }, close)

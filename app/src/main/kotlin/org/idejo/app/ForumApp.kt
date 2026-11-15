@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -29,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.feature.browse.CategoryRoute
 import org.idejo.app.feature.browse.HelpRoute
@@ -41,6 +46,7 @@ import org.idejo.app.feature.browse.UnreadRoute
 import org.idejo.app.feature.browse.UserCardRoute
 import org.idejo.app.feature.composer.ForwardRoute
 import org.idejo.app.feature.composer.NewTopicRoute
+import org.idejo.app.feature.composer.ShareViewModel
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
@@ -49,6 +55,7 @@ import org.idejo.app.feature.shell.ForumFrame
 import org.idejo.app.feature.shell.ForwardDialog
 import org.idejo.app.feature.shell.InlineCardDialog
 import org.idejo.app.feature.shell.Place
+import org.idejo.app.feature.shell.ShareDialog
 import org.idejo.app.feature.shell.UserCardDialog
 import org.idejo.app.feature.topic.InlineCardRoute
 import org.idejo.app.feature.topic.TopicRoute
@@ -118,6 +125,7 @@ fun ForumApp(
             onLink = link,
             viewModel = hiltViewModel(key = "cards:${System.identityHashCode(session)}"),
         )
+        SharedImagesCard(session, navigation)
     }
 }
 
@@ -131,6 +139,7 @@ private fun NavGraphBuilder.cards(navigation: NavHostController) {
     }
     inlineCard(navigation)
     forwardCard(navigation)
+    shareCard(navigation)
 }
 
 /** The forward card (CO-17): the target chosen opens with the message over its composer. */

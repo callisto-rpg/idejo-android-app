@@ -3,15 +3,24 @@
 
 package org.idejo.app.feature.composer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,10 +32,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import org.idejo.app.core.designsystem.theme.PollBarColours
+import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Command
+import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.PollAnswer
 import org.idejo.app.core.model.PollCreate
 
 /** The hours a poll or a scheduled message takes (CO-13): decimals, at most 168. */
@@ -53,66 +69,6 @@ internal fun ScheduleDialog(
             TextButton(onClick = { value?.let(onSchedule) }, enabled = value != null) {
                 Text(stringResource(R.string.command_schedule))
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.command_cancel)) }
-        },
-    )
-}
-
-/** `!poll`'s dialog: question, 2 to 10 answers, several answers, hours, hidden results. */
-@Composable
-internal fun PollDialog(
-    onPoll: (PollCreate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var question by remember { mutableStateOf("") }
-    val answers = remember { mutableStateListOf("", "") }
-    var multiple by remember { mutableStateOf(false) }
-    var hidden by remember { mutableStateOf(false) }
-    var hours by remember { mutableStateOf("") }
-    val filled = answers.map { it.trim() }.filter { it.isNotEmpty() }
-    val hoursValue = hoursOf(hours)
-    val ready = question.isNotBlank() && filled.size >= 2 && hoursValue != null
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.command_poll_title)) },
-        text = {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Field(question, R.string.command_poll_question) { question = it }
-                answers.forEachIndexed { i, answer ->
-                    OutlinedTextField(
-                        answer,
-                        { answers[i] = it },
-                        Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.command_poll_answer, i + 1)) },
-                        singleLine = true,
-                    )
-                }
-                if (answers.size < MAX_ANSWERS) {
-                    TextButton(
-                        onClick = { answers += "" },
-                    ) { Text(stringResource(R.string.command_poll_add)) }
-                }
-                Check(multiple, R.string.command_poll_multiple) { multiple = it }
-                HoursField(hours) { hours = it }
-                Check(hidden, R.string.command_poll_hidden) { hidden = it }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    if (ready) {
-                        onPoll(
-                            PollCreate(question.trim(), filled, hoursValue!!, multiple, hidden),
-                        )
-                    }
-                },
-                enabled = ready,
-            ) { Text(stringResource(R.string.command_poll)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.command_cancel)) }
@@ -207,7 +163,7 @@ internal fun withAlt(
 }
 
 @Composable
-private fun HoursField(
+internal fun HoursField(
     hours: String,
     onChange: (String) -> Unit,
 ) = OutlinedTextField(
@@ -221,7 +177,7 @@ private fun HoursField(
 )
 
 @Composable
-private fun Field(
+internal fun Field(
     value: String,
     label: Int,
     onChange: (String) -> Unit,
@@ -230,7 +186,7 @@ private fun Field(
 })
 
 @Composable
-private fun Check(
+internal fun Check(
     checked: Boolean,
     label: Int,
     onChange: (Boolean) -> Unit,
@@ -240,7 +196,6 @@ private fun Check(
 }
 
 private const val MAX_HOURS = 168.0
-private const val MAX_ANSWERS = 10
 private val FIELD_LABELS =
     mapOf(
         "link" to R.string.command_field_link,

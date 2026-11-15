@@ -62,6 +62,14 @@ internal fun Toolbar(
         IconButton(onClick = { commanding.pickImage(false) }) {
             Icon(painterResource(R.drawable.ic_image), stringResource(R.string.composer_image))
         }
+        commanding.images?.takePhoto?.let { take ->
+            IconButton(onClick = take) {
+                Icon(
+                    painterResource(R.drawable.ic_photo_camera),
+                    stringResource(R.string.composer_camera),
+                )
+            }
+        }
         commanding.named("gif")?.let { gif ->
             TextButton(onClick = { commanding.run(gif) }) {
                 Text(stringResource(R.string.composer_gif), fontWeight = FontWeight.Bold)

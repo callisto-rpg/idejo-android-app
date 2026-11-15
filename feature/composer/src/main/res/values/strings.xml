@@ -119,4 +119,11 @@ SPDX-License-Identifier: Apache-2.0
     <string name="new_topic_create">Create topic</string>
     <string name="new_topic_pending">“%1$s” waits for a moderator\'s approval.</string>
     <string name="new_topic_ok">OK</string>
+    <string name="command_poll_emoji">Emoji of answer %1$d</string>
+    <string name="command_poll_colour">Bar colour of answer %1$d</string>
+    <string name="command_poll_theme_colour">The theme\'s colour</string>
+    <string name="composer_image_refused">This picture cannot be sent here: JPEG, PNG, GIF or WebP, within the forum\'s size.</string>
+    <string name="composer_camera">Take a photo</string>
+    <string name="composer_paste_image">Paste image</string>
+    <string name="share_title">Share to</string>
 </resources>

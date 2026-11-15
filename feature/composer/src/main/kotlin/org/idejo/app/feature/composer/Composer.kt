@@ -100,6 +100,8 @@ interface ComposerBackend {
 
     suspend fun gifs(): ApiResult<GifSettings>
 
+    suspend fun server(): ApiResult<org.idejo.app.core.model.Server>
+
     /** The topic written in (its category, for **New topic**, CO-19). */
     suspend fun here(): ApiResult<Topic>
 }
@@ -170,6 +172,8 @@ class ApiComposerBackend(
     override suspend fun automessage(name: String) = calls.call { automessage(topicId, name) }
 
     override suspend fun gifs() = calls.call { gifs() }
+
+    override suspend fun server() = calls.call { server() }
 
     override suspend fun here() = calls.call { topic(topicId) }
 
@@ -317,6 +321,21 @@ class Composer(
             }
         }
     }
+
+    private var limits: UploadLimits? = null
+
+    /** What the forum takes (`GET /server`'s `upload_types`, `upload_max_bytes`, CO-14). */
+    suspend fun uploadLimits(): UploadLimits =
+        limits ?: backend
+            .server()
+            .getOrNull()
+            ?.settings
+            .let {
+                UploadLimits(it?.uploadMaxBytes, it?.uploadTypes.orEmpty())
+            }.also { limits = it }
+
+    /** A picture the forum would not take (CO-14). */
+    fun imageRefused() = dispatch(ComposerEvent.CommandFailed(ComposerError.ImageRefused))
 
     /** An image for the box (CO-14); null when refused, the server's reason shown. */
     suspend fun upload(

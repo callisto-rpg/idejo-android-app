@@ -47,6 +47,7 @@ internal fun rememberTopicWriting(
                 modifier,
                 onForward = { id -> onForward(id, viewModel.topicId) },
                 onNewTopic = onNewTopic,
+                takeShared = viewModel::takeShared,
             )
         },
     )

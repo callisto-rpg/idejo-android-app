@@ -3,7 +3,9 @@
 SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
 SPDX-License-Identifier: Apache-2.0
 -->
-<!-- What FileProvider may hand to another app: images the member shares (TV-25). -->
+<!-- What FileProvider may hand to another app: images the member shares (TV-25), and the
+     file the camera writes a photo for the composer into (CO-14). -->
 <paths>
     <cache-path name="shared" path="shared/" />
+    <cache-path name="camera" path="camera/" />
 </paths>

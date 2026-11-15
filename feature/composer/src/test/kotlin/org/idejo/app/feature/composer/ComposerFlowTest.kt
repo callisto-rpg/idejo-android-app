@@ -262,18 +262,29 @@ class ComposerFlowTest {
         }
 
     @Test
-    fun `CO-13 a poll goes under the message, what is new sent first`() =
+    fun `CO-13 a poll goes under the message, what is new sent first, emoji and colours kept`() =
         runTest {
             val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
             composer.typed("Which tomato")
             composer.poll(
                 org.idejo.app.core.model
-                    .PollCreate("Which?", listOf("Sungold", "Brandywine"), 2.0),
+                    .PollCreate(
+                        "Which?",
+                        listOf(
+                            org.idejo.app.core.model
+                                .PollAnswer("Sungold", "tada", "#fdd835"),
+                            org.idejo.app.core.model
+                                .PollAnswer("Brandywine"),
+                        ),
+                        2.0,
+                    ),
             )
             val id = composer.state.first { it.openMessageId != null }.openMessageId
             waitFor { fake.messages("t_1").firstOrNull { it.id == id && it.poll != null } }.let {
                 assertEquals("Which tomato.", it.bodyMd)
                 assertEquals(listOf("Sungold", "Brandywine"), it.poll!!.options.map { o -> o.text })
+                assertEquals("tada", it.poll!!.options[0].emoji)
+                assertEquals("#fdd835", it.poll!!.options[0].colour)
             }
         }
 
@@ -317,9 +328,18 @@ class ComposerFlowTest {
         }
 
     @Test
-    fun `CO-14 an image is uploaded and its Markdown comes back`() =
+    fun `CO-14 an image is uploaded and its Markdown comes back, within the forum's limits`() =
         runTest {
             val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            val limits = composer.uploadLimits()
+            assertEquals(org.idejo.app.core.testing.FAKE_UPLOAD_MAX_BYTES, limits.maxBytes)
+            assertTrue("png" in limits.types)
+            composer.imageRefused()
+            assertEquals(
+                ComposerError.ImageRefused,
+                composer.state.first { it.error != null }.error,
+            )
+            composer.errorSeen()
             val upload = composer.upload(byteArrayOf(1, 2, 3), "image.png", "image/png")
             assertTrue(upload!!.markdown.startsWith("![image](/uploads/"))
         }

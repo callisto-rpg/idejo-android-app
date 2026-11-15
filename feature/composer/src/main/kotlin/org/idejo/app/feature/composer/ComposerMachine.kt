@@ -46,6 +46,9 @@ sealed interface ComposerError {
 
     /** `!spoiler` with nothing written to hide (CO-13). */
     data object NothingToHide : ComposerError
+
+    /** A picture the forum does not take, or too large even made smaller (CO-14). */
+    data object ImageRefused : ComposerError
 }
 
 /** What the member sees of [problem]. */
