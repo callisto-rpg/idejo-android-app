@@ -265,6 +265,7 @@ private fun SidebarPage(
                 signedIn = shell.signedIn,
                 openTopic = shell.openTopic,
                 actions = actions,
+                conversations = shell.conversations,
                 contentPadding = WindowInsets(bottom = 24.dp).asPaddingValues(),
             )
         }

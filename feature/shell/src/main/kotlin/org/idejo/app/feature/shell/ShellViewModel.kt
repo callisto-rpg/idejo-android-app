@@ -21,6 +21,8 @@ import kotlinx.coroutines.launch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.AppChoices
+import org.idejo.app.core.data.ConversationsState
+import org.idejo.app.core.data.ForumConversations
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.ForumSidebar
@@ -47,6 +49,8 @@ data class ShellState(
     val openTopic: Topic? = null,
     /** The app's **Tutorial bubbles** choice (SH-21), the same in every forum. */
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
+    /** **Private Conversations** at the sidebar's foot (PC-01, SH-36). */
+    val conversations: ConversationsState = ConversationsState(),
 ) {
     val name: String get() = record.name
 
@@ -69,6 +73,7 @@ class ShellViewModel
         private val openTopic = MutableStateFlow<Topic?>(null)
         private val warned = MutableStateFlow<Warnings?>(null)
         private var sidebar: ForumSidebar? = null
+        private var conversations: ForumConversations? = null
         private var reading: Job? = null
 
         val state: StateFlow<ShellState?> =
@@ -89,6 +94,9 @@ class ShellViewModel
                 sidebar?.close()
                 sidebar = opened
                 opened.start()
+                conversations?.close()
+                val private = ForumConversations(session, viewModelScope).also { it.start() }
+                conversations = private
                 me.value = null
                 warned.value?.close()
                 val warnings = Warnings(session, viewModelScope).also { warned.value = it }
@@ -108,6 +116,8 @@ class ShellViewModel
                     ShellState(record, access, sidebar, me, topic)
                 }.combine(choices.tutorialBubbles) { shell, bubbles ->
                     shell.copy(tutorialBubbles = bubbles)
+                }.combine(private.state) { shell, private ->
+                    shell.copy(conversations = private)
                 }
             }
 
@@ -135,6 +145,7 @@ class ShellViewModel
 
         fun refresh() {
             sidebar?.refresh()
+            conversations?.refresh()
         }
 
         /** **I understand** on the warning card, or the card closed (TV-11). */
@@ -198,6 +209,7 @@ class ShellViewModel
 
         override fun onCleared() {
             sidebar?.close()
+            conversations?.close()
             warned.value?.close()
         }
 

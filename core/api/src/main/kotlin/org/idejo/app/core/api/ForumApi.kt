@@ -19,6 +19,8 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Conversation
+import org.idejo.app.core.model.ConversationStart
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifSettings
@@ -31,6 +33,7 @@ import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.PrivateMessagesChoice
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -287,6 +290,20 @@ class ForumApi(
     /** Who reacted to a message (MA-03). */
     suspend fun reactors(messageId: String): ApiResult<List<Reactor>> =
         call { reactors(messageId).data }
+
+    /** The member's private conversations (PC-01), the latest active first. */
+    suspend fun conversations(): ApiResult<List<Conversation>> = call { conversations().data }
+
+    /** One conversation's card: who it is with (PC-01). */
+    suspend fun conversation(id: String): ApiResult<Conversation> = call { conversation(id) }
+
+    /** **Private Message** (PC-03): the conversation with [userId], started or found. */
+    suspend fun startConversation(userId: String): ApiResult<Conversation> =
+        call { startConversation(ConversationStart(userId)) }
+
+    /** "Members can send me private messages" (PC-03). */
+    suspend fun acceptPrivateMessages(accepts: Boolean): ApiResult<Me> =
+        call { privateMessages(PrivateMessagesChoice(accepts)) }
 
     /** A message reported to the moderators (MA-04). */
     suspend fun report(

@@ -74,6 +74,8 @@ class TopicReader(
     private val topicId: String,
     private val scope: CoroutineScope,
     private val landing: String? = null,
+    /** A private conversation (PC-01): its channel is `conversation:<id>`. */
+    private val private: Boolean = false,
 ) {
     private val mutableState = MutableStateFlow(TopicState())
     val state: StateFlow<TopicState> = mutableState.asStateFlow()
@@ -91,7 +93,8 @@ class TopicReader(
     fun start() {
         load(landing)
         if (stream != null) return
-        val topic = session.events.topic(topicId)
+        val topic =
+            if (private) session.events.conversation(topicId) else session.events.topic(topicId)
         stream = topic
         listening = scope.launch { topic.events.collect { turns.withLock { live(it, topic) } } }
         topic.join()
@@ -279,7 +282,7 @@ class TopicReader(
         messageId: String?,
         end: Boolean = false,
     ) {
-        val topic = session.call { topic(topicId) }
+        val topic = session.call { topic(topicId) }.named()
         val window =
             session.call {
                 when {
@@ -308,6 +311,14 @@ class TopicReader(
                 landing = messageId ?: unread?.messageId,
                 loading = false,
             )
+    }
+
+    /** A conversation is named after the other participants, as on the web (PC-01). */
+    private suspend fun ApiResult<Topic>.named(): ApiResult<Topic> {
+        if (this !is ApiResult.Success || !value.private) return this
+        val card = session.call { conversation(topicId) }
+        val name = (card as? ApiResult.Success)?.value?.name?.takeIf { it.isNotBlank() }
+        return if (name == null) this else ApiResult.Success(value.copy(title = name))
     }
 
     private fun failed(problem: ApiProblem) {
@@ -480,6 +491,8 @@ class TopicReader(
                             muted = it.muted,
                             unreadCount = it.unreadCount,
                             mentionState = it.mentionState,
+                            // A conversation keeps the name it was given (PC-01).
+                            title = if (topic.private) it.title else topic.title,
                         )
                     } ?: topic,
             )

@@ -11,15 +11,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,21 +48,26 @@ import org.idejo.app.core.model.UserCard
 @Composable
 fun UserCardRoute(
     onClose: () -> Unit,
+    onConversation: (String) -> Unit,
     viewModel: UserCardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val opened by rememberUpdatedState(onConversation)
+    LaunchedEffect(state.conversation) { state.conversation?.let { opened(it) } }
     UserCardScreen(
         state,
         onIgnore = viewModel::ignore,
         onRetry = viewModel::load,
         onClose = onClose,
+        onMessage = viewModel::message,
     )
 }
 
 /**
  * The web's user card: picture, name and user tag, @username, roles, the bio (its first 200
  * characters as text when longer), and **Ignore** or **Stop ignoring** when the server lets
- * the member ignore them. **Private Message** comes with private conversations (M2).
+ * the member ignore them, and **Private Message** when they take private messages from the
+ * member (PC-03).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -69,6 +77,7 @@ fun UserCardScreen(
     onRetry: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    onMessage: () -> Unit = {},
 ) {
     Surface(
         modifier.fillMaxWidth().padding(16.dp),
@@ -78,7 +87,7 @@ fun UserCardScreen(
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val card = state.card
             when {
-                card != null -> Card(card, state, onIgnore)
+                card != null -> Card(card, state, onIgnore, onMessage)
                 state.loading -> MoreSpinner()
                 else -> state.problem?.let { ProblemRow(it, onRetry) }
             }
@@ -95,17 +104,25 @@ private fun Card(
     card: UserCard,
     state: UserCardUi,
     onIgnore: (Boolean) -> Unit,
+    onMessage: () -> Unit,
 ) = Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
     Head(card, state.origin)
     if (card.roles.isNotEmpty()) Roles(card)
     card.bioMd?.takeIf { it.isNotBlank() }?.let { Bio(it) }
-    card.ignoredByMe?.let { ignoring ->
-        OutlinedButton(onClick = { onIgnore(!ignoring) }, enabled = !state.busy) {
-            Text(stringResource(if (ignoring) R.string.user_unignore else R.string.user_ignore))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (card.mayMessage) {
+            Button(onClick = onMessage, enabled = !state.busy) {
+                Text(stringResource(R.string.user_private_message))
+            }
+        }
+        card.ignoredByMe?.let { ignoring ->
+            OutlinedButton(onClick = { onIgnore(!ignoring) }, enabled = !state.busy) {
+                Text(stringResource(if (ignoring) R.string.user_unignore else R.string.user_ignore))
+            }
         }
     }
-    if (state.problem != null && card.ignoredByMe != null) {
-        ProblemRow(state.problem, onRetry = { onIgnore(card.ignoredByMe != true) })
+    state.problem?.let { problem ->
+        ProblemRow(problem, onRetry = { onIgnore(card.ignoredByMe != true) })
     }
 }
 

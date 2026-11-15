@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** App settings in M1: the version and the licences (ST-23). */
+/** App settings: the private messages switch (PC-03), the version and the licences (ST-23). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w390dp-h844dp-xhdpi")
@@ -55,7 +55,7 @@ class AppSettingsTest {
     }
 
     @Test
-    fun `ST-23 about`() {
+    fun `ST-23 PC-03 about, and the private messages switch`() {
         for (dark in listOf(false, true)) {
             val mode = if (dark) "dark" else "light"
             captureRoboImage("src/test/screenshots/AppSettings_$mode.png", OPTIONS) {
@@ -68,6 +68,7 @@ class AppSettingsTest {
                                     Licence("Coil", "3.6.3", listOf("Apache-2.0")),
                                     Licence("commonmark-java", "0.32.0", listOf("BSD-2-Clause")),
                                 ),
+                                privateMessages = PrivateMessagesUi(accepts = true),
                             )
                         }
                     }

@@ -25,6 +25,8 @@ data class UserCardUi(
     val busy: Boolean = false,
     val problem: ApiProblem? = null,
     val origin: String = "",
+    /** The private conversation **Private Message** started or found (PC-03). */
+    val conversation: String? = null,
 )
 
 /** A user card (BR-09): `GET /users/{id}`, and **Ignore** or **Stop ignoring** (AC-06). */
@@ -52,6 +54,32 @@ class UserCardViewModel
         fun ignore(ignored: Boolean) {
             mutableState.update { it.copy(busy = true, problem = null) }
             viewModelScope.launch { done(session?.call { ignore(id, ignored) }) }
+        }
+
+        /** **Private Message** (PC-03): the conversation with them, started or found. */
+        fun message() {
+            mutableState.update { it.copy(busy = true, problem = null) }
+            viewModelScope.launch {
+                val result = session?.call { startConversation(id) }
+                mutableState.update {
+                    when (result) {
+                        is ApiResult.Success -> {
+                            it.copy(
+                                busy = false,
+                                conversation = result.value.id,
+                            )
+                        }
+
+                        is ApiResult.Failure -> {
+                            it.copy(busy = false, problem = result.problem)
+                        }
+
+                        null -> {
+                            it.copy(busy = false)
+                        }
+                    }
+                }
+            }
         }
 
         private fun done(result: ApiResult<UserCard>?) =

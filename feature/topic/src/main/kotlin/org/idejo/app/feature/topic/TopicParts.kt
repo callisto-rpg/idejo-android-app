@@ -83,23 +83,8 @@ internal fun Header(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (topic.followedByEveryone) {
-            Text(
-                stringResource(R.string.topic_followed_by_everyone),
-                style = IdejoTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else if (topic.followed) {
-            OutlinedButton(onClick = { actions.onFollow(false) }) {
-                Text(stringResource(R.string.topic_unfollow))
-            }
-        } else {
-            Button(
-                onClick = { actions.onFollow(true) },
-            ) { Text(stringResource(R.string.topic_follow)) }
-        }
-    }
+    // A private conversation is followed by both participants, always (PC-01).
+    if (!topic.private) Follow(topic, actions)
     continuedFrom?.let { ContinuedFromQuote(it, actions.onMessage) }
 }
 

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="conversations_title">Private Conversations</string>
+    <string name="conversations_none">No private conversations yet. Open someone\'s card, then Private Message.</string>
+    <string name="conversations_offline">You are offline.</string>
+    <string name="conversations_could_not_load">The conversations could not be loaded.</string>
+    <string name="conversations_try_again">Try again</string>
+    <string name="conversations_last">%1$s: %2$s</string>
+    <plurals name="conversations_new">
+        <item quantity="one">1 new</item>
+        <item quantity="other">%d new</item>
+    </plurals>
+</resources>

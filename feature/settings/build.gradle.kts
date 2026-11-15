@@ -7,6 +7,7 @@ plugins {
     id("idejo.android.feature")
     id("idejo.android.screenshots")
     id("idejo.serialization")
+    id("idejo.android.hilt")
 }
 
 android {
@@ -15,4 +16,7 @@ android {
 
 dependencies {
     implementation(project(":core:data"))
+    implementation(libs.androidx.hilt.viewmodel.compose)
+
+    testImplementation(project(":core:testing"))
 }
