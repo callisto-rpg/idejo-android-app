@@ -508,7 +508,15 @@ class FakeIdejo(
                     ok(
                         record.topic
                             .seenBy(call.viewer)
-                            .copy(firstMessageId = record.messages.firstOrNull()?.id),
+                            .copy(
+                                firstMessageId = record.messages.firstOrNull()?.id,
+                                myLastMessageId =
+                                    record.messages
+                                        .lastOrNull {
+                                            it.author.id == call.viewer?.id &&
+                                                it.state != MessageState.Deleted
+                                        }?.id,
+                            ),
                     )
                 }
                     ?: notFound()

@@ -463,6 +463,7 @@ falls back as stated.
 | IX-10 | A tag may belong to several categories; `GET /tags` gives each tag its `category_ids` (empty: every category), as the web groups Filter by tag (callisto-rpg/Idejo#363) | BR-04 | One list of tags, without categories |
 | IX-11 | Each message gives `moved_after`, the messages a moderator moved away from below it (`topic_id`, `title`, `count`, `new_topic`), for the web's banner (callisto-rpg/Idejo#364) | TV-02 | No banner where messages were moved from |
 | IX-12 | Each role of `GET /me` and user cards gives its `slug`, as a message's `+role` mention names it, so the app knows which mentions are of the member's roles (callisto-rpg/Idejo#368) | TV-07 | Only @mentions glow; +role mentions do not |
+| IX-13 | `GET /topics/{id}` gives `my_last_message_id`: the reader's last message in the topic, not deleted, null without one (callisto-rpg/Idejo#369) | SH-04 | **My last message** is left out |
 
 ## 23. Non-functional requirements
 

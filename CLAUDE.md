@@ -290,6 +290,11 @@ Docker image) are added with them.
   “{topic}”" under its header, with the message's first words, from `GET /messages/{id}`
   and `GET /topics/{id}` (no new endpoint); hidden when the member may not view it or a
   moderator deleted it, as on the web.
+- 2026-11-15 — The jump button (SH-04) as the web's navigator: First message, First unread
+  (when something is unread), Last message, My last message (from the topic's
+  `my_last_message_id`, IX-13, callisto-rpg/Idejo#369; hidden on servers without it), then
+  the pinned messages (author and 60 characters). It shows once the header has scrolled
+  away; at ≥ 1200 dp it is a card beside the topic (SH-60).
 
 ## Milestones (spec §26)
 
@@ -306,8 +311,9 @@ Current milestone: **M1 — Read a forum** (in progress: core/data, onboarding, 
 markdown, browse: home, category, Filter by tag, Search, Unread, Rules & Roles, Help, the
 welcome and getting-started cards, the user card; topic: the page, its window, live
 changes and catch-up, the read position, replies, forwards, banners, polls; warnings,
-mention glows, inline cards, the image viewer, plugin blocks, "Continued from").
+mention glows, inline cards, the image viewer, plugin blocks, "Continued from", the jump
+button).
 The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
-window's counts), #363 (tags' categories), #364 (banners) and #368 (roles' slugs)
-(Steward decisions, 2026-11-14).
+window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs) and #369
+(the reader's last message) (Steward decisions, 2026-11-14 and 2026-11-15).

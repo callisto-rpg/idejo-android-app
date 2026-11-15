@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
@@ -27,6 +28,7 @@ import org.idejo.app.core.data.continuedFrom
 import org.idejo.app.core.data.mentionGlows
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.Message
 import javax.inject.Inject
 
 /** The topic page: its messages, and what draws them (the forum's address and emoji). */
@@ -40,6 +42,8 @@ data class TopicUi(
     val me: Me? = null,
     /** The message the topic was started from (idejo TP-09), when the member may view it. */
     val continuedFrom: ContinuedFrom? = null,
+    /** Messages pinned by moderators, for the jump button (SH-04). */
+    val pins: List<Message> = emptyList(),
 ) {
     /** The unread messages naming the member, glowing once reached (TV-07). */
     val glows: Map<String, Glow> by lazy { mentionGlows(topic.messages, topic.glowFrom, me) }
@@ -49,6 +53,7 @@ data class TopicUi(
  * The topic page (TV-01 to TV-12): the route's `id` is the topic, its `messageId` the message
  * to land on. The topic's channel stays joined while the page is on the back stack (TV-12).
  */
+@Suppress("TooManyFunctions") // One for each thing the page does, each a line.
 @HiltViewModel
 class TopicViewModel
     @Inject
@@ -57,34 +62,41 @@ class TopicViewModel
         sessions: SessionManager,
     ) : ViewModel() {
         private val session = sessions.active
+        private val topicId: String = checkNotNull(savedState["id"])
         private val reader: TopicReader? =
             session?.let {
                 TopicReader(
                     it,
-                    checkNotNull(savedState["id"]),
+                    topicId,
                     viewModelScope,
                     landing = savedState["messageId"],
                 )
             }
 
-        private val me = MutableStateFlow<Me?>(null)
-        private val continuedFrom = MutableStateFlow<ContinuedFrom?>(null)
+        /** What the page reads besides the window: the member, the source, the pins. */
+        private data class Extras(
+            val me: Me? = null,
+            val continuedFrom: ContinuedFrom? = null,
+            val pins: List<Message> = emptyList(),
+        )
+
+        private val extras = MutableStateFlow(Extras())
 
         val state: StateFlow<TopicUi> =
             combine(
                 reader?.state ?: flowOf(TopicState(loading = false, gone = true)),
                 session?.server ?: flowOf(null),
                 session?.access ?: flowOf(null),
-                me,
-                continuedFrom,
-            ) { topic, server, access, me, from ->
+                extras,
+            ) { topic, server, access, extra ->
                 TopicUi(
                     topic,
                     session?.origin.orEmpty(),
                     server?.emoji.orEmpty() + server?.defaultReactions.orEmpty(),
                     signedIn = access == Access.SignedIn,
-                    me = me.takeIf { access == Access.SignedIn },
-                    continuedFrom = from,
+                    me = extra.me.takeIf { access == Access.SignedIn },
+                    continuedFrom = extra.continuedFrom,
+                    pins = extra.pins,
                 )
             }.stateIn(viewModelScope, SharingStarted.Eagerly, TopicUi())
 
@@ -93,11 +105,31 @@ class TopicViewModel
             reader?.let { topics ->
                 viewModelScope.launch {
                     val topic = topics.state.mapNotNull { it.topic }.first()
-                    continuedFrom.value = session?.continuedFrom(topic)
+                    val from = session?.continuedFrom(topic)
+                    extras.update { it.copy(continuedFrom = from) }
+                }
+                viewModelScope.launch {
+                    val pins = session?.call { pins(topicId) }?.getOrNull().orEmpty()
+                    extras.update { it.copy(pins = pins) }
                 }
             }
             if (session?.access?.value == Access.SignedIn) {
-                viewModelScope.launch { me.value = session.call { me() }.getOrNull() }
+                viewModelScope.launch {
+                    val me = session.call { me() }.getOrNull()
+                    extras.update { it.copy(me = me) }
+                }
+            }
+        }
+
+        /**
+         * The jump button (SH-04): the window around [messageId], or, with null, at the first
+         * unread message.
+         */
+        fun jump(messageId: String?) {
+            if (messageId == null) {
+                reader?.load(null)
+            } else {
+                viewModelScope.launch { reader?.reach(messageId) }
             }
         }
 

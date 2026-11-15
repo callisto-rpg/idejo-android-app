@@ -99,4 +99,14 @@ class ContinuedFromTest {
             fake.deleteByModerator("m_1")
             assertNull(session.continuedFrom(session.call { topic(started.id) }.getOrNull()!!))
         }
+
+    @Test
+    fun `SH-04 IX-13 a topic gives the member's last message there`() =
+        runBlocking {
+            val session = signedIn()
+            assertNull(session.call { topic("t_1") }.getOrNull()!!.myLastMessageId)
+            val mine = fake.post(FakePeople.Ada, "t_1", "Count me in")
+            fake.post(FakePeople.Mina, "t_1", "Me too")
+            assertEquals(mine.id, session.call { topic("t_1") }.getOrNull()!!.myLastMessageId)
+        }
 }
