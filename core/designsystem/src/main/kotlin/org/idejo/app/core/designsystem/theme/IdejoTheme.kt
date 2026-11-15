@@ -5,10 +5,12 @@ package org.idejo.app.core.designsystem.theme
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
@@ -37,7 +39,11 @@ fun IdejoTheme(
         LocalReducedMotion provides reducedMotion,
         LocalDarkTheme provides darkTheme,
     ) {
-        MaterialTheme(colorScheme = scheme, typography = IdejoTypography, content = content)
+        MaterialTheme(colorScheme = scheme, typography = IdejoTypography) {
+            // Visible focus for keyboards (SH-62), over Material's ripple.
+            val focus = remember(scheme.primary) { FocusRing(ripple(), scheme.primary) }
+            CompositionLocalProvider(LocalIndication provides focus, content = content)
+        }
     }
 }
 

@@ -44,6 +44,7 @@ import org.idejo.app.core.designsystem.R
 import org.idejo.app.core.designsystem.theme.DotKind
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.onColorFor
+import org.idejo.app.core.designsystem.theme.onSecondaryClick
 
 /** One crumb of the breadcrumbs (SH-02). */
 @Immutable
@@ -195,10 +196,12 @@ private fun PageCrumb(
 ) {
     val clickable =
         if (crumb.onClick != null || crumb.onLongClick != null) {
-            Modifier.combinedClickable(
-                onClick = crumb.onClick ?: {},
-                onLongClick = crumb.onLongClick,
-            )
+            Modifier
+                .onSecondaryClick(crumb.onLongClick)
+                .combinedClickable(
+                    onClick = crumb.onClick ?: {},
+                    onLongClick = crumb.onLongClick,
+                )
         } else {
             Modifier
         }

@@ -92,7 +92,13 @@ fun ForumFrame(
     var overlay by rememberSaveable { mutableStateOf(Overlay.None) }
     var wholeTitle by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(place) { viewModel.at(place) }
-    BackHandler(enabled = overlay != Overlay.None) { overlay = Overlay.None }
+    // The sidebar's back is SidebarFrame's; the menus' is here.
+    BackHandler(enabled = overlay == Overlay.LogoMenu || overlay == Overlay.UserMenu) {
+        overlay = Overlay.None
+    }
+    val wide = wideWindow()
+    val fold = currentFold()
+    val docked = wide || fold != null
 
     val go: (Place) -> Unit = {
         overlay = Overlay.None
@@ -102,34 +108,33 @@ fun ForumFrame(
     val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Box(modifier.fillMaxSize()) {
-        Scaffold(
-            Modifier.nestedScroll(scroll.nestedScrollConnection),
+        SidebarFrame(
+            wide = wide,
+            fold = fold,
+            open = overlay == Overlay.Sidebar,
+            onOpen = { overlay = Overlay.Sidebar },
+            onClose = { overlay = Overlay.None },
             topBar = {
                 TopBar(
                     crumbs =
                         crumbs(shell, place, go, logo, { overlay = Overlay.LogoMenu }) {
                             wholeTitle = it
                         },
-                    onSidebarClick = { overlay = Overlay.Sidebar },
+                    onSidebarClick = if (docked) null else ({ overlay = Overlay.Sidebar }),
                     unread = unreadOf(shell) { go(Place.Unread) },
                     scrollBehavior = scroll,
                 ) {
                     Account(shell, onSignIn) { overlay = Overlay.UserMenu }
                 }
             },
-            containerColor = MaterialTheme.colorScheme.background,
-        ) { padding ->
-            Box(
-                Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .swipe(right = true) { overlay = Overlay.Sidebar },
-            ) { content() }
-        }
-
-        Slide(overlay == Overlay.Sidebar, horizontal = true) {
-            SidebarPage(shell, sidebarActions(viewModel, context, go)) { overlay = Overlay.None }
-        }
+            sidebar = { docked ->
+                SidebarPage(shell, sidebarActions(viewModel, context, go), docked) {
+                    overlay = Overlay.None
+                }
+            },
+            modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
+            page = content,
+        )
 
         Slide(overlay == Overlay.LogoMenu, horizontal = false) {
             LogoMenu(
@@ -236,31 +241,23 @@ private fun UserMenuPage(
     )
 }
 
-/** The sidebar over the whole screen (SH-30): a swipe to the left closes it, as back does. */
+/**
+ * The sidebar: over the whole screen with its title and close button (SH-30), or [docked]
+ * beside the page in an expanded window (SH-60), where it is always open.
+ */
 @Composable
 private fun SidebarPage(
     shell: ShellState,
     actions: SidebarActions,
+    docked: Boolean,
     onClose: () -> Unit,
 ) {
     Surface(
-        Modifier.fillMaxSize().swipe(right = false, onSwipe = onClose),
+        Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(Modifier.safeDrawingPadding()) {
-            Row(Modifier.fillMaxWidth().padding(4.dp)) {
-                Text(
-                    stringResource(R.string.sidebar_title),
-                    Modifier.weight(1f).padding(12.dp),
-                    style = IdejoTheme.typography.titleMedium,
-                )
-                IconButton(onClick = onClose) {
-                    Icon(
-                        painterResource(org.idejo.app.core.designsystem.R.drawable.ic_close),
-                        stringResource(R.string.close),
-                    )
-                }
-            }
+        Column(if (docked) Modifier else Modifier.safeDrawingPadding()) {
+            if (!docked) SidebarHead(onClose)
             Sidebar(
                 state = shell.sidebar,
                 folded = shell.record.folded,
@@ -269,6 +266,23 @@ private fun SidebarPage(
                 openTopic = shell.openTopic,
                 actions = actions,
                 contentPadding = WindowInsets(bottom = 24.dp).asPaddingValues(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SidebarHead(onClose: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(4.dp)) {
+        Text(
+            stringResource(R.string.sidebar_title),
+            Modifier.weight(1f).padding(12.dp),
+            style = IdejoTheme.typography.titleMedium,
+        )
+        IconButton(onClick = onClose) {
+            Icon(
+                painterResource(org.idejo.app.core.designsystem.R.drawable.ic_close),
+                stringResource(R.string.close),
             )
         }
     }
@@ -290,55 +304,3 @@ private fun WholeTitle(
         ) { Text(title, Modifier.padding(16.dp), style = IdejoTheme.typography.titleMedium) }
     }
 }
-
-/** A full-screen page sliding in from the left (the sidebar) or down from the top bar. */
-@Composable
-private fun Slide(
-    visible: Boolean,
-    horizontal: Boolean,
-    content: @Composable () -> Unit,
-) {
-    val reduced = IdejoTheme.reducedMotion
-    val enter: EnterTransition =
-        when {
-            reduced -> EnterTransition.None
-            horizontal -> slideInHorizontally { -it }
-            else -> slideInVertically { -it }
-        }
-    val exit: ExitTransition =
-        when {
-            reduced -> ExitTransition.None
-            horizontal -> slideOutHorizontally { -it }
-            else -> slideOutVertically { -it }
-        }
-    AnimatedVisibility(visible, enter = enter, exit = exit) { content() }
-}
-
-/**
- * A quick swipe to the [right] (or to the left) across the page, not from the screen's
- * edges, which belong to system back (SH-30). A child that scrolls sideways keeps its drags.
- */
-private fun Modifier.swipe(
-    right: Boolean,
-    onSwipe: () -> Unit,
-): Modifier =
-    pointerInput(right) {
-        val edge = EDGE.toPx()
-        val distance = SWIPE.toPx()
-        var travelled = 0f
-        var counted = false
-        detectHorizontalDragGestures(
-            onDragStart = { start ->
-                travelled = 0f
-                counted = start.x > edge && start.x < size.width - edge
-            },
-            onDragEnd = {
-                if (counted && (if (right) travelled > distance else travelled < -distance)) {
-                    onSwipe()
-                }
-            },
-        ) { _, delta -> travelled += delta }
-    }
-
-private val EDGE = 32.dp
-private val SWIPE = 72.dp
