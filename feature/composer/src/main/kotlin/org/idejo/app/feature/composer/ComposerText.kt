@@ -46,10 +46,15 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -83,6 +88,11 @@ internal fun textColors(glow: Float) =
         unsent = MaterialTheme.colorScheme.onSurfaceVariant,
         highlight = IdejoTheme.colors.unsentHighlight,
         glow = lerp(MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.primary, glow),
+        link = MaterialTheme.colorScheme.primary,
+        faded = MaterialTheme.colorScheme.onSurfaceVariant,
+        code = MaterialTheme.colorScheme.surfaceVariant,
+        marked = MaterialTheme.colorScheme.tertiaryContainer,
+        title = IdejoTheme.typography.titleLarge.fontSize,
     )
 
 /**
@@ -132,38 +142,79 @@ internal data class TextColors(
     val unsent: Color,
     val highlight: Color,
     val glow: Color,
+    val link: Color = sent,
+    val faded: Color = unsent,
+    val code: Color = highlight,
+    val marked: Color = highlight,
+    val title: TextUnit = TextUnit.Unspecified,
 )
 
-/** Sent text plain, unsent highlighted (CO-04); the characters never move. */
+/** How [mark] looks in the box (CO-11). */
+internal fun TextColors.style(mark: Mark): SpanStyle =
+    when (mark) {
+        Mark.Bold -> SpanStyle(fontWeight = FontWeight.Bold)
+        Mark.Italic -> SpanStyle(fontStyle = FontStyle.Italic)
+        Mark.Strike -> SpanStyle(textDecoration = TextDecoration.LineThrough)
+        Mark.Highlight -> SpanStyle(background = marked)
+        Mark.Code -> SpanStyle(fontFamily = FontFamily.Monospace, background = code)
+        Mark.Spoiler -> SpanStyle(color = faded)
+        Mark.Link -> SpanStyle(color = link, textDecoration = TextDecoration.Underline)
+        Mark.Title -> SpanStyle(fontWeight = FontWeight.SemiBold, fontSize = title)
+        Mark.Quote -> SpanStyle(color = faded, fontStyle = FontStyle.Italic)
+    }
+
+/**
+ * The box's text as it will look (CO-11), sent text plain and unsent highlighted (CO-04);
+ * with the [graphical] composer, finished Markdown signs hidden.
+ */
 internal class SentText(
     private val state: ComposerState,
     private val colors: TextColors,
+    private val graphical: Boolean = false,
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
+        val look = markdownLook(text.text, graphical)
+        val swapped = Swapped(text.text, look.swaps)
         val unsent = unsentRange(state.sent, text.text)
         val styled =
             buildAnnotatedString {
-                append(text.text)
+                append(swapped.shown)
+                val style = { span: SpanStyle, start: Int, end: Int ->
+                    val from = swapped.shown(start)
+                    val to = swapped.shown(end)
+                    if (to > from) addStyle(span, from, to)
+                }
+                look.styles.forEach { style(colors.style(it.mark), it.start, it.end) }
                 state.justSent?.let { range ->
                     if (range.last < text.length) {
-                        addStyle(SpanStyle(color = colors.glow), range.first, range.last + 1)
+                        style(SpanStyle(color = colors.glow), range.first, range.last + 1)
                     }
                 }
                 if (unsent != null && !unsent.isEmpty()) {
-                    addStyle(
+                    style(
                         SpanStyle(color = colors.unsent, background = colors.highlight),
                         unsent.first,
                         unsent.last + 1,
                     )
                 }
             }
-        return TransformedText(styled, OffsetMapping.Identity)
+        val mapping =
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int) = swapped.shown(offset)
+
+                override fun transformedToOriginal(offset: Int) = swapped.text(offset)
+            }
+        return TransformedText(styled, mapping)
     }
 
     override fun equals(other: Any?) =
-        other is SentText && other.state == state && other.colors == colors
+        other is SentText &&
+            other.state == state &&
+            other.colors == colors &&
+            other.graphical == graphical
 
-    override fun hashCode() = state.hashCode() * HASH + colors.hashCode()
+    override fun hashCode() =
+        (state.hashCode() * HASH + colors.hashCode()) * HASH + graphical.hashCode()
 }
 
 private const val GLOW_MILLIS = 1_000

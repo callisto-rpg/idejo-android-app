@@ -10,6 +10,7 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.ListBody
@@ -23,6 +24,7 @@ import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicUpdate
@@ -131,6 +133,18 @@ internal interface IdejoService {
     suspend fun deleteMessage(
         @Path("id") id: String,
     ): Message
+
+    @GET("emoji")
+    suspend fun emoji(
+        @Query("q") query: String?,
+    ): ListBody<Emoji>
+
+    @GET("suggest")
+    suspend fun suggest(
+        @Query("sigil") sign: String,
+        @Query("q") query: String,
+        @Query("topic_id") topicId: String?,
+    ): ListBody<Suggestion>
 
     @GET("forward-targets")
     suspend fun forwardTargets(

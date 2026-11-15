@@ -16,7 +16,9 @@ import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
+import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.ComposerState as ServerComposer
 
@@ -42,6 +44,15 @@ interface ComposerBackend {
     ): ApiResult<Message>
 
     suspend fun delete(id: String): ApiResult<Message>
+
+    /** What follows [sign] (CO-12). */
+    suspend fun suggest(
+        sign: Char,
+        query: String,
+    ): ApiResult<List<Suggestion>>
+
+    /** The emoji whose names hold [query] (CO-10). */
+    suspend fun emoji(query: String): ApiResult<List<Emoji>>
 }
 
 /** Something that calls a forum's API: its session, or in tests a bare client. */
@@ -71,6 +82,13 @@ class ApiComposerBackend(
     ) = calls.call { editMessage(id, bodyMd, finish) }
 
     override suspend fun delete(id: String) = calls.call { deleteMessage(id) }
+
+    override suspend fun suggest(
+        sign: Char,
+        query: String,
+    ) = calls.call { suggest(sign, query, topicId) }
+
+    override suspend fun emoji(query: String) = calls.call { emoji(query) }
 
     companion object {
         /** Through the forum's session, which notices a refused token (SI-09). */
@@ -139,6 +157,15 @@ class Composer(
     fun complete() = dispatch(ComposerEvent.Complete)
 
     fun errorSeen() = dispatch(ComposerEvent.ErrorSeen)
+
+    /** The suggestions after [sign] (CO-12); none on a failure. */
+    suspend fun suggestions(
+        sign: Char,
+        query: String,
+    ): List<Suggestion> = backend.suggest(sign, query).getOrNull().orEmpty()
+
+    /** The emoji picker's emoji (CO-10). */
+    suspend fun emoji(query: String): List<Emoji> = backend.emoji(query).getOrNull().orEmpty()
 
     /** **Reply** on [quote], above or below the open message (CO-16). */
     fun reply(

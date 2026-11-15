@@ -55,3 +55,14 @@ data class ForwardTarget(
     val private: Boolean = false,
     val place: String? = null,
 )
+
+/** What follows `@ + # / $ &` in the composer (`GET /suggest`, CO-12). */
+@Serializable
+data class Suggestion(
+    /** `user`, `role`, `topic`, `category`, `tag`, `forum`. */
+    val kind: String,
+    /** What goes after the sign. */
+    val insert: String,
+    val label: String,
+    val id: String? = null,
+)

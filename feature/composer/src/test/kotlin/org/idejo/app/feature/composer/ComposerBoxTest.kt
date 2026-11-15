@@ -11,16 +11,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.withKeyDown
 import org.idejo.app.core.model.ApiError
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.Suggestion
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,6 +45,12 @@ class ComposerBoxTest {
             onEnter = { did += "enter" },
             onComplete = { did += "complete" },
             onErrorSeen = { did += "seen" },
+            suggest = { sign, q ->
+                listOf(Suggestion("user", "ada", "Ada Lovelace", "u_1")).filter {
+                    sign == '@' &&
+                        "ada".startsWith(q)
+                }
+            },
         )
     private val ada = Me("u_1", "Ada Lovelace")
 
@@ -95,4 +105,55 @@ class ComposerBoxTest {
         rule.onNodeWithText("Dismiss").performClick()
         assertEquals(listOf("seen"), did)
     }
+
+    @Test
+    fun `CO-10 the paper plane sends, its menu starts a new message`() {
+        show(ComposerState(text = "Hi"))
+        rule.onNodeWithContentDescription("Send").performClick()
+        rule.onNodeWithContentDescription("Send").performTouchInput { longClick() }
+        rule.onNodeWithText("Send & start new message").performClick()
+        assertEquals(listOf("enter", "complete"), did)
+    }
+
+    @Test
+    fun `CO-10 while editing, the menu saves`() {
+        show(ComposerState(text = "Hi", editing = Editing("m_2", ComposerState())))
+        rule.onNodeWithContentDescription("Save").performTouchInput { longClick() }
+        rule.onNodeWithText("Save and end the edit").assertExists()
+    }
+
+    @Test
+    fun `CO-10 the pencil's Bulleted list`() {
+        show(ComposerState(text = "seeds"))
+        rule.onNodeWithContentDescription("Text controls").performClick()
+        rule.onNodeWithText("Bulleted list").performClick()
+        assertEquals("typed:- seeds", did.last())
+    }
+
+    @Test
+    fun `CO-12 suggestions after @, taken with the arrows and Enter`() {
+        show()
+        box().performTextInput("Hi @a")
+        rule.mainClock.advanceTimeBy(SUGGEST_WAIT)
+        rule.onNodeWithText("@ada").assertExists()
+        box().performKeyInput { pressKey(Key.Enter) }
+        assertEquals(did.toString(), "typed:Hi @ada ", did.last())
+        assertTrue("enter" !in did)
+    }
+
+    @Test
+    fun `CO-11 without the graphical composer, no buttons`() {
+        rule.setContent {
+            ComposerBox(
+                ComposerState(),
+                ada,
+                "https://garden.idejo.test",
+                events,
+                graphical = false,
+            )
+        }
+        rule.onNodeWithContentDescription("Send").assertDoesNotExist()
+    }
 }
+
+private const val SUGGEST_WAIT = 500L

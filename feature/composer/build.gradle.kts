@@ -13,6 +13,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.activity.compose)
     implementation(project(":core:data"))
     implementation(project(":core:markdown"))
     implementation(libs.androidx.hilt.viewmodel.compose)

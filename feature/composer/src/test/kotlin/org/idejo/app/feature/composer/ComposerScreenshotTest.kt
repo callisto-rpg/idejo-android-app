@@ -44,6 +44,16 @@ class ComposerScreenshotTest {
                     ComposerEvents(),
                 )
                 ComposerBox(ComposerState(committedId = "m_1"), ada, "", ComposerEvents())
+                // CO-11: finished Markdown as it will look.
+                ComposerBox(
+                    ComposerState(
+                        text = "# Seeds\n- **Sungold**, ~~Brandywine~~\n- ||a surprise||",
+                        sent = "x",
+                    ),
+                    ada,
+                    "",
+                    ComposerEvents(),
+                )
                 ComposerBox(
                     ComposerState(text = "Again", error = ComposerError.Unreachable),
                     ada,

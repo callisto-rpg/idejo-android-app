@@ -66,6 +66,11 @@ data class Me(
     /** The getting-started card is due (BR-11, IX-07); false from older servers. */
     @SerialName("intro_due") val introDue: Boolean = false,
     @SerialName("auto_punctuation") val autoPunctuation: Boolean = true,
+    /** "Use the graphical composer" (CO-10, IX-15); on where the server does not say. */
+    @SerialName("graphical_composer") val graphicalComposer: Boolean = true,
+    /** "Show message controls on mobile" (MA-01, IX-15). */
+    @SerialName("controls_on_mobile") val controlsOnMobile: Boolean = false,
+    @SerialName("controls_on_desktop") val controlsOnDesktop: Boolean = false,
     @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean = true,
     @SerialName("warning_pending") val warningPending: Boolean = false,
     val administrator: Boolean = false,

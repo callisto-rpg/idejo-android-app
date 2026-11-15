@@ -63,7 +63,9 @@ import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
 import org.idejo.app.core.model.ApiError
+import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.Me
+import org.idejo.app.core.model.Suggestion
 
 /** What the member does in the composer. */
 data class ComposerEvents(
@@ -78,6 +80,10 @@ data class ComposerEvents(
     val onAppendToOpen: () -> Unit = {},
     val onConfirmDelete: () -> Unit = {},
     val onCancelDelete: () -> Unit = {},
+    /** The suggestions after a sign (CO-12). */
+    val suggest: suspend (Char, String) -> List<Suggestion> = { _, _ -> emptyList() },
+    /** The emoji picker's search (CO-10). */
+    val emoji: suspend (String) -> List<Emoji> = { emptyList() },
 )
 
 /** The composer driven by [composer]: what the app places in the topic (CO-01). */
@@ -104,9 +110,12 @@ fun ComposerRoute(
             onAppendToOpen = composer::appendToOpen,
             onConfirmDelete = composer::confirmDelete,
             onCancelDelete = composer::cancelDelete,
+            suggest = composer::suggestions,
+            emoji = composer::emoji,
         ),
         modifier,
         bubbles,
+        graphical = author?.graphicalComposer != false,
     )
 }
 
@@ -123,7 +132,15 @@ fun ComposerBox(
     events: ComposerEvents,
     modifier: Modifier = Modifier,
     bubbles: TutorialBubbles = TutorialBubbles.All,
+    graphical: Boolean = true,
 ) {
+    var value by rememberFollowing(state.text)
+    val change = { next: TextFieldValue ->
+        value = next
+        events.onTyped(next.text)
+    }
+    val suggesting = rememberSuggesting(value, events.suggest)
+    var picking by remember { mutableStateOf(false) }
     Column(
         modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -131,7 +148,10 @@ fun ComposerBox(
         Head(state.status, author, origin)
         state.replying?.let { ReplyingBox(it, events.onCancelReply) }
         state.forwarding?.let { ForwardBox(it, state.sent.isEmpty(), events.onCancelForward) }
-        Editor(state, events)
+        Editor(state, value, events, graphical, suggesting, change)
+        SuggestionList(
+            suggesting,
+        ) { item -> suggesting.at?.let { change(value.accept(it, item.insert)) } }
         Tip(state, bubbles)
         state.line?.let { SlowModeLine(it, bubbles) }
         state.error?.let { error ->
@@ -141,6 +161,24 @@ fun ComposerBox(
             ErrorLine(error, events.onErrorSeen, if (append) events.onAppendToOpen else null)
         }
         if (state.confirmDelete) DeleteAsk(events)
+        if (graphical) {
+            Toolbar(
+                Tools({ value }, change, events, onEmoji = { picking = true }),
+                editing = state.editing != null,
+                waiting = { state.line?.done(System.currentTimeMillis()) == false },
+            )
+        }
+        if (picking) {
+            EmojiPicker(
+                origin,
+                events.emoji,
+                onPick = {
+                    picking = false
+                    change(value.insert(":${it.name}:"))
+                },
+                onDismiss = { picking = false },
+            )
+        }
     }
 }
 
@@ -196,11 +234,17 @@ private fun statusText(status: ComposerStatus): String? =
 @Composable
 private fun Editor(
     state: ComposerState,
+    value: TextFieldValue,
     events: ComposerEvents,
+    graphical: Boolean,
+    suggesting: Suggesting,
+    onChange: (TextFieldValue) -> Unit,
 ) {
-    var value by rememberFollowing(state.text)
     val colors = textColors(rememberGlow(state.justSent))
     val label = stringResource(R.string.composer_label)
+    val pick = { item: Suggestion ->
+        suggesting.at?.let { onChange(value.accept(it, item.insert)) }
+    }
     Box {
         if (value.text.isEmpty()) {
             Text(
@@ -212,11 +256,9 @@ private fun Editor(
         BasicTextField(
             value = value,
             onValueChange = { next ->
-                if (softReturn(value.text, next.text) != null) {
-                    events.onEnter()
-                } else {
-                    value = next
-                    events.onTyped(next.text)
+                when {
+                    softReturn(value.text, next.text) != null -> events.onEnter()
+                    else -> onChange(bulletRemoved(value, next) ?: next)
                 }
             },
             modifier =
@@ -224,14 +266,12 @@ private fun Editor(
                     .fillMaxWidth()
                     .semantics { contentDescription = label }
                     .onPreviewKeyEvent { key ->
-                        keys(key, events) {
-                            value = value.insert("\n")
-                            events.onTyped(value.text)
-                        }
+                        suggesting.key(key) { pick(it) } ||
+                            keys(key, events) { onChange(value.newLine()) }
                     },
             textStyle = IdejoTheme.typography.bodyLarge.copy(color = colors.sent),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            visualTransformation = SentText(state, colors),
+            visualTransformation = SentText(state, colors, graphical),
         )
     }
 }

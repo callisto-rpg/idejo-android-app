@@ -27,6 +27,7 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Discovery
+import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ErrorBody
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.IntroClose
@@ -47,6 +48,7 @@ import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.ServerSettings
+import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
@@ -586,6 +588,50 @@ class FakeIdejo(
             ) { call -> findMessage(call["id"])?.let(::ok) ?: notFound() },
             Route("PUT", "messages/{id}") { call -> editOwn(call) },
             Route("DELETE", "messages/{id}") { call -> deleteOwn(call) },
+            Route("GET", "emoji") { call ->
+                val q =
+                    call.request.url
+                        .queryParameter("q")
+                        .orEmpty()
+                ok(ListBody(FAKE_EMOJI.filter { q in it.name }))
+            },
+            Route("GET", "suggest") { call ->
+                val q =
+                    call.request.url
+                        .queryParameter("q")
+                        .orEmpty()
+                val people = listOf(FakePeople.Ada, FakePeople.Leo)
+                when (call.request.url.queryParameter("sigil")) {
+                    "@" -> {
+                        ok(
+                            ListBody(
+                                people
+                                    .filter {
+                                        it.username.orEmpty().startsWith(
+                                            q,
+                                            ignoreCase = true,
+                                        )
+                                    }.map {
+                                        Suggestion(
+                                            "user",
+                                            it.username.orEmpty(),
+                                            it.displayName,
+                                            it.id,
+                                        )
+                                    },
+                            ),
+                        )
+                    }
+
+                    null -> {
+                        error(HTTP_BAD_REQUEST, "invalid_request", "No sign.")
+                    }
+
+                    else -> {
+                        ok(ListBody(emptyList<Suggestion>()))
+                    }
+                }
+            },
             Route("GET", "forward-targets") { call ->
                 val except = call.request.url.queryParameter("except")
                 val q =
@@ -1572,3 +1618,11 @@ internal val output: Json =
         encodeDefaults = true
         explicitNulls = true
     }
+
+private val FAKE_EMOJI =
+    listOf(
+        Emoji("joy", "😂"),
+        Emoji("tada", "🎉"),
+        Emoji("+1", "👍"),
+        Emoji("agree", imageUrl = "/emoji/agree.png"),
+    )

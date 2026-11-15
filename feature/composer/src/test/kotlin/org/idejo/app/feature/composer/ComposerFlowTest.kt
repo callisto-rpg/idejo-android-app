@@ -152,4 +152,12 @@ class ComposerFlowTest {
             assertTrue(all.any { it.id == "t_1" })
             assertTrue(others.none { it.id == "t_1" })
         }
+
+    @Test
+    fun `CO-12 suggestions and emoji come from the forum`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            assertEquals(listOf("ada"), composer.suggestions('@', "ad").map { it.insert })
+            assertEquals(listOf("tada"), composer.emoji("tad").map { it.name })
+        }
 }

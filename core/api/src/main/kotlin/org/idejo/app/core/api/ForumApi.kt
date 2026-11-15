@@ -16,6 +16,7 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
@@ -28,6 +29,7 @@ import org.idejo.app.core.model.ReadPosition
 import org.idejo.app.core.model.RoleCard
 import org.idejo.app.core.model.SearchHit
 import org.idejo.app.core.model.Server
+import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicUpdate
@@ -145,6 +147,17 @@ class ForumApi(
 
     /** Deletes one's own message (CO-18), not a topic's first. */
     suspend fun deleteMessage(id: String): ApiResult<Message> = call { deleteMessage(id) }
+
+    /** Emoji by name (the emoji picker, CO-10). */
+    suspend fun emoji(query: String?): ApiResult<List<Emoji>> =
+        call { emoji(query?.ifBlank { null }).data }
+
+    /** The composer's suggestions after [sign] (CO-12), the recent ones first. */
+    suspend fun suggest(
+        sign: Char,
+        query: String,
+        topicId: String?,
+    ): ApiResult<List<Suggestion>> = call { suggest(sign.toString(), query, topicId).data }
 
     /** Where a message may be forwarded (CO-17), matching [query], leaving out [except]. */
     suspend fun forwardTargets(
