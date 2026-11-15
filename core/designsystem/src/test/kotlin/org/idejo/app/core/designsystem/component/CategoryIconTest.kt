@@ -54,7 +54,8 @@ class CategoryIconTest {
     fun `TH-05 groups pass their colour on, and rotate around their centre`() {
         val svg =
             """<svg viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#6567e7"/>""" +
-                """<g fill="#ffffff" transform="rotate(35 16 16)"><circle cx="16" cy="16" r="3"/>""" +
+                """<g fill="#ffffff" transform="rotate(35 16 16)">""" +
+                """<circle cx="16" cy="16" r="3"/>""" +
                 """<path d="M0 0 L4 4" fill="none" stroke="#6567E7" stroke-width="2"/></g></svg>"""
         val group = readIcon(svg)[1] as IconNode.Group
         assertEquals(listOf(35f, 16f, 16f), listOf(group.rotate, group.pivotX, group.pivotY))
