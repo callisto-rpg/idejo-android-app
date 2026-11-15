@@ -217,7 +217,7 @@ private fun MemberHead(
     }
 }
 
-/** SH-21: **Theme** (TH-03) and **Tutorial bubbles**, kept per forum. */
+/** SH-21: **Theme** (TH-03), kept per forum, and **Tutorial bubbles**, for the whole app. */
 @Composable
 private fun Preferences(
     themeMode: ThemeMode,

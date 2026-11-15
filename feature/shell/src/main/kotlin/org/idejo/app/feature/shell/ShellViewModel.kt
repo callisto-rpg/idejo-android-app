@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
+import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.ForumSidebar
@@ -44,6 +45,8 @@ data class ShellState(
     val me: Me? = null,
     /** The topic open, for the breadcrumbs and the sidebar (SH-02, SH-34). */
     val openTopic: Topic? = null,
+    /** The app's **Tutorial bubbles** choice (SH-21), the same in every forum. */
+    val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
 ) {
     val name: String get() = record.name
 
@@ -60,6 +63,7 @@ class ShellViewModel
     @Inject
     constructor(
         private val sessions: SessionManager,
+        private val choices: AppChoices,
     ) : ViewModel() {
         private val me = MutableStateFlow<Me?>(null)
         private val openTopic = MutableStateFlow<Topic?>(null)
@@ -102,6 +106,8 @@ class ShellViewModel
                     openTopic,
                 ) { record, access, sidebar, me, topic ->
                     ShellState(record, access, sidebar, me, topic)
+                }.combine(choices.tutorialBubbles) { shell, bubbles ->
+                    shell.copy(tutorialBubbles = bubbles)
                 }
             }
 
@@ -155,8 +161,9 @@ class ShellViewModel
 
         fun themeMode(mode: ThemeMode) = remember { it.copy(themeMode = mode) }
 
-        fun tutorialBubbles(choice: TutorialBubbles) =
-            remember { it.copy(tutorialBubbles = choice) }
+        fun tutorialBubbles(choice: TutorialBubbles) {
+            viewModelScope.launch { choices.tutorialBubbles(choice) }
+        }
 
         fun follow(
             topic: Topic,
