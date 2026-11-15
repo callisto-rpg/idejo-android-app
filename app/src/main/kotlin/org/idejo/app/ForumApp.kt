@@ -39,11 +39,13 @@ import org.idejo.app.feature.browse.SearchRoute
 import org.idejo.app.feature.browse.TagsRoute
 import org.idejo.app.feature.browse.UnreadRoute
 import org.idejo.app.feature.browse.UserCardRoute
+import org.idejo.app.feature.composer.ForwardRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
 import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
+import org.idejo.app.feature.shell.ForwardDialog
 import org.idejo.app.feature.shell.InlineCardDialog
 import org.idejo.app.feature.shell.Place
 import org.idejo.app.feature.shell.UserCardDialog
@@ -107,13 +109,7 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
-            // A user card (BR-09): a name in a topic opens it.
-            dialog<UserCardDialog>(
-                dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
-            ) {
-                UserCardRoute(onClose = { navigation.popBackStack() })
-            }
-            inlineCard(navigation)
+            cards(navigation)
         }
         // Over every page; a new one for each forum and each sign-in.
         MemberCards(
@@ -122,6 +118,30 @@ fun ForumApp(
         )
     }
 }
+
+/** The cards over a page: a user's, an inline link's, the forward card. */
+private fun NavGraphBuilder.cards(navigation: NavHostController) {
+    // A user card (BR-09): a name in a topic opens it.
+    dialog<UserCardDialog>(
+        dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        UserCardRoute(onClose = { navigation.popBackStack() })
+    }
+    inlineCard(navigation)
+    forwardCard(navigation)
+}
+
+/** The forward card (CO-17): the target chosen opens with the message over its composer. */
+private fun NavGraphBuilder.forwardCard(navigation: NavHostController) =
+    dialog<ForwardDialog> { entry ->
+        ForwardRoute(
+            onPick = { target ->
+                val forward = entry.toRoute<ForwardDialog>().messageId
+                navigation.popBackStack()
+                navigation.go(Place.Topic(target.id, forward = forward))
+            },
+        )
+    }
 
 /** An inline link's card (TV-22): each way out closes it first. */
 private fun NavGraphBuilder.inlineCard(navigation: NavHostController) =
@@ -172,7 +192,12 @@ private fun NavGraphBuilder.topicPage(
                 }
             },
             onTopic = { id, messageId -> navigation.go(Place.Topic(id, messageId)) },
-            writing = rememberTopicWriting(),
+            writing =
+                rememberTopicWriting(
+                    onForward = { message ->
+                        navigation.navigate(ForwardDialog(message.id, message.topicId))
+                    },
+                ),
         )
     }
 }

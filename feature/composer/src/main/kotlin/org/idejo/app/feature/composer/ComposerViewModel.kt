@@ -59,8 +59,16 @@ class ComposerViewModel
 
         init {
             composer?.refresh()
+            // A message forwarded here from the forward card (CO-17), once.
+            val forward: String? = savedState["forward"]
+            if (forward != null && savedState.get<Boolean>(FORWARDED) != true) {
+                savedState[FORWARDED] = true
+                composer?.forward(forward)
+            }
             session?.let { forum ->
                 viewModelScope.launch { mutableMe.value = forum.call { me() }.getOrNull() }
             }
         }
     }
+
+private const val FORWARDED = "forwarded"

@@ -28,12 +28,14 @@ import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.ErrorBody
+import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageRef
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
@@ -582,6 +584,23 @@ class FakeIdejo(
                 "GET",
                 "messages/{id}",
             ) { call -> findMessage(call["id"])?.let(::ok) ?: notFound() },
+            Route("PUT", "messages/{id}") { call -> editOwn(call) },
+            Route("DELETE", "messages/{id}") { call -> deleteOwn(call) },
+            Route("GET", "forward-targets") { call ->
+                val except = call.request.url.queryParameter("except")
+                val q =
+                    call.request.url
+                        .queryParameter("q")
+                        .orEmpty()
+                ok(
+                    ListBody(
+                        topics.values
+                            .map { it.topic }
+                            .filter { it.id != except && it.title.contains(q, ignoreCase = true) }
+                            .map { ForwardTarget(it.id, it.title, "$address/t/${it.id}") },
+                    ),
+                )
+            },
             Route("PUT", "polls/{id}/vote") { call -> vote(call) },
             Route(
                 "GET",
@@ -715,6 +734,35 @@ class FakeIdejo(
         val record = topics[call["id"]] ?: return notFound()
         val person = call.viewer ?: return unauthenticated()
         return handle(record, person)
+    }
+
+    /** `PUT /messages/{id}` (CO-18): the author's closed message, its whole text. */
+    private fun editOwn(call: Call): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val record = topics.values.firstOrNull { r -> r.messages.any { it.id == call["id"] } }
+        val message = record?.messages?.first { it.id == call["id"] } ?: return notFound()
+        if (message.author.id != person.id) return error(HTTP_FORBIDDEN, "forbidden", "Not yours.")
+        val edit = IdejoJson.decodeFromString<MessageEdit>(call.request.body?.utf8() ?: "{}")
+        return ok(
+            replace(record, message.id, "message.edited") {
+                it.copy(bodyMd = edit.bodyMd, edited = it.edited || edit.bodyMd != it.bodyMd)
+            },
+        )
+    }
+
+    /** `DELETE /messages/{id}` (CO-18): the author's own, never a topic's first. */
+    private fun deleteOwn(call: Call): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val record = topics.values.firstOrNull { r -> r.messages.any { it.id == call["id"] } }
+        val message = record?.messages?.first { it.id == call["id"] } ?: return notFound()
+        if (message.author.id != person.id || record.messages.first().id == message.id) {
+            return error(HTTP_FORBIDDEN, "forbidden", "You cannot delete this message.")
+        }
+        return ok(
+            replace(record, message.id, "message.deleted") {
+                it.copy(state = MessageState.Deleted, deletedBy = "author")
+            },
+        )
     }
 
     private fun pins(topicId: String): MockResponse {

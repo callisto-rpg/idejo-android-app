@@ -14,6 +14,7 @@ android {
 
 dependencies {
     implementation(project(":core:data"))
+    implementation(project(":core:markdown"))
     implementation(libs.androidx.hilt.viewmodel.compose)
     implementation(libs.coil.compose)
 

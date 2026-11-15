@@ -16,9 +16,11 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Poll
@@ -133,6 +135,22 @@ class ForumApi(
         topicId: String,
         commit: Commit,
     ): ApiResult<CommitResult> = call { commit(topicId, commit) }
+
+    /** Edits one's closed message (CO-18); [finish] ends the edit (Ctrl+Enter). */
+    suspend fun editMessage(
+        id: String,
+        bodyMd: String,
+        finish: Boolean,
+    ): ApiResult<Message> = call { editMessage(id, MessageEdit(bodyMd, finish)) }
+
+    /** Deletes one's own message (CO-18), not a topic's first. */
+    suspend fun deleteMessage(id: String): ApiResult<Message> = call { deleteMessage(id) }
+
+    /** Where a message may be forwarded (CO-17), matching [query], leaving out [except]. */
+    suspend fun forwardTargets(
+        query: String? = null,
+        except: String? = null,
+    ): ApiResult<List<ForwardTarget>> = call { forwardTargets(query, except).data }
 
     suspend fun tags(): ApiResult<List<Tag>> = call { tags().data }
 

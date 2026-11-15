@@ -17,6 +17,7 @@ import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.ComposerState as ServerComposer
 
 /** How long "sent & committed" shows (CO-05). */
@@ -31,6 +32,16 @@ interface ComposerBackend {
     suspend fun commit(commit: Commit): ApiResult<CommitResult>
 
     suspend fun message(id: String): ApiResult<Message>
+
+    suspend fun topic(id: String): ApiResult<Topic>
+
+    suspend fun edit(
+        id: String,
+        bodyMd: String,
+        finish: Boolean,
+    ): ApiResult<Message>
+
+    suspend fun delete(id: String): ApiResult<Message>
 }
 
 /** Something that calls a forum's API: its session, or in tests a bare client. */
@@ -50,6 +61,16 @@ class ApiComposerBackend(
     override suspend fun commit(commit: Commit) = calls.call { commit(topicId, commit) }
 
     override suspend fun message(id: String) = calls.call { message(id) }
+
+    override suspend fun topic(id: String) = calls.call { topic(id) }
+
+    override suspend fun edit(
+        id: String,
+        bodyMd: String,
+        finish: Boolean,
+    ) = calls.call { editMessage(id, bodyMd, finish) }
+
+    override suspend fun delete(id: String) = calls.call { deleteMessage(id) }
 
     companion object {
         /** Through the forum's session, which notices a refused token (SI-09). */
@@ -81,6 +102,7 @@ class ApiComposerBackend(
  * The composer of one topic: [ComposerMachine]'s state, and its effects run against
  * [backend] in [scope]. The screen sends what the member did and draws [state].
  */
+@Suppress("TooManyFunctions") // One for each thing the member does, each a line.
 class Composer(
     private val backend: ComposerBackend,
     private val scope: CoroutineScope,
@@ -118,6 +140,35 @@ class Composer(
 
     fun errorSeen() = dispatch(ComposerEvent.ErrorSeen)
 
+    /** **Reply** on [quote], above or below the open message (CO-16). */
+    fun reply(
+        quote: Quoted,
+        markdown: String,
+        above: Boolean,
+    ) = dispatch(ComposerEvent.Reply(quote, markdown, above))
+
+    fun cancelReply() = dispatch(ComposerEvent.CancelReply)
+
+    /** Forwards message [messageId] from here (CO-17): it shows whole above the box. */
+    fun forward(messageId: String) {
+        scope.launch {
+            val message = backend.message(messageId).getOrNull() ?: return@launch
+            val title = backend.topic(message.topicId).getOrNull()?.title
+            dispatch(ComposerEvent.Forward(Forwarding(message, title)))
+        }
+    }
+
+    fun cancelForward() = dispatch(ComposerEvent.CancelForward)
+
+    fun appendToOpen() = dispatch(ComposerEvent.AppendToOpen)
+
+    /** **Edit** one's closed [message] (CO-18). */
+    fun edit(message: Message) = dispatch(ComposerEvent.Edit(message))
+
+    fun confirmDelete() = dispatch(ComposerEvent.ConfirmDelete)
+
+    fun cancelDelete() = dispatch(ComposerEvent.CancelDelete)
+
     private fun dispatch(event: ComposerEvent) {
         var effects = emptyList<ComposerEffect>()
         mutableState.update { state ->
@@ -139,6 +190,38 @@ class Composer(
                 ComposerEffect.Typing -> {
                     backend.typing().getOrNull()?.let {
                         dispatch(ComposerEvent.Server(it, atMillis = clock()))
+                    }
+                }
+
+                is ComposerEffect.SaveEdit -> {
+                    val attempt = Commit(effect.bodyMd, effect.finish)
+                    when (
+                        val result =
+                            backend.edit(
+                                effect.messageId,
+                                effect.bodyMd,
+                                effect.finish,
+                            )
+                    ) {
+                        is ApiResult.Success -> {
+                            dispatch(ComposerEvent.Edited(result.value, effect.finish))
+                        }
+
+                        is ApiResult.Failure -> {
+                            dispatch(ComposerEvent.Failed(attempt, result.problem))
+                        }
+                    }
+                }
+
+                is ComposerEffect.Delete -> {
+                    when (val result = backend.delete(effect.messageId)) {
+                        is ApiResult.Success -> {
+                            dispatch(ComposerEvent.Deleted)
+                        }
+
+                        is ApiResult.Failure -> {
+                            dispatch(ComposerEvent.Failed(Commit(""), result.problem))
+                        }
                     }
                 }
 

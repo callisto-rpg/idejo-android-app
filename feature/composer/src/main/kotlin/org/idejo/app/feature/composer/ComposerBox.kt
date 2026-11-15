@@ -62,6 +62,7 @@ import org.idejo.app.core.designsystem.component.StatusBubble
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
+import org.idejo.app.core.model.ApiError
 import org.idejo.app.core.model.Me
 
 /** What the member does in the composer. */
@@ -71,6 +72,12 @@ data class ComposerEvents(
     val onEnter: () -> Unit = {},
     val onComplete: () -> Unit = {},
     val onErrorSeen: () -> Unit = {},
+    val onCancelReply: () -> Unit = {},
+    val onCancelForward: () -> Unit = {},
+    /** **Append to my message** after `too_soon` (CO-16). */
+    val onAppendToOpen: () -> Unit = {},
+    val onConfirmDelete: () -> Unit = {},
+    val onCancelDelete: () -> Unit = {},
 )
 
 /** The composer driven by [composer]: what the app places in the topic (CO-01). */
@@ -92,6 +99,11 @@ fun ComposerRoute(
             onEnter = composer::enter,
             onComplete = composer::complete,
             onErrorSeen = composer::errorSeen,
+            onCancelReply = composer::cancelReply,
+            onCancelForward = composer::cancelForward,
+            onAppendToOpen = composer::appendToOpen,
+            onConfirmDelete = composer::confirmDelete,
+            onCancelDelete = composer::cancelDelete,
         ),
         modifier,
         bubbles,
@@ -117,10 +129,18 @@ fun ComposerBox(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Head(state.status, author, origin)
+        state.replying?.let { ReplyingBox(it, events.onCancelReply) }
+        state.forwarding?.let { ForwardBox(it, state.sent.isEmpty(), events.onCancelForward) }
         Editor(state, events)
         Tip(state, bubbles)
         state.line?.let { SlowModeLine(it, bubbles) }
-        state.error?.let { ErrorLine(it, events.onErrorSeen) }
+        state.error?.let { error ->
+            val append =
+                state.draftOver != null &&
+                    (error as? ComposerError.Refused)?.error?.code == ApiError.TOO_SOON
+            ErrorLine(error, events.onErrorSeen, if (append) events.onAppendToOpen else null)
+        }
+        if (state.confirmDelete) DeleteAsk(events)
     }
 }
 
@@ -170,6 +190,7 @@ private fun statusText(status: ComposerStatus): String? =
         ComposerStatus.Sent -> stringResource(R.string.composer_sent)
         ComposerStatus.SentAppendsUnsent -> stringResource(R.string.composer_appends)
         ComposerStatus.SentAndCommitted -> stringResource(R.string.composer_committed)
+        ComposerStatus.Editing -> null
     }
 
 @Composable
@@ -267,6 +288,7 @@ private fun Hint(text: String) =
 private fun ErrorLine(
     error: ComposerError,
     onDismiss: () -> Unit,
+    onAppend: (() -> Unit)?,
 ) {
     val text =
         when (error) {
@@ -289,6 +311,9 @@ private fun ErrorLine(
             style = IdejoTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
+        if (onAppend != null) {
+            TextButton(onClick = onAppend) { Text(stringResource(R.string.composer_append)) }
+        }
         TextButton(onClick = onDismiss) { Text(stringResource(R.string.composer_error_dismiss)) }
     }
 }

@@ -104,4 +104,52 @@ class ComposerFlowTest {
             // The server closes it after 30 s without the channel (invariant 7), not the app.
             assertEquals(MessageState.Open, fake.messages("t_1").first { it.id == id }.state)
         }
+
+    @Test
+    fun `CO-18 an edit is saved with PUT, and ending it brings the composer back`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.typed("Hi")
+            composer.complete()
+            composer.state.first { it.committedId != null }
+            val closed = fake.messages("t_1").last()
+
+            composer.edit(closed)
+            composer.typed("Hi there")
+            composer.complete()
+            composer.state.first { it.editing == null }
+            assertEquals("Hi there", fake.messages("t_1").last().bodyMd)
+        }
+
+    @Test
+    fun `CO-18 an emptied edit deletes the message once confirmed`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.typed("Oops")
+            composer.complete()
+            composer.state.first { it.committedId != null }
+            val closed = fake.messages("t_1").last()
+
+            composer.edit(closed)
+            composer.typed("")
+            composer.enter()
+            composer.state.first { it.confirmDelete }
+            composer.confirmDelete()
+            composer.state.first { it.editing == null }
+            assertEquals(MessageState.Deleted, fake.messages("t_1").last().state)
+        }
+
+    @Test
+    fun `CO-17 the forward card's targets, the topic left out`() =
+        runTest {
+            val all = (api.forwardTargets() as org.idejo.app.core.api.ApiResult.Success).value
+            val others =
+                (
+                    api.forwardTargets(
+                        except = "t_1",
+                    ) as org.idejo.app.core.api.ApiResult.Success
+                ).value
+            assertTrue(all.any { it.id == "t_1" })
+            assertTrue(others.none { it.id == "t_1" })
+        }
 }

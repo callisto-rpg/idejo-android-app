@@ -10,10 +10,12 @@ import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
+import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
+import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.Poll
@@ -118,6 +120,23 @@ internal interface IdejoService {
         @Path("id") id: String,
         @Body commit: Commit,
     ): CommitResult
+
+    @PUT("messages/{id}")
+    suspend fun editMessage(
+        @Path("id") id: String,
+        @Body edit: MessageEdit,
+    ): Message
+
+    @DELETE("messages/{id}")
+    suspend fun deleteMessage(
+        @Path("id") id: String,
+    ): Message
+
+    @GET("forward-targets")
+    suspend fun forwardTargets(
+        @Query("q") query: String?,
+        @Query("except") except: String?,
+    ): ListBody<ForwardTarget>
 
     @GET("tags")
     suspend fun tags(): ListBody<Tag>

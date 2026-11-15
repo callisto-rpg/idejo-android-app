@@ -38,3 +38,20 @@ data class CommitResult(
     val message: Message? = null,
     val composer: ComposerState,
 )
+
+/** `PUT /messages/{id}`: the whole text of one's closed message; `finish` ends the edit. */
+@Serializable
+data class MessageEdit(
+    @SerialName("body_md") val bodyMd: String,
+    val finish: Boolean = false,
+)
+
+/** A topic or private conversation to forward to (`GET /forward-targets`, CO-17). */
+@Serializable
+data class ForwardTarget(
+    val id: String,
+    val title: String,
+    val url: String? = null,
+    val private: Boolean = false,
+    val place: String? = null,
+)

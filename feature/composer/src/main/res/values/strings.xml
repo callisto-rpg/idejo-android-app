@@ -35,4 +35,20 @@ SPDX-License-Identifier: Apache-2.0
     <string name="composer_tip_sent">Sent!</string>
     <string name="composer_tip_visible">Message now visible to all!</string>
     <string name="composer_tip_continue">Continue typing to add to your message</string>
+    <!-- CO-16: Reply. -->
+    <string name="composer_replying">Replying to %1$s:</string>
+    <string name="composer_cancel_reply">Cancel reply</string>
+    <string name="composer_append">Append to my message</string>
+    <string name="composer_spoiler">(spoiler)</string>
+    <string name="composer_spoiler_label">(spoiler: %1$s)</string>
+    <!-- CO-17: Forward. -->
+    <string name="composer_forwarded">%1$s message forwarded from %2$s</string>
+    <string name="composer_forwarded_here">%1$s message forwarded</string>
+    <string name="composer_cancel_forward">Cancel forward</string>
+    <string name="forward_title">Forward</string>
+    <string name="forward_search">Find a topic</string>
+    <!-- CO-18: an emptied edit. -->
+    <string name="composer_delete_ask">Are you sure you want to delete your own message?</string>
+    <string name="composer_yes">Yes</string>
+    <string name="composer_no">No</string>
 </resources>
