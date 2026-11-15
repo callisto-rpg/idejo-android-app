@@ -31,8 +31,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.idejo.app.core.api.Gif
+import org.idejo.app.core.api.GifPage
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Command
+import org.idejo.app.core.model.GifConfig
 import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.Scheduled
 import org.idejo.app.core.model.Suggestion
@@ -54,6 +57,12 @@ data class CommandEvents(
     val onForward: (String) -> Unit = {},
     val upload: suspend (ByteArray, String, String) -> Upload? = { _, _, _ -> null },
     val onCancelScheduled: (String) -> Unit = {},
+    /** GIFs' provider, null while they are off (CO-15). */
+    val gifConfig: suspend () -> GifConfig? = { null },
+    val gifPage: suspend (String?, Int) -> GifPage? = { _, _ -> null },
+    val onGifPicked: (Gif, String?) -> Unit = { _, _ -> },
+    /** `!new-topic`, with `!new-topic:Title:`'s title (CO-19). */
+    val onNewTopic: (String?) -> Unit = {},
 )
 
 /** A command's dialog open over the box. */
@@ -70,6 +79,10 @@ internal sealed interface Asking {
     data class AltText(
         val markdown: String,
     ) : Asking
+
+    data class Gifs(
+        val config: GifConfig,
+    ) : Asking
 }
 
 /** The commands run from the box: `!` typed, picked, or the toolbar's **+** (CO-13). */
@@ -82,6 +95,9 @@ internal class Commanding(
 ) {
     var asking by mutableStateOf<Asking?>(null)
     var list by mutableStateOf(emptyList<Command>())
+
+    /** The GIF provider, once known to be on (CO-15). */
+    var gifs by mutableStateOf<GifConfig?>(null)
 
     /** Opens the photo picker; the picture goes at the end or at the caret. */
     var pickImage: (atEnd: Boolean) -> Unit = {}
@@ -117,27 +133,24 @@ internal class Commanding(
         command: Command,
         argument: String? = null,
     ) {
+        when (command.name) {
+            "image" -> pickImage(true)
+            "gif" -> gifs?.let { asking = Asking.Gifs(it) }
+            "schedule" -> asking = Asking.Schedule
+            "poll" -> asking = Asking.Poll
+            "spoiler" -> events.onSpoiler(argument)
+            "forward" -> replying()?.let(events.onForward)
+            "new-topic" -> events.onNewTopic(argument)
+            else -> runPlugin(command, argument)
+        }
+    }
+
+    /** A plugin or an automessage of the forum. */
+    private fun runPlugin(
+        command: Command,
+        argument: String?,
+    ) {
         when {
-            command.name == "image" -> {
-                pickImage(true)
-            }
-
-            command.name == "schedule" -> {
-                asking = Asking.Schedule
-            }
-
-            command.name == "poll" -> {
-                asking = Asking.Poll
-            }
-
-            command.name == "spoiler" -> {
-                events.onSpoiler(argument)
-            }
-
-            command.name == "forward" -> {
-                replying()?.let(events.onForward)
-            }
-
             command.block == "collapse" -> {
                 change(value().atLineStart("!${command.name} "))
             }
@@ -154,6 +167,17 @@ internal class Commanding(
                 asking = Asking.Plugin(command, argument)
             }
         }
+    }
+
+    /** A GIF chosen: its Markdown at the caret, then the provider told. */
+    fun gifPicked(
+        gif: Gif,
+        query: String?,
+        label: String,
+    ) {
+        asking = null
+        change(value().insert(gifMarkdown(gif, label)))
+        events.onGifPicked(gif, query)
     }
 
     /** An uploaded picture's Markdown in the box, then its description asked. */
@@ -192,7 +216,12 @@ internal fun rememberCommanding(
 ): Commanding {
     val commanding = remember { Commanding(events, value, change, replying) }
     val source by rememberUpdatedState(events.commands)
-    LaunchedEffect(Unit) { commanding.list = source() }
+    val gifSource by rememberUpdatedState(events.gifConfig)
+    LaunchedEffect(Unit) {
+        val gifs = gifSource()
+        commanding.gifs = gifs
+        commanding.list = source().filter { it.name != "gif" || gifs != null }
+    }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var atEnd by remember { mutableStateOf(true) }
@@ -233,7 +262,8 @@ private fun read(
 }
 
 /** Commands that run at the closing colon of `!command:argument:`. */
-private fun runsTyped(command: Command) = command.name == "spoiler" || command.kind == "plugin"
+private fun runsTyped(command: Command) =
+    command.name == "spoiler" || command.name == "new-topic" || command.kind == "plugin"
 
 /** The open dialog, if any. */
 @Composable
@@ -268,6 +298,16 @@ internal fun CommandDialogs(
 
         is Asking.AltText -> {
             AltTextDialog({ commanding.described(asking.markdown, it) }, close)
+        }
+
+        is Asking.Gifs -> {
+            val label = stringResource(R.string.composer_gif)
+            GifPicker(
+                asking.config,
+                events.gifPage,
+                { gif, query -> commanding.gifPicked(gif, query, label) },
+                close,
+            )
         }
     }
 }
@@ -328,7 +368,7 @@ internal fun TextFieldValue.appendLine(markdown: String): TextFieldValue {
 }
 
 private val TYPED = Regex("""(?:^|\s)!([a-z0-9-]+):([^:\n]+):$""")
-private val MORE = setOf("spoiler", "poll", "schedule", "forward")
+private val MORE = setOf("spoiler", "poll", "schedule", "forward", "new-topic")
 private const val EXCERPT = 60
 private val WHEN =
     DateTimeFormatter

@@ -21,6 +21,7 @@ import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ForwardTarget
+import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Message
@@ -40,6 +41,9 @@ import org.idejo.app.core.model.SpoilerSet
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicCreate
+import org.idejo.app.core.model.TopicCreated
+import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.Upload
@@ -226,6 +230,28 @@ class ForumApi(
 
     suspend fun commands(topicId: String): ApiResult<List<Command>> =
         call { commands(topicId).data }
+
+    /** Whether GIFs are on, and the provider the app calls itself (CO-15). */
+    suspend fun gifs(): ApiResult<GifSettings> = call { gifs() }
+
+    /**
+     * The icons a topical topic takes (CO-19). The API files them under the `moderate`
+     * scope, which every token of the app has; the server checks no role for the list.
+     */
+    suspend fun topicIcons(): ApiResult<List<TopicIcon>> = call { topicIcons().data }
+
+    /** A new topic (CO-19); continuing from message [from] when given. */
+    suspend fun createTopic(
+        body: TopicCreate,
+        from: String? = null,
+    ): ApiResult<TopicCreated> =
+        call {
+            if (from != null) {
+                forkTopic(from, body)
+            } else {
+                createTopic(requireNotNull(body.categoryId), body.copy(categoryId = null))
+            }
+        }
 
     /** An image for the composer (CO-14): JPEG, PNG, GIF or WebP, as multipart `image`. */
     suspend fun upload(

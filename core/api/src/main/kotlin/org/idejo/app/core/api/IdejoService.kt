@@ -13,6 +13,7 @@ import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ForwardTarget
+import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
@@ -33,6 +34,9 @@ import org.idejo.app.core.model.SpoilerSet
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicCreate
+import org.idejo.app.core.model.TopicCreated
+import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicUpdate
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.Upload
@@ -234,6 +238,24 @@ internal interface IdejoService {
     suspend fun removeRole(
         @Path("id") id: String,
     ): Me
+
+    @GET("topic-icons")
+    suspend fun topicIcons(): ListBody<TopicIcon>
+
+    @GET("gifs")
+    suspend fun gifs(): GifSettings
+
+    @POST("categories/{id}/topics")
+    suspend fun createTopic(
+        @Path("id") categoryId: String,
+        @Body body: TopicCreate,
+    ): TopicCreated
+
+    @POST("messages/{id}/new-topic")
+    suspend fun forkTopic(
+        @Path("id") messageId: String,
+        @Body body: TopicCreate,
+    ): TopicCreated
 
     @Multipart
     @POST("uploads")

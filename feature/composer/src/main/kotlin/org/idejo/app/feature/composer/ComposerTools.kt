@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import org.idejo.app.core.designsystem.theme.onSecondaryClick
@@ -44,8 +46,8 @@ internal class Tools(
 
 /**
  * The graphical composer's row under the box (CO-10): the smiley and the pencil at the left,
- * the paper plane at the right, its menu on a long-press or a right-click. The picture, GIF
- * and **+** come with images and commands (CO-13 to CO-15).
+ * the picture, GIF (while on) and **+** after them; the paper plane at the right, its menu on
+ * a long-press or a right-click (CO-13 to CO-15).
  */
 @Composable
 internal fun Toolbar(
@@ -59,6 +61,11 @@ internal fun Toolbar(
     tools.commanding?.let { commanding ->
         IconButton(onClick = { commanding.pickImage(false) }) {
             Icon(painterResource(R.drawable.ic_image), stringResource(R.string.composer_image))
+        }
+        commanding.named("gif")?.let { gif ->
+            TextButton(onClick = { commanding.run(gif) }) {
+                Text(stringResource(R.string.composer_gif), fontWeight = FontWeight.Bold)
+            }
         }
     }
     Pencil(tools)

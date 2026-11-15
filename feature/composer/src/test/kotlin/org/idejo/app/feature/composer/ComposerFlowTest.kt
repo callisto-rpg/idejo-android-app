@@ -20,7 +20,8 @@ import org.junit.Test
 class ComposerFlowTest {
     private val fake = FakeIdejo()
     private val token = fake.tokenFor(FakePeople.Ada)
-    private val api = ForumApi(fake.address, "/api/v1", { token }, IdejoHttp.forLocalTesting())
+    private val http = IdejoHttp.forLocalTesting()
+    private val api = ForumApi(fake.address, "/api/v1", { token }, http)
 
     @After
     fun stop() = fake.close()
@@ -29,7 +30,8 @@ class ComposerFlowTest {
     fun `CO-02 typing, Enter, Enter, then Enter three times grows and completes a message`() =
         runTest {
             var now = 0L
-            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope) { now }
+            val composer =
+                Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope, clock = { now })
 
             composer.typed("Hi")
             composer.state.first { it.server?.typingSince != null }
@@ -163,12 +165,100 @@ class ComposerFlowTest {
         }
 
     @Test
-    fun `CO-13 the commands of the topic, those to come later left out`() =
+    fun `CO-13 the commands of the topic`() =
         runTest {
             val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
             val names = composer.commands().map { it.name }
-            assertTrue("poll" in names && "youtube" in names)
-            assertTrue("gif" !in names && "new-topic" !in names)
+            assertTrue(listOf("poll", "youtube", "gif", "new-topic").all { it in names })
+        }
+
+    @Test
+    fun `CO-15 GIFs only while the forum has them on, with a provider the app knows`() =
+        runTest {
+            val off = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope) { null }
+            assertNull(off.gifConfig())
+            val config =
+                org.idejo.app.core.model
+                    .GifConfig("klipy", "k", name = "KLIPY")
+            FakeIdejo(
+                settings =
+                    org.idejo.app.core.testing
+                        .FakeSettings(gifs = config),
+            ).use {
+                val other = ForumApi(it.address, "/api/v1", { it.tokenFor(FakePeople.Ada) }, http)
+                val known = { _: String? ->
+                    org.idejo.app.core.api
+                        .Klipy(http)
+                }
+                val on =
+                    Composer(
+                        ApiComposerBackend.of(other, "t_1"),
+                        backgroundScope,
+                        gifSearch = known,
+                    )
+                assertEquals("KLIPY", on.gifConfig()?.name)
+                val unknown =
+                    Composer(ApiComposerBackend.of(other, "t_1"), backgroundScope) { null }
+                assertNull(unknown.gifConfig())
+            }
+        }
+
+    @Test
+    fun `CO-19 new topic starts from the open message, what is new sent first`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.typed("Seeds deserve their own topic")
+            var start: NewTopicStart? = null
+            composer.newTopic(null) { start = it }
+            val id = composer.state.first { it.openMessageId != null }.openMessageId
+            val started = waitFor { start }
+            assertEquals("c_veg", started.categoryId)
+            assertEquals(id, started.from)
+            assertEquals("Seeds deserve their own topic.", started.body)
+        }
+
+    @Test
+    fun `CO-19 a topic is created, continuing from a message, or waits for approval`() =
+        runTest {
+            val composer = Composer(ApiComposerBackend.of(api, "t_1"), backgroundScope)
+            composer.typed("Seeds")
+            composer.complete()
+            val from = requireNotNull(composer.state.first { it.committedId != null }.committedId)
+            val newTopic =
+                NewTopic(
+                    ApiNewTopicBackend.of(api),
+                    backgroundScope,
+                    NewTopicForm(categoryId = "c_veg", from = from, body = "Seeds."),
+                )
+            newTopic.form.first { it.categories.isNotEmpty() }
+            newTopic.change { it.copy(title = "Seeds") }
+            assertTrue(!newTopic.form.value.ready)
+            newTopic.change { it.copy(tagIds = setOf("g_seeds")) }
+            newTopic.create()
+            val created = newTopic.form.first { it.created != null }.created!!
+            val topic = (api.topic(created) as org.idejo.app.core.api.ApiResult.Success).value
+            assertEquals(from, topic.continuesFrom?.messageId)
+
+            fake.addCategory(
+                org.idejo.app.core.model.Category(
+                    "c_new",
+                    "Newcomers",
+                    "newcomers",
+                    newTopics = "approval",
+                    permissions =
+                        org.idejo.app.core.model
+                            .CategoryPermissions(createTopic = true),
+                ),
+            )
+            val waiting =
+                NewTopic(
+                    ApiNewTopicBackend.of(api),
+                    backgroundScope,
+                    NewTopicForm(categoryId = "c_new", title = "Hello", body = "Hi."),
+                )
+            waiting.form.first { it.ready }
+            waiting.create()
+            assertEquals("Hello", waiting.form.first { it.pending != null }.pending)
         }
 
     @Test

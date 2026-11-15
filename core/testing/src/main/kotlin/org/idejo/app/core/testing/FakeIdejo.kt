@@ -30,6 +30,8 @@ import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ErrorBody
 import org.idejo.app.core.model.ForwardTarget
+import org.idejo.app.core.model.GifConfig
+import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.ListBody
@@ -41,6 +43,7 @@ import org.idejo.app.core.model.MessageRef
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PendingTopic
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PluginBlock
 import org.idejo.app.core.model.PluginRun
@@ -60,6 +63,9 @@ import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
+import org.idejo.app.core.model.TopicCreate
+import org.idejo.app.core.model.TopicCreated
+import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicPreview
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UnreadCounter
@@ -599,6 +605,18 @@ class FakeIdejo(
             Route("PUT", "messages/{id}") { call -> editOwn(call) },
             Route("DELETE", "messages/{id}") { call -> deleteOwn(call) },
             Route("GET", "topics/{id}/commands") { ok(ListBody(FAKE_COMMANDS)) },
+            Route("GET", "topic-icons") {
+                ok(ListBody(listOf(TopicIcon("i_seed", "seedling"), TopicIcon("i_sun", "sun"))))
+            },
+            Route("GET", "gifs") { ok(GifSettings(settings.gifs != null, settings.gifs)) },
+            Route("POST", "categories/{id}/topics") { call -> startTopic(call, call["id"], null) },
+            Route("POST", "messages/{id}/new-topic") { call ->
+                val body =
+                    IdejoJson.decodeFromString<TopicCreate>(
+                        call.request.body?.utf8() ?: "{}",
+                    )
+                startTopic(call, body.categoryId.orEmpty(), call["id"])
+            },
             Route("POST", "uploads") { call ->
                 if (call.viewer == null) return@Route unauthenticated()
                 val id = "up_" + nextId++
@@ -895,6 +913,52 @@ class FakeIdejo(
                 it.copy(bodyMd = edit.bodyMd, edited = it.edited || edit.bodyMd != it.bodyMd)
             },
         )
+    }
+
+    /** `POST /categories/{id}/topics` and a message's `new-topic` (CO-19). */
+    private fun startTopic(
+        call: Call,
+        categoryId: String,
+        from: String?,
+    ): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val category = category(categoryId) ?: return notFound()
+        val body = IdejoJson.decodeFromString<TopicCreate>(call.request.body?.utf8() ?: "{}")
+        val problem =
+            when {
+                !category.permissions.createTopic -> return error(
+                    HTTP_FORBIDDEN,
+                    "forbidden",
+                    "Not here.",
+                )
+
+                body.title.isBlank() -> "Give the topic a title."
+
+                category.tags.isNotEmpty() && body.tagIds.isEmpty() -> "Choose at least one tag."
+
+                else -> null
+            }
+        if (problem != null) return error(HTTP_UNPROCESSABLE_ENTITY, "invalid_request", problem)
+        if (category.newTopics == "approval") {
+            return ok(TopicCreated(pending = PendingTopic("pt_" + nextId++, body.title)))
+        }
+        val tags = category.tags.filter { it.id in body.tagIds }
+        val topic =
+            addTopic(body.title, categoryId, person, tags).copy(
+                continuesFrom =
+                    from?.let {
+                        org.idejo.app.core.model
+                            .MessageRef(it)
+                    },
+            )
+        val record = topics.getValue(topic.id)
+        record.topic = topic
+        replace(
+            record,
+            record.messages.first().id,
+            "message.edited",
+        ) { it.copy(bodyMd = body.bodyMd) }
+        return ok(TopicCreated(topic))
     }
 
     /** A change to the viewer's own message [call]'s `{id}` (CO-13). */

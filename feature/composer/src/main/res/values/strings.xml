@@ -102,4 +102,21 @@ SPDX-License-Identifier: Apache-2.0
     <!-- CO-20 -->
     <string name="scheduled_at">Scheduled for %1$s</string>
     <string name="scheduled_cancel">Cancel</string>
+    <string name="composer_gif">GIF</string>
+    <string name="composer_gif_pill">GIF: %1$s</string>
+    <string name="composer_gif_search">Search GIFs</string>
+    <string name="composer_gif_by">GIFs by %1$s</string>
+    <string name="composer_gif_failed">The GIFs could not be loaded.</string>
+    <string name="new_topic">New topic</string>
+    <string name="new_topic_title">Title</string>
+    <string name="new_topic_category">Choose a category</string>
+    <string name="new_topic_tags">Tags (at least one)</string>
+    <string name="new_topic_topical">Topical (about a topic, not a person)</string>
+    <string name="new_topic_icon">Icon</string>
+    <string name="new_topic_write">Write</string>
+    <string name="new_topic_preview">Preview</string>
+    <string name="new_topic_message">First message</string>
+    <string name="new_topic_create">Create topic</string>
+    <string name="new_topic_pending">“%1$s” waits for a moderator\'s approval.</string>
+    <string name="new_topic_ok">OK</string>
 </resources>

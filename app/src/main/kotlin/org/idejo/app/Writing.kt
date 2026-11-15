@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.idejo.app.core.model.Message
 import org.idejo.app.feature.composer.ComposerRoute
 import org.idejo.app.feature.composer.ComposerViewModel
+import org.idejo.app.feature.composer.NewTopicStart
 import org.idejo.app.feature.composer.rememberReply
 import org.idejo.app.feature.topic.TopicWriting
 
@@ -21,6 +22,8 @@ import org.idejo.app.feature.topic.TopicWriting
 internal fun rememberTopicWriting(
     /** The forward card for a message ([id], [topic id]) (CO-17). */
     onForward: (String, String) -> Unit,
+    /** **New topic** from the topic (CO-19). */
+    onNewTopic: (NewTopicStart) -> Unit,
     viewModel: ComposerViewModel = hiltViewModel(),
 ): TopicWriting {
     val composer = viewModel.composer ?: return TopicWriting()
@@ -43,6 +46,7 @@ internal fun rememberTopicWriting(
                 bubbles,
                 modifier,
                 onForward = { id -> onForward(id, viewModel.topicId) },
+                onNewTopic = onNewTopic,
             )
         },
     )

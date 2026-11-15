@@ -98,6 +98,7 @@ fun ComposerRoute(
     bubbles: TutorialBubbles,
     modifier: Modifier = Modifier,
     onForward: (String) -> Unit = {},
+    onNewTopic: (NewTopicStart) -> Unit = {},
 ) {
     val state by composer.state.collectAsStateWithLifecycle()
     val scheduled by composer.scheduled.collectAsStateWithLifecycle()
@@ -129,6 +130,10 @@ fun ComposerRoute(
                     onForward = onForward,
                     upload = composer::upload,
                     onCancelScheduled = composer::cancelScheduled,
+                    gifConfig = composer::gifConfig,
+                    gifPage = composer::gifPage,
+                    onGifPicked = composer::gifShared,
+                    onNewTopic = { title -> composer.newTopic(title, onNewTopic) },
                 ),
         ),
         modifier,
@@ -175,7 +180,16 @@ fun ComposerBox(
         Head(state.status, author, origin)
         state.replying?.let { ReplyingBox(it, events.onCancelReply) }
         state.forwarding?.let { ForwardBox(it, state.sent.isEmpty(), events.onCancelForward) }
-        Editor(state, value, events, graphical, suggesting, pick, commanding::typed)
+        Editor(
+            state,
+            value,
+            events,
+            graphical,
+            suggesting,
+            pick,
+            commanding::typed,
+            commanding.gifs?.hosts.orEmpty(),
+        )
         SuggestionList(suggesting) { pick(it) }
         ScheduledList(scheduled, events.commands.onCancelScheduled)
         CommandDialogs(commanding, events.commands)
@@ -277,6 +291,7 @@ private fun Editor(
     suggesting: Suggesting,
     pick: (Suggestion) -> Unit,
     onChange: (TextFieldValue) -> Unit,
+    gifHosts: List<String> = emptyList(),
 ) {
     val colors = textColors(rememberGlow(state.justSent))
     val label = stringResource(R.string.composer_label)
@@ -311,7 +326,11 @@ private fun Editor(
                     state,
                     colors,
                     graphical,
-                    stringResource(R.string.composer_image_pill),
+                    Pills(
+                        stringResource(R.string.composer_image_pill),
+                        stringResource(R.string.composer_gif_pill),
+                        gifHosts,
+                    ),
                 ),
         )
     }
@@ -371,24 +390,7 @@ private fun ErrorLine(
     onDismiss: () -> Unit,
     onAppend: (() -> Unit)?,
 ) {
-    val text =
-        when (error) {
-            is ComposerError.Refused -> {
-                val seconds = error.retryAfter?.seconds?.toInt()
-                listOfNotNull(
-                    error.error.message.ifBlank { null },
-                    seconds?.let { pluralStringResource(R.plurals.composer_retry_after, it, it) },
-                ).joinToString(" ")
-            }
-
-            ComposerError.Unreachable -> {
-                stringResource(R.string.composer_unreachable)
-            }
-
-            ComposerError.NothingToHide -> {
-                stringResource(R.string.composer_nothing_to_hide)
-            }
-        }
+    val text = errorText(error)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text,

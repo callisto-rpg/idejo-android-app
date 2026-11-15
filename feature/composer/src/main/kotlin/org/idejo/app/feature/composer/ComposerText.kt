@@ -172,10 +172,10 @@ internal class SentText(
     private val state: ComposerState,
     private val colors: TextColors,
     private val graphical: Boolean = false,
-    private val imageLabel: String = "image: %1\$s",
+    private val pills: Pills = Pills(),
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
-        val look = markdownLook(text.text, graphical) { imageLabel.format(it) }
+        val look = markdownLook(text.text, graphical, pills)
         val swapped = Swapped(text.text, look.swaps)
         val unsent = unsentRange(state.sent, text.text)
         val styled =
@@ -214,7 +214,7 @@ internal class SentText(
             other.state == state &&
             other.colors == colors &&
             other.graphical == graphical &&
-            other.imageLabel == imageLabel
+            other.pills == pills
 
     override fun hashCode() =
         (state.hashCode() * HASH + colors.hashCode()) * HASH + graphical.hashCode()

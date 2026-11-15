@@ -63,4 +63,16 @@ class ComposerCommandsTest {
         val graphical = Swapped(text, markdownLook(text, graphical = true).swaps).shown
         assertEquals("Look image: ripe now", graphical)
     }
+
+    @Test
+    fun `CO-15 a GIF of the provider shows as the GIF pill, other pictures as they are`() {
+        val pills = Pills(gifHosts = listOf("https://static.klipy.com"))
+        val text = "![Cat](https://static.klipy.com/1.gif) ![x](https://elsewhere.org/1.gif)"
+        val shown = Swapped(text, markdownLook(text, graphical = false, pills).swaps).shown
+        assertEquals("GIF: Cat ![x](https://elsewhere.org/1.gif)", shown)
+        val gif =
+            org.idejo.app.core.api
+                .Gif("1", "cat", "A [cat]", "p", "https://f/1.gif")
+        assertEquals("![A  cat](https://f/1.gif)", gifMarkdown(gif, "GIF"))
+    }
 }

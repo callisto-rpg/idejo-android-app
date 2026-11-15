@@ -14,12 +14,17 @@ import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.ForumApi
+import org.idejo.app.core.api.Gif
+import org.idejo.app.core.api.GifPage
+import org.idejo.app.core.api.GifSearch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.model.Command
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.GifConfig
+import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.PollCreate
@@ -92,6 +97,11 @@ interface ComposerBackend {
     ): ApiResult<Message>
 
     suspend fun automessage(name: String): ApiResult<Message>
+
+    suspend fun gifs(): ApiResult<GifSettings>
+
+    /** The topic written in (its category, for **New topic**, CO-19). */
+    suspend fun here(): ApiResult<Topic>
 }
 
 /** Something that calls a forum's API: its session, or in tests a bare client. */
@@ -159,6 +169,10 @@ class ApiComposerBackend(
 
     override suspend fun automessage(name: String) = calls.call { automessage(topicId, name) }
 
+    override suspend fun gifs() = calls.call { gifs() }
+
+    override suspend fun here() = calls.call { topic(topicId) }
+
     companion object {
         /** Through the forum's session, which notices a refused token (SI-09). */
         fun of(
@@ -194,6 +208,8 @@ class Composer(
     private val backend: ComposerBackend,
     private val scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** The GIF provider's adapter, by its id (CO-15). */
+    private val gifSearch: (String?) -> GifSearch? = { null },
 ) {
     private val mutableState = MutableStateFlow(ComposerState())
     val state: StateFlow<ComposerState> = mutableState.asStateFlow()
@@ -346,6 +362,52 @@ class Composer(
         }
     }
 
+    private var gifSettings: GifSettings? = null
+
+    /** The GIF provider, while GIFs are on and the app knows it (CO-15). */
+    suspend fun gifConfig(): GifConfig? {
+        val settings = gifSettings ?: backend.gifs().getOrNull()?.also { gifSettings = it }
+        return settings?.config?.takeIf { settings.enabled && gifSearch(it.provider) != null }
+    }
+
+    suspend fun gifPage(
+        query: String?,
+        page: Int,
+    ): GifPage? {
+        val config = gifConfig() ?: return null
+        return gifSearch(config.provider)?.page(config, query, page)
+    }
+
+    /** A GIF chosen: the provider's share trigger (CO-15). */
+    fun gifShared(
+        gif: Gif,
+        query: String?,
+    ) {
+        scope.launch {
+            val config = gifConfig() ?: return@launch
+            gifSearch(config.provider)?.shared(config, gif, query)
+        }
+    }
+
+    /**
+     * `!new-topic` (CO-19): what is new sent first, then [open] gets where New topic starts:
+     * with the author's open message as its first message, continuing from the message
+     * replied to or that one; with [title] or nothing open, a topic of its own.
+     */
+    fun newTopic(
+        title: String?,
+        open: (NewTopicStart) -> Unit,
+    ) {
+        scope.launch {
+            val category = backend.here().getOrNull()?.categoryId
+            val flushed = if (title == null) flushed() ?: return@launch else Open(null)
+            val now = state.value
+            val from = flushed.value?.let { now.replying?.id ?: it }
+            val body = if (flushed.value != null) now.sent else ""
+            open(NewTopicStart(category, from, title, body))
+        }
+    }
+
     fun automessage(name: String) {
         scope.launch { backend.automessage(name).then {} }
     }
@@ -453,4 +515,13 @@ class Composer(
 }
 
 /** Commands that come with GIFs and New topic (CO-15, CO-19). */
-private val LATER = setOf("gif", "new-topic")
+private val LATER = emptySet<String>()
+
+/** Where **New topic** starts (CO-19). */
+data class NewTopicStart(
+    val categoryId: String?,
+    /** The message the topic continues from. */
+    val from: String?,
+    val title: String?,
+    val body: String,
+)

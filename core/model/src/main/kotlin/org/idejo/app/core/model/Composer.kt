@@ -119,3 +119,55 @@ data class PluginRun(
     @SerialName("message_id") val messageId: String? = null,
     @SerialName("reply_to") val replyTo: String? = null,
 )
+
+/** `GET /gifs` (CO-15): on, and the provider the app calls itself. */
+@Serializable
+data class GifSettings(
+    val enabled: Boolean = false,
+    val config: GifConfig? = null,
+)
+
+@Serializable
+data class GifConfig(
+    val provider: String? = null,
+    val key: String = "",
+    val filter: String? = null,
+    /** The provider's required wording for the search box, untranslated. */
+    val placeholder: String? = null,
+    /** Named under the results. */
+    val name: String? = null,
+    /** Where its GIFs load from: a GIF's Markdown shows as a "GIF:" pill. */
+    val hosts: List<String> = emptyList(),
+)
+
+/** A new topic (CO-19): in [categoryId], from a message when forked. */
+@Serializable
+data class TopicCreate(
+    val title: String,
+    @SerialName("body_md") val bodyMd: String,
+    @SerialName("tag_ids") val tagIds: List<String> = emptyList(),
+    @SerialName("icon_id") val iconId: String? = null,
+    val topical: Boolean = false,
+    @SerialName("category_id") val categoryId: String? = null,
+)
+
+/** The topic started, or the one waiting for a moderator's approval. */
+@Serializable
+data class TopicCreated(
+    val topic: Topic? = null,
+    val pending: PendingTopic? = null,
+)
+
+@Serializable
+data class PendingTopic(
+    val id: String? = null,
+    val title: String? = null,
+)
+
+/** An icon a topical topic may take (`GET /topic-icons`, CO-19). */
+@Serializable
+data class TopicIcon(
+    val id: String,
+    val name: String,
+    val url: String? = null,
+)

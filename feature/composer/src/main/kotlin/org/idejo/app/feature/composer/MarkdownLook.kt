@@ -43,7 +43,7 @@ internal data class Look(
 internal fun markdownLook(
     text: String,
     graphical: Boolean,
-    imageLabel: (String) -> String = { "image: $it" },
+    pills: Pills = Pills(),
 ): Look {
     val styles = mutableListOf<Styled>()
     val swaps = mutableListOf<Swap>()
@@ -53,13 +53,24 @@ internal fun markdownLook(
         inline(text, lineStart + body, lineStart + line.length, styles, swaps)
         lineStart += line.length + 1
     }
-    // An uploaded image shows as the web's "image:" pill, with or without the graphical
-    // composer (CO-14).
+    // An uploaded image shows as the web's "image:" pill, a GIF of the provider as its
+    // "GIF:" one, with or without the graphical composer (CO-14, CO-15).
     val images = mutableListOf<Swap>()
     for (found in IMAGE.findAll(text)) {
         val start = found.range.first
         val end = found.range.last + 1
-        images += Swap(start, end, imageLabel(found.groupValues[1].ifBlank { "image" }))
+        val alt = found.groupValues[1]
+        val label =
+            when {
+                found.groupValues[2].startsWith(
+                    "/uploads/",
+                ) -> pills.image.format(alt.ifBlank { "image" })
+
+                pills.isGif(found.groupValues[2]) -> pills.gif.format(alt.ifBlank { "GIF" })
+
+                else -> continue
+            }
+        images += Swap(start, end, label)
         styles.removeAll { it.start >= start && it.end <= end }
         styles += Styled(Mark.Image, start, end)
     }
@@ -197,7 +208,17 @@ internal class Swapped(
 }
 
 private val BLOCK = Regex("""^(#{1,3} |> ?|\s*[-*] |\s*\d+\. )""")
-private val IMAGE = Regex("""!\[([^\]\n]*)]\((/uploads/[^)\s]+)\)""")
+private val IMAGE = Regex("""!\[([^\]\n]*)]\((/uploads/[^)\s]+|https://[^)\s]+)\)""")
+
+/** The pills' wording, and where the GIF provider's files come from (`GET /gifs`). */
+internal data class Pills(
+    val image: String = "image: %1${'$'}s",
+    val gif: String = "GIF: %1${'$'}s",
+    val gifHosts: List<String> = emptyList(),
+) {
+    fun isGif(address: String) = gifHosts.any { address.startsWith("$it/") }
+}
+
 private val CODE = Regex("""`[^`\n]+`""")
 private val LINK = Regex("""\[([^\]\n]+)]\([^)\s]+\)""")
 private val WRAPS =

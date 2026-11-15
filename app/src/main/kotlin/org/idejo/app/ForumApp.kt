@@ -40,6 +40,7 @@ import org.idejo.app.feature.browse.TagsRoute
 import org.idejo.app.feature.browse.UnreadRoute
 import org.idejo.app.feature.browse.UserCardRoute
 import org.idejo.app.feature.composer.ForwardRoute
+import org.idejo.app.feature.composer.NewTopicRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
@@ -109,6 +110,7 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
+            newTopicPage(navigation) { content -> Page(session, signIn, content) }
             cards(navigation)
         }
         // Over every page; a new one for each forum and each sign-in.
@@ -195,7 +197,28 @@ private fun NavGraphBuilder.topicPage(
             writing =
                 rememberTopicWriting(
                     onForward = { id, topicId -> navigation.navigate(ForwardDialog(id, topicId)) },
+                    onNewTopic = { start ->
+                        navigation.go(
+                            Place.NewTopic(start.categoryId, start.from, start.title, start.body),
+                        )
+                    },
                 ),
+        )
+    }
+}
+
+/** **New topic** (CO-19): the topic started replaces it. */
+private fun NavGraphBuilder.newTopicPage(
+    navigation: NavHostController,
+    page: @Composable (@Composable () -> Unit) -> Unit,
+) = composable<Place.NewTopic> {
+    page {
+        NewTopicRoute(
+            onOpen = { id ->
+                navigation.popBackStack()
+                navigation.go(Place.Topic(id))
+            },
+            onDone = { navigation.popBackStack() },
         )
     }
 }
@@ -214,6 +237,7 @@ private fun NavBackStackEntry.place(): Place? =
         destination.hasRoute<Place.Category>() -> toRoute<Place.Category>()
         destination.hasRoute<Place.Topic>() -> toRoute<Place.Topic>()
         destination.hasRoute<Place.Tags>() -> toRoute<Place.Tags>()
+        destination.hasRoute<Place.NewTopic>() -> toRoute<Place.NewTopic>()
         else -> SIMPLE.firstOrNull { destination.hasRoute(it::class) }
     }
 

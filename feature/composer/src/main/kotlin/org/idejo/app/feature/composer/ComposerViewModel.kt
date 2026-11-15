@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import org.idejo.app.core.api.GifSearch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.AppChoices
@@ -33,13 +35,18 @@ class ComposerViewModel
         savedState: SavedStateHandle,
         sessions: SessionManager,
         choices: AppChoices,
+        http: OkHttpClient,
     ) : ViewModel() {
         private val session = sessions.active?.takeIf { it.access.value == Access.SignedIn }
         val topicId: String = checkNotNull(savedState["id"])
 
         /** Null for visitors: no composer. */
         val composer: Composer? =
-            session?.let { Composer(ApiComposerBackend.of(it, topicId), viewModelScope) }
+            session?.let {
+                Composer(ApiComposerBackend.of(it, topicId), viewModelScope) { provider ->
+                    GifSearch.of(http, provider)
+                }
+            }
 
         private val mutableMe = MutableStateFlow<Me?>(null)
 
