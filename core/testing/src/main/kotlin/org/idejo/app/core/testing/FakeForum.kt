@@ -64,6 +64,9 @@ data class FakeSettings(
 
 /** The people of the fake forum. */
 object FakePeople {
+    /** Everyone's password until they change it (ST-04). */
+    const val PASSWORD = "correct horse battery"
+
     val Ada = Person(id = "u_ada", displayName = "Ada Lovelace", username = "ada", userTag = "ada")
     val Mina =
         Person(

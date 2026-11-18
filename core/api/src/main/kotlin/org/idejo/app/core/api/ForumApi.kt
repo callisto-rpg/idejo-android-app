@@ -32,6 +32,7 @@ import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PasswordChange
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
@@ -104,6 +105,13 @@ class ForumApi(
     suspend fun server(): ApiResult<Server> = call { server() }
 
     suspend fun me(): ApiResult<Me> = call { me() }
+
+    /**
+     * Changes the password (ST-04). Every device of the account signs in again, this one
+     * too: its token stops working once the server agrees.
+     */
+    suspend fun changePassword(change: PasswordChange): ApiResult<Unit> =
+        call { changePassword(change).let { if (!it.isSuccessful) throw HttpException(it) } }
 
     /**
      * The member's picture (ST-01), or the dark theme's with [dark]: a square image as

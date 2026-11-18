@@ -116,6 +116,14 @@ SPDX-License-Identifier: Apache-2.0
     <string name="apps_devices_this_text">This device is signed out of the forum. You can sign in again at any time.</string>
     <string name="apps_devices_this_confirm">Remove and sign out</string>
     <string name="apps_devices_cancel">Cancel</string>
+    <!-- Change password (ST-04). The warning and the outcome say what the app spec asks: this device signs in again too. -->
+    <string name="password">Change password</string>
+    <string name="password_warning">Changing your password signs out every device and browser of your account, this one too: you then sign in again with the new password.</string>
+    <string name="password_current">Current password</string>
+    <string name="password_new">New password (at least 12 characters)</string>
+    <string name="password_repeat">Repeat the new password</string>
+    <string name="password_change">Change password</string>
+    <string name="password_changed">Password changed. You were signed out everywhere, this device too: sign in again with your new password.</string>
     <!-- Delete account (ST-06): deleting stays on the forum's website (idejo API guide §10). -->
     <string name="delete_account">Delete account</string>
     <string name="delete_account_warning">Your email address, username, display name and password are removed and you are signed out everywhere. This cannot be undone.</string>

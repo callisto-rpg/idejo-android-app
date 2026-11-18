@@ -28,6 +28,8 @@ import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersScreen
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersUiState
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsUiState
+import org.idejo.app.feature.settings.password.PasswordScreen
+import org.idejo.app.feature.settings.password.PasswordUiState
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesScreen
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesUiState
 import org.idejo.app.feature.settings.profile.ProfileScreen
@@ -154,6 +156,11 @@ class ProfileAndAccountScreenshotTest {
                 {},
             )
         }
+    }
+
+    @Test
+    fun `ST-04 change password`() {
+        shoot("Password") { PasswordScreen(PasswordUiState(current = "secret"), {}) }
     }
 
     @Test

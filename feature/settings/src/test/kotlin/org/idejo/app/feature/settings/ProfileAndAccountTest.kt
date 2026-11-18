@@ -32,6 +32,8 @@ import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersUiState
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsEvent
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsUiState
+import org.idejo.app.feature.settings.password.PasswordScreen
+import org.idejo.app.feature.settings.password.PasswordUiState
 import org.idejo.app.feature.settings.profile.ProfileEvent
 import org.idejo.app.feature.settings.profile.ProfileScreen
 import org.idejo.app.feature.settings.profile.ProfileUiState
@@ -80,6 +82,7 @@ class ProfileAndAccountTest {
                 "email-notifications",
                 "push-notifications",
                 "apps-devices",
+                "change-password",
                 "delete-account",
             ),
             SETTINGS_SECTIONS.map { it.key },
@@ -242,6 +245,22 @@ class ProfileAndAccountTest {
         rule.onNodeWithText("Save bio").performScrollTo().performClick()
         rule.onNodeWithText("Remove avatar").assertDoesNotExist()
         assertEquals(listOf<ProfileEvent>(ProfileEvent.SaveBio), events)
+    }
+
+    @Test
+    fun `ST-04 the password form warns, and says when it is done`() {
+        rule.setContent { PasswordScreen(PasswordUiState(), {}) }
+        rule.onNodeWithText("this one too", substring = true).assertExists()
+        rule.onNodeWithText("Current password").assertExists()
+        rule.onNodeWithText("New password (at least 12 characters)").assertExists()
+        rule.onNodeWithText("Repeat the new password").assertExists()
+    }
+
+    @Test
+    fun `ST-04 once changed, the form gives way to signing in again`() {
+        rule.setContent { PasswordScreen(PasswordUiState(changed = true), {}) }
+        rule.onNodeWithText("Password changed.", substring = true).assertExists()
+        rule.onNodeWithText("Current password").assertDoesNotExist()
     }
 
     @Test

@@ -48,6 +48,7 @@ import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsRoute
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersRoute
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsRoute
 import org.idejo.app.feature.settings.parts.SectionHeader
+import org.idejo.app.feature.settings.password.PasswordRoute
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesRoute
 import org.idejo.app.feature.settings.profile.ProfileRoute
 import org.idejo.app.feature.settings.pushnotifications.PushNotificationsRoute
@@ -109,6 +110,11 @@ val SETTINGS_SECTIONS: List<SettingsSection> =
             R.string.group_account,
             R.string.apps_devices,
         ) { AppsDevicesRoute(it) },
+        SettingsSection(
+            "change-password",
+            R.string.group_account,
+            R.string.password,
+        ) { PasswordRoute(it) },
         SettingsSection(
             "delete-account",
             R.string.group_account,
