@@ -30,10 +30,14 @@ import org.idejo.app.core.model.MePatch
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
+import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.PushRegistration
+import org.idejo.app.core.model.PushTest
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -46,6 +50,7 @@ import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.SpoilerSet
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
+import org.idejo.app.core.model.Token
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicCreate
 import org.idejo.app.core.model.TopicCreated
@@ -99,6 +104,35 @@ class ForumApi(
     suspend fun server(): ApiResult<Server> = call { server() }
 
     suspend fun me(): ApiResult<Me> = call { me() }
+
+    /** The devices signed in to the app, this one marked (ST-05, AP-09). */
+    suspend fun tokens(): ApiResult<List<Token>> = call { tokens().data }
+
+    /** Signs a device out (ST-05, AP-09). */
+    suspend fun deleteToken(id: String): ApiResult<Unit> =
+        call { deleteToken(id).let { if (!it.isSuccessful) throw HttpException(it) } }
+
+    /** The email summary's and push choices (ST-03, NT-08). */
+    suspend fun notificationSettings(): ApiResult<NotificationSettings> =
+        call { notificationSettings() }
+
+    /** Saves the choices sent and leaves the others as they are (ST-03, NT-08). */
+    suspend fun updateNotificationSettings(
+        settings: NotificationSettings,
+    ): ApiResult<NotificationSettings> = call { updateNotificationSettings(settings) }
+
+    /** The members the member ignores (ST-08); [ignore] takes one off the list. */
+    suspend fun ignored(): ApiResult<List<Person>> = call { ignored().data }
+
+    /** The browsers and devices taking push (NT-08). */
+    suspend fun pushRegistrations(): ApiResult<List<PushRegistration>> = call { push().data }
+
+    /** Ends one push registration (NT-08). */
+    suspend fun deletePushRegistration(id: String): ApiResult<Unit> =
+        call { deletePush(id).let { if (!it.isSuccessful) throw HttpException(it) } }
+
+    /** A test notification to every device (NT-08). */
+    suspend fun testPush(): ApiResult<PushTest> = call { testPush() }
 
     suspend fun communities(): ApiResult<List<Community>> = call { communities().data }
 

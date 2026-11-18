@@ -21,6 +21,21 @@ data class TokenGrant(
     val scopes: Set<String> get() = scope.split(' ').filter { it.isNotEmpty() }.toSet()
 }
 
+/**
+ * A device signed in to the app (`GET /me/tokens`, AP-09), as **Apps and devices** lists it
+ * (ST-05). [current] marks the token that asks.
+ */
+@Serializable
+data class Token(
+    val id: String,
+    val name: String,
+    /** What the token may do: `read`, `write`, `private`, `moderate`, `push`. */
+    val scopes: List<String> = emptyList(),
+    @SerialName("signed_in_at") val signedInAt: Time? = null,
+    @SerialName("last_used_at") val lastUsedAt: Time? = null,
+    val current: Boolean = false,
+)
+
 /** An `idj_…` token (SI-04). Its [toString] hides it, so it cannot reach a log by accident. */
 @Serializable
 @JvmInline

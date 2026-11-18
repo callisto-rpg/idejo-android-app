@@ -48,6 +48,7 @@ import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageRef
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
+import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PendingTopic
 import org.idejo.app.core.model.Person
@@ -56,6 +57,8 @@ import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
 import org.idejo.app.core.model.PollOption
+import org.idejo.app.core.model.PushRegistration
+import org.idejo.app.core.model.PushTest
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -70,6 +73,7 @@ import org.idejo.app.core.model.Spoiler
 import org.idejo.app.core.model.SpoilerSet
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
+import org.idejo.app.core.model.Token
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicCreate
@@ -121,6 +125,9 @@ class FakeIdejo(
      */
     @Volatile var memberChoices: Boolean = true
 
+    /** False plays a forum whose discovery gives no `account.deletion_url` (ST-06). */
+    @Volatile var accountDeletion: Boolean = true
+
     private val categories = seedCategories().toMutableList()
     private val topics = linkedMapOf("t_1" to seedTopic(clock.now))
     private val reactors = mutableMapOf<String, MutableList<Pair<Person, List<String>>>>()
@@ -132,6 +139,10 @@ class FakeIdejo(
     private val scheduled = mutableListOf<Pair<String, Scheduled>>()
     private val composers = mutableMapOf<Pair<String, String>, ComposerRecord>()
     private val tokens = mutableMapOf<String, Person>()
+
+    /** The devices signed in, by id, as **Apps and devices** lists them (ST-05). */
+    private val devices = mutableMapOf<String, DeviceRecord>()
+
     private val codes = mutableMapOf<String, PendingCode>()
     internal val sockets = mutableListOf<FakeSocket>()
     private val failures = ArrayDeque<MockResponse>()
@@ -168,8 +179,11 @@ class FakeIdejo(
 
     // What a test can do to the forum.
 
-    /** A token for [person], as if they had signed in. */
-    fun tokenFor(person: Person): AccessToken = synchronized(lock) { newToken(person) }
+    /** A token for [person], as if they had signed in on [name]. */
+    fun tokenFor(
+        person: Person,
+        name: String = "Android device",
+    ): AccessToken = synchronized(lock) { newToken(person, name) }
 
     /**
      * Revokes [token] as **Apps and devices** would:
@@ -221,7 +235,12 @@ class FakeIdejo(
             if (!allow) return@synchronized redirect + "error=access_denied&state=" + encode(state)
             val code = randomId()
             codes[code] =
-                PendingCode(person, requireNotNull(url.queryParameter("code_challenge")), clock.now)
+                PendingCode(
+                    person,
+                    requireNotNull(url.queryParameter("code_challenge")),
+                    clock.now,
+                    deviceName = url.queryParameter("device_name"),
+                )
             redirect + "code=" + code + "&state=" + encode(state)
         }
 
@@ -413,6 +432,28 @@ class FakeIdejo(
     fun warningsOf(person: Person): List<Warning> =
         synchronized(lock) { reader(person).warnings.toList() }
 
+    /**
+     * A browser or device of [person] taking push, as a registration would make it (NT-02),
+     * made by [token] when given: `this_device` is that one.
+     */
+    fun pushRegistration(
+        person: Person,
+        name: String,
+        token: AccessToken? = null,
+    ): PushRegistration =
+        synchronized(lock) {
+            val registration =
+                PushRegistration(
+                    id = "p_" + nextId++,
+                    kind = "unifiedpush",
+                    name = name,
+                    endpointHost = "ntfy.example.net",
+                    createdAt = clock.now,
+                )
+            reader(person).push[registration.id] = PushRecord(registration, token?.value)
+            registration
+        }
+
     /** The self-select roles [person] holds, by id. */
     fun rolesOf(person: Person): Set<String> = synchronized(lock) { reader(person).roles.toSet() }
 
@@ -512,6 +553,75 @@ class FakeIdejo(
         listOf(
             Route("GET", "server") { ok(server()) },
             Route("GET", "me") { call -> call.viewer?.let { ok(me(it)) } ?: unauthenticated() },
+            Route("GET", "me/tokens") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                val current = call.request.headers["Authorization"]?.removePrefix("Bearer ")
+                ok(
+                    ListBody(
+                        devices
+                            .filterValues { tokens[it.token]?.id == person.id }
+                            .map { (id, device) ->
+                                Token(
+                                    id = id,
+                                    name = device.name,
+                                    scopes = IdejoClient.SCOPES,
+                                    signedInAt = device.signedInAt,
+                                    current = device.token == current,
+                                )
+                            },
+                    ),
+                )
+            },
+            Route("DELETE", "me/tokens/{id}") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                val device = devices[call["id"]]
+                if (device == null || tokens[device.token]?.id != person.id) {
+                    notFound()
+                } else {
+                    revokeLocked(device.token)
+                    status(HTTP_NO_CONTENT)
+                }
+            },
+            Route("GET", "me/notification-settings") { call ->
+                call.viewer?.let { ok(notificationSettings(it)) } ?: unauthenticated()
+            },
+            Route("PATCH", "me/notification-settings") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                val change =
+                    IdejoJson.decodeFromString<NotificationSettings>(
+                        call.request.body?.utf8() ?: "{}",
+                    )
+                ok(saveNotificationSettings(person, change))
+            },
+            Route("GET", "me/ignored") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                ok(ListBody(FakePeople.all.filter { it.id in reader(person).ignored }))
+            },
+            Route("GET", "me/push") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                val current = call.request.headers["Authorization"]?.removePrefix("Bearer ")
+                ok(
+                    ListBody(
+                        reader(person).push.values.map { record ->
+                            record.registration.copy(
+                                thisDevice = record.token != null && record.token == current,
+                            )
+                        },
+                    ),
+                )
+            },
+            Route("DELETE", "me/push/unifiedpush/{id}") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                if (reader(person).push.remove(call["id"]) == null) {
+                    notFound()
+                } else {
+                    status(HTTP_NO_CONTENT)
+                }
+            },
+            Route("POST", "me/push/test") { call ->
+                val person = call.viewer ?: return@Route unauthenticated()
+                ok(PushTest(reader(person).push.size))
+            },
             Route("POST", "me/welcome") { call ->
                 member(call) { it.welcomed = true }
             },
@@ -1209,6 +1319,14 @@ class FakeIdejo(
                         scopes = IdejoClient.SCOPES,
                         codeChallengeMethods = listOf("S256"),
                     ),
+                account =
+                    org.idejo.app.core.model.AccountLinks(
+                        deletionUrl =
+                            url
+                                .resolve("/users/settings?tab=account#delete-heading")
+                                ?.toString()
+                                ?.takeIf { accountDeletion },
+                    ),
                 features = listOf("polls", "private_messages"),
             ),
         )
@@ -1243,7 +1361,7 @@ class FakeIdejo(
         ) {
             return error(HTTP_BAD_REQUEST, ApiError.INVALID_GRANT, "The code is not valid.")
         }
-        val token = newToken(pending.person)
+        val token = newToken(pending.person, pending.deviceName ?: "Android device")
         pending.token = token.value
         return ok(
             TokenGrant(
@@ -1262,14 +1380,18 @@ class FakeIdejo(
         return status(HTTP_NO_CONTENT)
     }
 
-    private fun newToken(person: Person): AccessToken =
-        AccessToken("idj_" + randomId()).also {
-            tokens[it.value] =
-                person
+    private fun newToken(
+        person: Person,
+        name: String = "Android device",
+    ): AccessToken =
+        AccessToken("idj_" + randomId()).also { token ->
+            tokens[token.value] = person
+            devices["d_" + randomId()] = DeviceRecord(token.value, name, clock.now)
         }
 
     private fun revokeLocked(token: String) {
         if (tokens.remove(token) == null) return
+        devices.values.removeAll { it.token == token }
         sockets.filter { it.token == token }.forEach { it.revoked() }
     }
 
@@ -1326,6 +1448,69 @@ class FakeIdejo(
                 )
             }
         }
+
+    /** The member's notification choices (ST-03, NT-08): idejo's defaults until changed. */
+    private fun notificationSettings(person: Person): NotificationSettings =
+        reader(person).notifications
+            ?: NotificationSettings(
+                email =
+                    NotificationSettings.Email(
+                        mentions = true,
+                        roleMentions = false,
+                        ownTopics = true,
+                        followedTopics = false,
+                        newTopics = false,
+                        allActivity = false,
+                        onceAWeek = true,
+                    ),
+                push =
+                    NotificationSettings.Push(
+                        reply = true,
+                        mention = true,
+                        roleMention = true,
+                        followed = true,
+                        privateMessages = true,
+                    ),
+            )
+
+    /** Saves only the choices [change] carries (ST-03): the rest stay as they were. */
+    private fun saveNotificationSettings(
+        person: Person,
+        change: NotificationSettings,
+    ): NotificationSettings {
+        val current = notificationSettings(person)
+        val saved =
+            current.copy(
+                email = current.email?.merged(change.email),
+                push = current.push?.merged(change.push),
+            )
+        reader(person).notifications = saved
+        return saved
+    }
+
+    private fun NotificationSettings.Email.merged(
+        change: NotificationSettings.Email?,
+    ): NotificationSettings.Email =
+        copy(
+            mentions = change?.mentions ?: mentions,
+            roleMentions = change?.roleMentions ?: roleMentions,
+            ownTopics = change?.ownTopics ?: ownTopics,
+            followedTopics = change?.followedTopics ?: followedTopics,
+            newTopics = change?.newTopics ?: newTopics,
+            allActivity = change?.allActivity ?: allActivity,
+            onceAWeek = change?.onceAWeek ?: onceAWeek,
+        )
+
+    private fun NotificationSettings.Push.merged(
+        change: NotificationSettings.Push?,
+    ): NotificationSettings.Push =
+        copy(
+            reply = change?.reply ?: reply,
+            mention = change?.mention ?: mention,
+            roleMention = change?.roleMention ?: roleMention,
+            followed = change?.followed ?: followed,
+            privateMessages = change?.privateMessages ?: privateMessages,
+        )
 
     /** `GET /roles/{slug}`: a self-select role and the people holding it (TV-22). */
     private fun roleCard(slug: String): MockResponse {
@@ -2048,8 +2233,16 @@ class FakeIdejo(
         val person: Person,
         val challenge: String,
         val at: Instant,
+        val deviceName: String? = null,
         var used: Boolean = false,
         var token: String? = null,
+    )
+
+    /** A token as **Apps and devices** lists it (ST-05). */
+    private class DeviceRecord(
+        val token: String,
+        val name: String,
+        val signedInAt: Instant,
     )
 
     private companion object {
