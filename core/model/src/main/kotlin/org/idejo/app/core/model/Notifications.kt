@@ -58,3 +58,39 @@ data class PushRegistration(
 data class PushTest(
     val queued: Int = 0,
 )
+
+/** `POST /me/push/unifiedpush` (NT-02): the distributor's endpoint and Web Push keys. */
+@Serializable
+data class UnifiedPushSubscription(
+    val endpoint: String,
+    /** The P-256 public key, URL-safe Base64. */
+    val p256dh: String,
+    /** The 16-byte auth secret, URL-safe Base64. */
+    val auth: String,
+    @SerialName("device_name") val deviceName: String,
+) {
+    /** The endpoint is the distributor's secret address: never in a log. */
+    override fun toString(): String = "UnifiedPushSubscription($deviceName)"
+}
+
+/**
+ * A push's payload once decrypted (NT-03, idejo's declarative Web Push): what to show,
+ * where it leads, and the launcher badge.
+ */
+@Serializable
+data class PushPayload(
+    @SerialName("web_push") val webPush: Int? = null,
+    val notification: Notice? = null,
+    @SerialName("app_badge") val appBadge: Int? = null,
+) {
+    @Serializable
+    data class Notice(
+        val title: String = "",
+        val body: String = "",
+        /** An address on the forum, opened in the app (NT-04). */
+        val navigate: String? = null,
+        /** A later push with the same tag replaces this one, per forum. */
+        val tag: String? = null,
+        val lang: String? = null,
+    )
+}

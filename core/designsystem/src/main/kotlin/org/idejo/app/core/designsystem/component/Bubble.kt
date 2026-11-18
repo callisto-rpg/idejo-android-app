@@ -29,6 +29,7 @@ import org.idejo.app.core.designsystem.theme.mix
  * An in-app bubble (NT-01): what happened ([title]) and an excerpt ([text]), tinted by its
  * kind (grey followed, blue role mention, orange reply, red mention, purple reaction).
  * Tapping it goes to the message; × dismisses it, so a swipe is never needed (AX-04).
+ * [icon] follows the title: a reaction's emoji.
  */
 @Composable
 fun Bubble(
@@ -38,6 +39,7 @@ fun Bubble(
     onClick: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
 ) {
     val accent = IdejoTheme.colors.bubble(kind)
     Surface(
@@ -54,19 +56,28 @@ fun Bubble(
         ) {
             ColorDot(accent, Modifier.padding(top = 2.dp), size = 10.dp)
             Column(Modifier.weight(1f)) {
-                Text(
-                    title,
-                    style = IdejoTheme.typography.labelLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text,
-                    style = IdejoTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        title,
+                        Modifier.weight(1f, fill = false),
+                        style = IdejoTheme.typography.labelLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    icon?.invoke()
+                }
+                if (text.isNotEmpty()) {
+                    Text(
+                        text,
+                        style = IdejoTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             IconButton(onClick = onDismiss) {
                 Icon(painterResource(R.drawable.ic_close), stringResource(R.string.bubble_dismiss))

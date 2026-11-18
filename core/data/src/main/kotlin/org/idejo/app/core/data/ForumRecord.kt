@@ -19,6 +19,32 @@ enum class ThemeMode { System, Light, Dark }
 @Serializable
 enum class TutorialBubbles { All, Simple, Off }
 
+/** Text size inside messages (ST-22): Default follows Android's font size alone. */
+@Serializable
+enum class MessageText(
+    val scale: Float,
+) {
+    Small(SMALL),
+    Default(1f),
+    Large(LARGE),
+    Larger(LARGER),
+}
+
+private const val SMALL = 0.85f
+private const val LARGE = 1.15f
+private const val LARGER = 1.3f
+
+/** The image cache's limits to choose from (ST-21), in megabytes; 200 by default. */
+const val DEFAULT_CACHE_MB = 200
+val CACHE_LIMITS_MB = listOf(100, DEFAULT_CACHE_MB, 500, 1000)
+
+/** How the app looks and feels on this device (ST-22), the same in every forum. */
+data class AppDisplay(
+    val messageText: MessageText = MessageText.Default,
+    val haptics: Boolean = true,
+    val reduceMotion: Boolean = false,
+)
+
 /** Compact or Expanded topic lists (BR-03), per forum. */
 @Serializable
 enum class TopicView { Compact, Expanded }
@@ -44,8 +70,25 @@ data class ForumRecord(
     val folded: Set<String> = emptySet(),
     /** The sidebar's links rolled up into icons (SH-35). */
     val linksRolled: Boolean = false,
+    /** This device's push registration with the forum (NT-02); null without one. */
+    val push: PushRecord? = null,
 ) {
     val name: String get() = discovery.name
+}
+
+/**
+ * What the forum keeps of this device's pushes (NT-02): its registration, and the endpoint,
+ * key and VAPID key it was made with, so a change is sent again and nothing else is.
+ */
+@Serializable
+data class PushRecord(
+    val registrationId: String,
+    val endpoint: String,
+    val publicKey: String,
+    val vapidKey: String? = null,
+) {
+    /** The endpoint is the distributor's secret address: never in a log. */
+    override fun toString(): String = "PushRecord($registrationId)"
 }
 
 /** Everything the app keeps: the forums and which one is open (single-forum mode: one). */
@@ -55,6 +98,16 @@ data class AppState(
     val active: String? = null,
     /** The app's one **Tutorial bubbles** choice (SH-21). */
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
+    /** When **Dismiss** was last said to the notifications bar (NT-07), epoch milliseconds. */
+    val pushBarDismissedAt: Long? = null,
+    /** The image cache's limit (ST-21), in megabytes. */
+    val cacheLimitMb: Int = DEFAULT_CACHE_MB,
+    /** Text size inside messages (ST-22), over Android's own font size. */
+    val messageText: MessageText = MessageText.Default,
+    /** Haptics (ST-22): Android's touch feedback in the app. */
+    val haptics: Boolean = true,
+    /** Reduced motion (ST-22) even when Android's animations are on. */
+    val reduceMotion: Boolean = false,
 ) {
     fun forum(origin: String?): ForumRecord? = forums.firstOrNull { it.origin == origin }
 

@@ -8,8 +8,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -61,6 +64,14 @@ class SessionManager(
             override suspend fun serverRead(server: Server) = keepTheme(server)
         }
 
+    private val mutableSignedOut = MutableSharedFlow<String>(extraBufferCapacity = SIGNED_OUT)
+
+    /**
+     * Each forum signed out of, by origin: by the member (SI-11), refused (SI-09), replaced or
+     * removed. Its push registration ends with it (NT-02).
+     */
+    val signedOut: SharedFlow<String> = mutableSignedOut.asSharedFlow()
+
     private val mutableLaunch = MutableStateFlow<Launch>(Launch.Loading)
     val launch: StateFlow<Launch> = mutableLaunch.asStateFlow()
 
@@ -84,7 +95,10 @@ class SessionManager(
     ) = lock.withLock {
         val origin = found.address.toString()
         val state = store.current()
-        state.forums.filter { it.origin != origin }.forEach { revoke(it) }
+        state.forums.filter { it.origin != origin }.forEach {
+            revoke(it)
+            mutableSignedOut.tryEmit(it.origin)
+        }
         val kept = state.forum(origin)
         val record =
             (kept ?: ForumRecord(origin, found.discovery)).copy(
@@ -129,6 +143,8 @@ class SessionManager(
                         it.copy(sealedToken = null, tokenId = null, signedOut = false)
                     }.forum(origin),
             )
+            // Once the new session is open, so what the registrar forgets reaches it (NT-02).
+            mutableSignedOut.tryEmit(origin)
         }
 
     /** Signs out and removes the forum: back to the welcome screen (single-forum mode). */
@@ -139,13 +155,20 @@ class SessionManager(
                 state.copy(forums = state.forums.filterNot { it.origin == origin }, active = null)
             }
             open(null)
+            mutableSignedOut.tryEmit(origin)
         }
 
-    /** Changes the open forum's kept choices (theme mode, view, folds…). */
-    suspend fun updateForum(transform: (ForumRecord) -> ForumRecord) {
-        val current = active ?: return
-        val record = store.updateForum(current.origin, transform).forum(current.origin) ?: return
-        current.updated(record)
+    /**
+     * Changes what the app keeps of the forum at [origin], open or not (NT-02); by default
+     * the open forum's kept choices (theme mode, view, folds…).
+     */
+    suspend fun updateForum(
+        origin: String? = active?.origin,
+        transform: (ForumRecord) -> ForumRecord,
+    ) {
+        origin ?: return
+        val record = store.updateForum(origin, transform).forum(origin) ?: return
+        active?.takeIf { it.origin == origin }?.updated(record)
     }
 
     private suspend fun revoke(record: ForumRecord) {
@@ -183,6 +206,7 @@ class SessionManager(
                 session.origin,
             ) { it.copy(sealedToken = null, tokenId = null, signedOut = true) }
         record.forum(session.origin)?.let(session::updated)
+        mutableSignedOut.tryEmit(session.origin)
     }
 
     private suspend fun keepTheme(server: Server) {
@@ -191,6 +215,8 @@ class SessionManager(
         scope.launch { updateForum { it.copy(theme = server.theme) } }
     }
 }
+
+private const val SIGNED_OUT = 8
 
 private fun httpsAddress(origin: String): ForumAddress =
     (ForumAddress.parse(origin) as? ForumAddress.Parsed.Valid)?.address

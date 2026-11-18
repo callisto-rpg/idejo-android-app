@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- Notification channels (NT-05), one set per forum, in Android's settings. The web's push switches name them. -->
+    <string name="channel_replies">Replies</string>
+    <string name="channel_mentions">Mentions</string>
+    <string name="channel_role_mentions">Role mentions</string>
+    <string name="channel_followed">Followed topics</string>
+    <string name="channel_private">Private messages</string>
+    <string name="channel_warnings">Warnings</string>
+    <string name="channel_other">Other notifications</string>
+</resources>

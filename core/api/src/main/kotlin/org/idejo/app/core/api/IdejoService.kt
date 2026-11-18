@@ -50,6 +50,7 @@ import org.idejo.app.core.model.TopicCreate
 import org.idejo.app.core.model.TopicCreated
 import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicUpdate
+import org.idejo.app.core.model.UnifiedPushSubscription
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.Upload
 import org.idejo.app.core.model.UserCard
@@ -122,6 +123,11 @@ internal interface IdejoService {
 
     @GET("me/push")
     suspend fun push(): ListBody<PushRegistration>
+
+    @POST("me/push/unifiedpush")
+    suspend fun registerPush(
+        @Body body: UnifiedPushSubscription,
+    ): PushRegistration
 
     @DELETE("me/push/unifiedpush/{id}")
     suspend fun deletePush(

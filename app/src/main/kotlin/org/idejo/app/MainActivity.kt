@@ -21,10 +21,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import org.idejo.app.core.data.AppChoices
+import org.idejo.app.core.data.AppDisplay
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.Launch
+import org.idejo.app.core.data.PendingLink
+import org.idejo.app.core.data.PendingLinks
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.ThemeMode
+import org.idejo.app.core.designsystem.theme.DisplayChoices
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.feature.composer.SharedImages
@@ -38,24 +43,32 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var sharedImages: SharedImages
 
+    @Inject lateinit var pendingLinks: PendingLinks
+
+    @Inject lateinit var choices: AppChoices
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) receive(intent)
         enableEdgeToEdge()
         setContent {
             val launch by sessions.launch.collectAsStateWithLifecycle()
+            // Text size, haptics and reduced motion (ST-22), the same in every forum.
+            val app by choices.display.collectAsStateWithLifecycle(AppDisplay())
+            val display =
+                DisplayChoices(app.messageText.scale, app.haptics, app.reduceMotion)
             when (val current = launch) {
                 Launch.Loading -> {
-                    IdejoTheme { Surface(Modifier.fillMaxSize()) {} }
+                    IdejoTheme(display = display) { Surface(Modifier.fillMaxSize()) {} }
                 }
 
                 Launch.Welcome -> {
-                    IdejoTheme { OnboardingFlow() }
+                    IdejoTheme(display = display) { OnboardingFlow() }
                 }
 
                 is Launch.Forum -> {
                     val record by current.session.record.collectAsStateWithLifecycle()
-                    IdejoTheme(record.forumTheme(), record.dark()) {
+                    IdejoTheme(record.forumTheme(), record.dark(), display) {
                         key(current.session) { ForumApp(current.session) }
                     }
                 }
@@ -71,7 +84,15 @@ class MainActivity : ComponentActivity() {
 
 /** Pictures shared to the app (CO-14): read now, while the app may read them. */
 private fun MainActivity.receive(intent: Intent?) {
-    val uris = sharedUris(intent ?: return)
+    if (intent == null) return
+    // A notification tapped (NT-04): its address, opened in its forum once that is on screen.
+    val forum = intent.getStringExtra(PendingLinks.EXTRA_FORUM)
+    val url = intent.dataString
+    if (intent.action == Intent.ACTION_VIEW && forum != null && url != null) {
+        pendingLinks.offer(PendingLink(forum, url))
+        return
+    }
+    val uris = sharedUris(intent)
     if (uris.isNotEmpty()) lifecycleScope.launch { sharedImages.offer(contentResolver, uris) }
 }
 

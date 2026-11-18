@@ -85,6 +85,11 @@ SPDX-License-Identifier: Apache-2.0
     <string name="push_notifications">Push notifications</string>
     <string name="push_this_on">Notifications are on for this device.</string>
     <string name="push_this_off">Notifications are off for this device.</string>
+    <!-- NT-06: no UnifiedPush distributor on this device (the F-Droid and GitHub builds). -->
+    <string name="push_no_distributor">To get notifications on this device, install a UnifiedPush distributor such as ntfy (from F-Droid or Google Play), open it once, then come back here.</string>
+    <string name="push_choose_distributor">Several UnifiedPush distributors are installed. Choose the one to use in App settings.</string>
+    <string name="push_register_failed">This device could not be registered for notifications.</string>
+    <string name="push_register_again">Try again</string>
     <string name="push_send_for">Send me a notification for:</string>
     <string name="push_reply">Replies to me</string>
     <string name="push_mention">\@%1$s mentions</string>
@@ -130,6 +135,26 @@ SPDX-License-Identifier: Apache-2.0
     <string name="delete_account_on_web">You confirm on the forum’s website, with your password or your sign-in provider.</string>
     <string name="delete_account_open">Delete my account…</string>
     <!-- App settings → About (ST-23). -->
+    <!-- App settings on this device (ST-20 to ST-22). -->
+    <string name="app_notifications">Notifications</string>
+    <string name="app_push_service">Push service for notifications</string>
+    <string name="app_no_distributor">No push service is installed. To get notifications, install a UnifiedPush distributor such as ntfy (from F-Droid or Google Play) and open it once.</string>
+    <string name="app_distributor_fcm">Google Play services</string>
+    <string name="app_display">Display</string>
+    <string name="app_message_text">Text size inside messages</string>
+    <string name="app_text_small">Small</string>
+    <string name="app_text_default">Default (Android\'s font size)</string>
+    <string name="app_text_large">Large</string>
+    <string name="app_text_larger">Larger</string>
+    <string name="app_haptics">Haptics</string>
+    <string name="app_haptics_helper">Vibrate a little when you long-press or select.</string>
+    <string name="app_reduce_motion">Reduce motion</string>
+    <string name="app_reduce_motion_helper">No glows, pulses or fades. Also on when animations are off in Android\'s settings.</string>
+    <string name="app_storage">Storage</string>
+    <string name="app_cache_used">Cache: %1$s used</string>
+    <string name="app_cache_limit">Pictures kept, at most:</string>
+    <string name="app_cache_limit_helper">A new limit applies the next time the app starts.</string>
+    <string name="app_clear_cache">Clear cache</string>
     <string name="about_app">idejo for Android</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_licence">Free software under the Apache License 2.0.</string>

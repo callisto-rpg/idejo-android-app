@@ -13,10 +13,16 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Density
 
 /**
  * A forum's look: its colours as a Material 3 scheme (TH-02) with idejo's extras, Fraunces
@@ -27,9 +33,10 @@ import androidx.compose.ui.graphics.Color
 fun IdejoTheme(
     forumTheme: ForumTheme = ForumTheme.Default,
     darkTheme: Boolean = isSystemInDarkTheme(),
+    display: DisplayChoices = DisplayChoices(),
     content: @Composable () -> Unit,
 ) {
-    val reducedMotion = rememberReducedMotion()
+    val reducedMotion = rememberReducedMotion() || display.reduceMotion
     val target = remember(forumTheme, darkTheme) { forumTheme.colorScheme(darkTheme) }
     val scheme = animateColorScheme(target, themeFadeMillis(reducedMotion))
     val extras = remember(scheme, darkTheme) { idejoColors(scheme, darkTheme) }
@@ -38,6 +45,9 @@ fun IdejoTheme(
         LocalIdejoColors provides extras,
         LocalReducedMotion provides reducedMotion,
         LocalDarkTheme provides darkTheme,
+        LocalMessageTextScale provides display.messageTextScale,
+        LocalHapticFeedback provides
+            if (display.haptics) LocalHapticFeedback.current else NoHaptics,
     ) {
         MaterialTheme(colorScheme = scheme, typography = IdejoTypography) {
             // Visible focus for keyboards (SH-62), over Material's ripple.
@@ -65,6 +75,38 @@ object IdejoTheme {
     val reducedMotion: Boolean
         @Composable @ReadOnlyComposable
         get() = LocalReducedMotion.current
+}
+
+/** The member's choices for the app's look and feel (ST-22), the same in every forum. */
+@Immutable
+data class DisplayChoices(
+    /** Text size inside messages, over Android's own font size. */
+    val messageTextScale: Float = 1f,
+    val haptics: Boolean = true,
+    /** Reduced motion even when Android's animations are on (AX-05). */
+    val reduceMotion: Boolean = false,
+)
+
+private val LocalMessageTextScale = staticCompositionLocalOf { 1f }
+
+/** A message's text, at the member's size inside messages (ST-22). */
+@Composable
+fun MessageTextSize(content: @Composable () -> Unit) {
+    val scale = LocalMessageTextScale.current
+    if (scale == 1f) {
+        content()
+        return
+    }
+    val density = LocalDensity.current
+    CompositionLocalProvider(
+        LocalDensity provides Density(density.density, density.fontScale * scale),
+        content = content,
+    )
+}
+
+/** Haptics off (ST-22): Compose's own feedback (long-press, selection) does nothing. */
+private object NoHaptics : HapticFeedback {
+    override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) = Unit
 }
 
 @Composable

@@ -14,6 +14,7 @@ import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okio.ByteString.Companion.decodeBase64
 import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
@@ -81,6 +82,7 @@ import org.idejo.app.core.model.TopicCreate
 import org.idejo.app.core.model.TopicCreated
 import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicPreview
+import org.idejo.app.core.model.UnifiedPushSubscription
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.UnreadCounter
 import org.idejo.app.core.model.UnreadMark
@@ -125,6 +127,16 @@ class FakeIdejo(
      * `graphical_composer`, `controls_on_mobile` or `controls_on_desktop`.
      */
     @Volatile var memberChoices: Boolean = true
+
+    /** False plays a forum whose push is off (`GET /server`'s `push`). */
+    @Volatile var pushEnabled: Boolean = true
+
+    /** `GET /server`'s `push_vapid_key` (IX-16); null plays an idejo without it. */
+    @Volatile var pushVapidKey: String? = FAKE_VAPID_KEY
+
+    /** What each `POST /me/push/unifiedpush` sent, by registration id (NT-02). */
+    val pushSubscriptions: MutableMap<String, UnifiedPushSubscription> =
+        java.util.concurrent.ConcurrentHashMap()
 
     /** False plays a forum that signs in only with its provider (idejo AC-09): no passwords. */
     @Volatile var passwords: Boolean = true
@@ -407,6 +419,31 @@ class FakeIdejo(
         }
 
     /**
+     * A live notification for [person] (NT-01), as idejo's user:me sends it: `mention`,
+     * `reply`, `role_mention`, `follow` or `reaction` (with [emojiUrl]), by Mina in
+     * "Tomatoes".
+     */
+    fun notify(
+        person: Person,
+        kind: String,
+        topicId: String,
+        messageId: String = "m_live",
+        emojiUrl: String? = null,
+    ) = synchronized(lock) {
+        val payload =
+            buildJsonObject {
+                put("kind", kind)
+                put("message_id", messageId)
+                put("topic_id", topicId)
+                put("topic_title", "Tomatoes")
+                put("author_name", "Mina")
+                put("excerpt", "Sungold every year")
+                put("emoji_url", emojiUrl)
+            }
+        socketsOf(person).forEach { it.push("user:me", "notification", payload) }
+    }
+
+    /**
      * A moderator warns [person] about [messageId] (TV-11): waiting until acknowledged, and
      * the `warning` notification on their user:me channels, as idejo's.
      */
@@ -626,6 +663,7 @@ class FakeIdejo(
                     ),
                 )
             },
+            Route("POST", "me/push/unifiedpush") { call -> registerPush(call) },
             Route("DELETE", "me/push/unifiedpush/{id}") { call ->
                 val person = call.viewer ?: return@Route unauthenticated()
                 if (reader(person).push.remove(call["id"]) == null) {
@@ -1441,6 +1479,8 @@ class FakeIdejo(
                     windowSeconds = settings.windowSeconds,
                     unansweredSeconds = settings.unansweredSeconds,
                     earlyReply = settings.earlyReply,
+                    push = pushEnabled,
+                    pushVapidKey = pushVapidKey.takeIf { pushEnabled },
                     uploadTypes = listOf("jpg", "jpeg", "png", "gif", "webp"),
                     uploadMaxBytes = FAKE_UPLOAD_MAX_BYTES,
                 ),
@@ -1578,6 +1618,39 @@ class FakeIdejo(
                 mayMessage = viewer != null && viewer.id != id && reader(person).acceptsPrivate,
             ),
         )
+    }
+
+    /**
+     * `POST /me/push/unifiedpush` (NT-02) as idejo keeps it: one registration per endpoint,
+     * tied to the token that made it; https endpoints only. Kept in [pushSubscriptions].
+     */
+    private fun registerPush(call: Call): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        if (!pushEnabled) return error(HTTP_UNPROCESSABLE_ENTITY, "push_disabled", "Push is off.")
+        val body = call.request.body?.utf8() ?: "{}"
+        val subscription = IdejoJson.decodeFromString<UnifiedPushSubscription>(body)
+        val host =
+            subscription.endpoint
+                .toHttpUrlOrNull()
+                ?.takeIf { it.isHttps }
+                ?.host
+        if (host == null || subscription.p256dh.isBlank() || subscription.auth.isBlank()) {
+            return error(HTTP_UNPROCESSABLE_ENTITY, "validation", "Endpoint is invalid.")
+        }
+        val token = call.request.headers["Authorization"]?.removePrefix("Bearer ")
+        val pushes = reader(person).push
+        pushes.entries.removeAll { pushSubscriptions[it.key]?.endpoint == subscription.endpoint }
+        val registration =
+            PushRegistration(
+                id = "p_" + nextId++,
+                kind = "unifiedpush",
+                name = subscription.deviceName,
+                endpointHost = host,
+                createdAt = clock.now,
+            )
+        pushes[registration.id] = PushRecord(registration, token)
+        pushSubscriptions[registration.id] = subscription
+        return ok(registration.copy(thisDevice = true))
     }
 
     /**
@@ -2344,6 +2417,8 @@ class FakeIdejo(
     )
 
     private companion object {
+        /** An 87-character VAPID public key, as idejo gives it. */
+        val FAKE_VAPID_KEY = "B" + "A".repeat(86)
         const val PASSWORD_MIN = 12
         const val API = "/api/v1"
         const val AUTH_TOKEN_PREFIX = "base64url.bearer.phx."

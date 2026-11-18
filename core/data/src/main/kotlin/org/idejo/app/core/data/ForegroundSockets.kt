@@ -22,7 +22,10 @@ class ForegroundSockets(
     private val sessions: SessionManager,
     private val scope: CoroutineScope,
 ) : DefaultLifecycleObserver {
-    private var foreground = false
+    @Volatile private var foreground = false
+
+    /** The app is on screen: live bubbles show what pushes would (NT-01, NT-09). */
+    val inForeground: Boolean get() = foreground
     private var closing: Job? = null
 
     fun install() {

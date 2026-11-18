@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.data.PushStatus
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.PushRegistration
@@ -81,6 +82,8 @@ data class PushNotificationsUiState(
     val tested: TestResult? = null,
     /** Why the last change, removal or test was not done. */
     val problem: ApiProblem? = null,
+    /** How this device's own registration stands (NT-02, NT-06). */
+    val device: PushStatus = PushStatus.Off,
 ) {
     /** One of the registrations is this device's (NT-02). */
     val thisDeviceOn: Boolean get() = devices.orEmpty().any { it.thisDevice }
@@ -100,6 +103,9 @@ sealed interface PushNotificationsEvent {
     data object SendTest : PushNotificationsEvent
 
     data object Retry : PushNotificationsEvent
+
+    /** **Try again** after this device could not be registered (NT-02). */
+    data object Register : PushNotificationsEvent
 }
 
 @Composable
@@ -136,12 +142,46 @@ fun PushNotificationsScreen(
                     Modifier.padding(bottom = 12.dp),
                     style = IdejoTheme.typography.bodyLarge,
                 )
+                ThisDevice(state.device, onEvent)
                 state.push?.let { push -> Choices(push, state, onEvent) }
                 Devices(state, onEvent)
                 Test(state, onEvent)
                 state.problem?.let { ProblemText(it) }
             }
         }
+    }
+}
+
+/**
+ * Why this device takes no push (NT-06): no distributor (the foss build: how to get one),
+ * several and none chosen (ST-20), or a registration that failed.
+ */
+@Composable
+private fun ThisDevice(
+    status: PushStatus,
+    onEvent: (PushNotificationsEvent) -> Unit,
+) {
+    val text =
+        when (status) {
+            PushStatus.NoDistributor -> R.string.push_no_distributor
+            PushStatus.ChooseDistributor -> R.string.push_choose_distributor
+            is PushStatus.Failed -> R.string.push_register_failed
+            else -> return
+        }
+    if (status is PushStatus.Failed) {
+        ActionRow(
+            title = stringResource(text),
+            action = stringResource(R.string.push_register_again),
+            onAction = { onEvent(PushNotificationsEvent.Register) },
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+    } else {
+        Text(
+            stringResource(text),
+            Modifier.padding(bottom = 12.dp),
+            style = IdejoTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -27,6 +27,9 @@ import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.ForumSidebar
 import org.idejo.app.core.data.Launch
+import org.idejo.app.core.data.LiveBubble
+import org.idejo.app.core.data.LiveBubbles
+import org.idejo.app.core.data.NotificationKind
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.data.ThemeMode
@@ -51,12 +54,26 @@ data class ShellState(
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
     /** **Private Conversations** at the sidebar's foot (PC-01, SH-36). */
     val conversations: ConversationsState = ConversationsState(),
+    /** The forum sends pushes (`GET /server`'s `settings.push`). */
+    val pushOn: Boolean = false,
+    /** **Dismiss** was said to the notifications bar in the last 14 days (NT-07). */
+    val pushBarQuiet: Boolean = false,
 ) {
     val name: String get() = record.name
 
     /** The forum's address as people write it: `garden.example.org`. */
     val address: String get() = record.origin.removePrefix("https://").trimEnd('/')
     val signedIn: Boolean get() = access == Access.SignedIn || access is Access.Barred
+
+    /**
+     * The notifications bar may be offered (NT-07), as the web's banner: push on, the
+     * welcome card seen, a topic followed (writing in one follows it), not dismissed lately.
+     * Whether Android may already notify is the bar's own question.
+     */
+    val pushBarOffered: Boolean
+        get() =
+            access == Access.SignedIn && pushOn && me?.welcomed == true &&
+                sidebar.topics.isNotEmpty() && !pushBarQuiet
 }
 
 /** The open forum's frame: its sidebar, the member, and the choices kept per forum. */
@@ -71,6 +88,7 @@ class ShellViewModel
     ) : ViewModel() {
         private val openTopic = MutableStateFlow<Topic?>(null)
         private val warned = MutableStateFlow<Warnings?>(null)
+        private val live = MutableStateFlow<LiveBubbles?>(null)
         private var sidebar: ForumSidebar? = null
         private var conversations: ForumConversations? = null
         private var reading: Job? = null
@@ -88,6 +106,12 @@ class ShellViewModel
                 .flatMapLatest { it?.state ?: flowOf(WarningsState()) }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, WarningsState())
 
+        /** The live bubbles at the top (NT-01). */
+        val bubbles: StateFlow<List<LiveBubble>> =
+            live
+                .flatMapLatest { it?.state ?: flowOf(emptyList()) }
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
         private fun follow(session: ForumSession) =
             ForumSidebar(session, viewModelScope).let { opened ->
                 sidebar?.close()
@@ -98,6 +122,12 @@ class ShellViewModel
                 conversations = private
                 warned.value?.close()
                 val warnings = Warnings(session, viewModelScope).also { warned.value = it }
+                live.value?.close()
+                live.value =
+                    LiveBubbles(session, viewModelScope).also {
+                        it.onScreen = openTopic.value?.id
+                        it.start()
+                    }
                 viewModelScope.launch {
                     // The forum's one copy of `GET /me` (MeRepository), read afresh on opening.
                     val me = session.me.refresh()?.getOrNull()
@@ -115,6 +145,10 @@ class ShellViewModel
                     shell.copy(tutorialBubbles = bubbles)
                 }.combine(private.state) { shell, private ->
                     shell.copy(conversations = private)
+                }.combine(session.server) { shell, server ->
+                    shell.copy(pushOn = server?.settings?.push == true)
+                }.combine(choices.pushBarQuiet()) { shell, quiet ->
+                    shell.copy(pushBarQuiet = quiet)
                 }
             }
 
@@ -122,6 +156,7 @@ class ShellViewModel
         fun at(place: Place) {
             reading?.cancel()
             val id = (place as? Place.Topic)?.id
+            live.value?.onScreen = id
             if (id == null) {
                 openTopic.value = null
                 return
@@ -143,6 +178,27 @@ class ShellViewModel
         fun refresh() {
             sidebar?.refresh()
             conversations?.refresh()
+        }
+
+        /** A bubble swiped away, closed with ×, or its time over (NT-01). */
+        fun dismiss(bubble: LiveBubble) {
+            live.value?.dismiss(bubble.key)
+        }
+
+        /**
+         * A bubble tapped (NT-01): where the member left off in the topic, as the web's
+         * `?unread`; a reaction, the message reacted to.
+         */
+        fun open(bubble: LiveBubble): Place {
+            dismiss(bubble)
+            val private =
+                state.value
+                    ?.conversations
+                    ?.conversations
+                    .orEmpty()
+                    .any { it.id == bubble.topicId }
+            val message = bubble.messageId.takeIf { bubble.kind == NotificationKind.Reaction }
+            return Place.Topic(bubble.topicId, message, private = private)
         }
 
         /** **I understand** on the warning card, or the card closed (TV-11). */
@@ -168,6 +224,11 @@ class ShellViewModel
         fun rollLinks(rolled: Boolean) = remember { it.copy(linksRolled = rolled) }
 
         fun themeMode(mode: ThemeMode) = remember { it.copy(themeMode = mode) }
+
+        /** **Dismiss** on the notifications bar, or Android's question refused (NT-07). */
+        fun dismissPushBar() {
+            viewModelScope.launch { choices.dismissPushBar() }
+        }
 
         fun tutorialBubbles(choice: TutorialBubbles) {
             viewModelScope.launch { choices.tutorialBubbles(choice) }
@@ -208,10 +269,11 @@ class ShellViewModel
             sidebar?.close()
             conversations?.close()
             warned.value?.close()
+            live.value?.close()
         }
 
         private fun remember(change: (ForumRecord) -> ForumRecord) {
-            viewModelScope.launch { sessions.updateForum(change) }
+            viewModelScope.launch { sessions.updateForum(transform = change) }
         }
     }
 

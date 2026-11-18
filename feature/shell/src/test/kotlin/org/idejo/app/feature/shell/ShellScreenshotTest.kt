@@ -5,6 +5,7 @@ package org.idejo.app.feature.shell
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.data.ConversationsState
+import org.idejo.app.core.data.LiveBubble
+import org.idejo.app.core.data.NotificationKind
 import org.idejo.app.core.data.SidebarCategory
 import org.idejo.app.core.data.SidebarSection
 import org.idejo.app.core.data.SidebarState
@@ -145,6 +148,54 @@ class ShellScreenshotTest {
                     ),
                 ),
                 WarningActions({}, {}, {}),
+            )
+        }
+
+    @Test
+    fun `NT-07 the notifications bar`() =
+        snapshots("PushBar") {
+            PushBarContent(on = false, bubble = true, onEnable = {}, onDismiss = {})
+        }
+
+    @Test
+    fun `NT-01 the live bubbles`() =
+        snapshots("Bubbles") {
+            LiveBubbleStack(
+                listOf(
+                    LiveBubble(
+                        3,
+                        NotificationKind.Mention,
+                        "Mina",
+                        "Tomatoes",
+                        "@ada which sauce?",
+                        "t_1",
+                        "m_3",
+                        null,
+                    ),
+                    LiveBubble(
+                        2,
+                        NotificationKind.Reply,
+                        "Bea",
+                        "Basil all summer",
+                        "Pinch the tops.",
+                        "t_2",
+                        "m_2",
+                        null,
+                    ),
+                    LiveBubble(
+                        1,
+                        NotificationKind.RoleMention,
+                        "Cy",
+                        "Seed swap",
+                        null,
+                        "t_3",
+                        "m_1",
+                        null,
+                    ),
+                ),
+                onOpen = {},
+                onDismiss = {},
+                modifier = Modifier.padding(12.dp),
             )
         }
 
