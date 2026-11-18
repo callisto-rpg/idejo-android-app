@@ -236,4 +236,27 @@ class PushRegistrarTest {
             assertTrue(registrar.status.value is PushStatus.Failed)
             assertNull(session.record.value.push)
         }
+
+    @Test
+    fun `NT-02 signed in again, the same endpoint is sent again`() =
+        runBlocking {
+            val session = signedIn()
+            registrar.onEndpoint(session.origin, "https://ntfy.example.net/upA", "BPUB", "AUTH")
+            sessions.signOut(session.origin)
+            eventually { session.origin in distributor.unregistered }
+
+            val grant =
+                TokenGrant(fake.tokenFor(FakePeople.Ada), tokenId = "tok_2", user = FakePeople.Ada)
+            sessions.signedIn(session.origin, grant)
+            val again = requireNotNull(sessions.active)
+            assertNull(again.record.value.push)
+            registrar.onEndpoint(again.origin, "https://ntfy.example.net/upA", "BPUB", "AUTH")
+
+            val posts =
+                fake.requests.count {
+                    it.method == "POST" &&
+                        it.url.encodedPath.endsWith("unifiedpush")
+                }
+            assertEquals(2, posts)
+        }
 }

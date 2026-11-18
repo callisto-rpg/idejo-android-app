@@ -137,24 +137,25 @@ class SessionManager(
         lock.withLock {
             val state = store.current()
             state.forum(origin)?.let { revoke(it) }
-            mutableSignedOut.tryEmit(origin)
             open(
                 store
                     .updateForum(origin) {
                         it.copy(sealedToken = null, tokenId = null, signedOut = false)
                     }.forum(origin),
             )
+            // Once the new session is open, so what the registrar forgets reaches it (NT-02).
+            mutableSignedOut.tryEmit(origin)
         }
 
     /** Signs out and removes the forum: back to the welcome screen (single-forum mode). */
     suspend fun remove(origin: String) =
         lock.withLock {
             store.current().forum(origin)?.let { revoke(it) }
-            mutableSignedOut.tryEmit(origin)
             store.update { state ->
                 state.copy(forums = state.forums.filterNot { it.origin == origin }, active = null)
             }
             open(null)
+            mutableSignedOut.tryEmit(origin)
         }
 
     /**

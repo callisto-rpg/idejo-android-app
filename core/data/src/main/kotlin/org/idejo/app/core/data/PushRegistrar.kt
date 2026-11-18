@@ -4,6 +4,7 @@
 package org.idejo.app.core.data
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -89,7 +90,10 @@ class PushRegistrar(
     private val lock = Mutex()
 
     fun start() {
-        scope.launch { sessions.signedOut.collect { forget(it) } }
+        // Subscribed before start() returns: a sign-out right after is not missed.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            sessions.signedOut.collect { forget(it) }
+        }
         scope.launch {
             sessions.launch
                 .flatMapLatest { launch ->
