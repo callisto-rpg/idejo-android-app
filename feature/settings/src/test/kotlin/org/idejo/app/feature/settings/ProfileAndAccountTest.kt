@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PushRegistration
 import org.idejo.app.core.model.Token
 import org.idejo.app.feature.settings.appsdevices.AppsDevicesEvent
 import org.idejo.app.feature.settings.appsdevices.AppsDevicesScreen
@@ -29,6 +30,11 @@ import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersUiState
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsEvent
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsUiState
+import org.idejo.app.feature.settings.pushnotifications.PushChoice
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsEvent
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsScreen
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsUiState
+import org.idejo.app.feature.settings.pushnotifications.TestResult
 import org.idejo.app.feature.settings.writing.WritingEvent
 import org.idejo.app.feature.settings.writing.WritingScreen
 import org.idejo.app.feature.settings.writing.WritingUiState
@@ -66,6 +72,7 @@ class ProfileAndAccountTest {
                 "private-messages",
                 "ignored-users",
                 "email-notifications",
+                "push-notifications",
                 "apps-devices",
                 "delete-account",
             ),
@@ -169,6 +176,39 @@ class ProfileAndAccountTest {
             listOf<AppsDevicesEvent>(
                 AppsDevicesEvent.Remove("t_2"),
                 AppsDevicesEvent.Remove("t_1"),
+            ),
+            events,
+        )
+    }
+
+    @Test
+    fun `NT-08 the push screen reads as the web and sends each action`() {
+        val events = mutableListOf<PushNotificationsEvent>()
+        rule.setContent {
+            PushNotificationsScreen(
+                PushNotificationsUiState(
+                    loading = false,
+                    username = "ada",
+                    push = NotificationSettings.Push(reply = true, mention = false),
+                    devices = listOf(PushRegistration("p_1", "web", "Firefox on Linux")),
+                    tested = TestResult.NoDevice,
+                ),
+                onEvent = { events += it },
+            )
+        }
+        rule.onNodeWithText("Notifications are off for this device.").assertExists()
+        rule.onNodeWithText("Replies to me").assertIsOn()
+        rule.onNodeWithText("@ada mentions").assertIsOff().performClick()
+        rule.onNodeWithContentDescription("Remove Firefox on Linux").performClick()
+        rule.onNodeWithText("Send test notification").performClick()
+        rule
+            .onNodeWithText("No device takes notifications yet. Turn them on first.")
+            .assertExists()
+        assertEquals(
+            listOf(
+                PushNotificationsEvent.Set(PushChoice.Mention, true),
+                PushNotificationsEvent.Remove("p_1"),
+                PushNotificationsEvent.SendTest,
             ),
             events,
         )

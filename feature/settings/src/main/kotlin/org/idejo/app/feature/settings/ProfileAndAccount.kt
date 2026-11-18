@@ -49,6 +49,7 @@ import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersRoute
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsRoute
 import org.idejo.app.feature.settings.parts.SectionHeader
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesRoute
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsRoute
 import org.idejo.app.feature.settings.writing.WritingRoute
 import javax.inject.Inject
 
@@ -95,6 +96,12 @@ val SETTINGS_SECTIONS: List<SettingsSection> =
             R.string.group_messages,
             R.string.email_notifications,
         ) { EmailNotificationsRoute(it) },
+        SettingsSection(
+            "push-notifications",
+            R.string.group_messages,
+            R.string.push_notifications,
+            feature = "unifiedpush",
+        ) { PushNotificationsRoute(it) },
         SettingsSection(
             "apps-devices",
             R.string.group_account,

@@ -1327,7 +1327,7 @@ class FakeIdejo(
                                 ?.toString()
                                 ?.takeIf { accountDeletion },
                     ),
-                features = listOf("polls", "private_messages"),
+                features = listOf("unifiedpush", "polls", "private_messages"),
             ),
         )
     }

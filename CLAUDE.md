@@ -395,9 +395,9 @@ Docker image) are added with them.
 
 Current milestone: **M3 — Notifications and settings**: Profile and account with Writing
 (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
-(ST-08), Apps and devices (ST-05) and Delete account (ST-06); App settings' About with the
-source code and the privacy note (ST-23). The other sections follow "Adding a settings
-section"; `ForumApi` already reads `/me/push` (NT-08). M2
+(ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
+devices (ST-05) and Delete account (ST-06); App settings' About with the source code and
+the privacy note (ST-23). The other sections follow "Adding a settings section". M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.

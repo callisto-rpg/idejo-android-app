@@ -47,6 +47,28 @@ SPDX-License-Identifier: Apache-2.0
     <string name="email_notifications_new_topics">New topics created</string>
     <string name="email_notifications_all_activity">Any activity in the forum</string>
     <string name="email_notifications_once_a_week">Don\'t send me a second message in the same week if I don\'t log in.</string>
+    <!-- Push notifications (NT-08, idejo PN-11, PN-24). "This device" stands for the web's "This browser". -->
+    <string name="push_notifications">Push notifications</string>
+    <string name="push_this_on">Notifications are on for this device.</string>
+    <string name="push_this_off">Notifications are off for this device.</string>
+    <string name="push_send_for">Send me a notification for:</string>
+    <string name="push_reply">Replies to me</string>
+    <string name="push_mention">\@%1$s mentions</string>
+    <string name="push_mention_plain">My mentions</string>
+    <string name="push_role_mention">+role mentions</string>
+    <string name="push_followed">New messages in topics I follow</string>
+    <string name="push_private">Private messages</string>
+    <string name="push_all_devices">These apply to all your devices.</string>
+    <string name="push_devices">Devices</string>
+    <string name="push_no_devices">No device takes notifications yet.</string>
+    <string name="push_this_device">This device</string>
+    <string name="push_unnamed">Unknown browser</string>
+    <string name="push_added">Added %1$s</string>
+    <string name="push_remove">Remove</string>
+    <string name="push_remove_named">Remove %1$s</string>
+    <string name="push_send_test">Send test notification</string>
+    <string name="push_test_sent">Test notification sent.</string>
+    <string name="push_test_no_device">No device takes notifications yet. Turn them on first.</string>
     <!-- Apps and devices (ST-05). The confirmation for this device is the app's own. -->
     <string name="apps_devices">Apps and devices</string>
     <string name="apps_devices_help">Devices signed in to the idejo app. Remove one to sign it out; it stops getting notifications.</string>

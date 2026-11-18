@@ -15,6 +15,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PushRegistration
 import org.idejo.app.core.model.Token
 import org.idejo.app.feature.settings.appsdevices.AppsDevicesScreen
 import org.idejo.app.feature.settings.appsdevices.AppsDevicesUiState
@@ -28,6 +29,8 @@ import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsUiState
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesScreen
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesUiState
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsScreen
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsUiState
 import org.idejo.app.feature.settings.writing.WritingScreen
 import org.idejo.app.feature.settings.writing.WritingUiState
 import org.junit.Test
@@ -102,6 +105,31 @@ class ProfileAndAccountScreenshotTest {
                             newTopics = false,
                             allActivity = false,
                             onceAWeek = true,
+                        ),
+                ),
+                {},
+            )
+        }
+    }
+
+    @Test
+    fun `NT-08 push notifications`() {
+        shoot("PushNotifications") {
+            PushNotificationsScreen(
+                PushNotificationsUiState(
+                    loading = false,
+                    username = "ada",
+                    push = NotificationSettings.Push(true, true, true, false, true),
+                    devices =
+                        listOf(
+                            PushRegistration(
+                                "p_1",
+                                "unifiedpush",
+                                "Pixel 8",
+                                thisDevice = true,
+                                createdAt = NOON,
+                            ),
+                            PushRegistration("p_2", "web", "Firefox on Linux", createdAt = NOON),
                         ),
                 ),
                 {},
