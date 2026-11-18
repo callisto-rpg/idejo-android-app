@@ -90,6 +90,12 @@ data class Me(
  */
 @Serializable
 data class MePatch(
+    /** The display name (ST-01): never blank; the server says so if it is. */
+    @SerialName("display_name") val displayName: String? = null,
+    /** The user tag (ST-01): `""` clears it. */
+    @SerialName("user_tag") val userTag: String? = null,
+    /** The bio's Markdown (ST-01): `""` clears it. */
+    @SerialName("bio_md") val bioMd: String? = null,
     @SerialName("auto_punctuation") val autoPunctuation: Boolean? = null,
     @SerialName("graphical_composer") val graphicalComposer: Boolean? = null,
     @SerialName("controls_on_mobile") val controlsOnMobile: Boolean? = null,

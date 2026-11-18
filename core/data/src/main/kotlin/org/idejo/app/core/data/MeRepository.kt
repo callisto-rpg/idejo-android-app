@@ -41,6 +41,17 @@ class MeRepository internal constructor(
     suspend fun update(patch: MePatch): ApiResult<Me> =
         session.call { updateMe(patch) }.also(::publish)
 
+    /** Sets the picture, or the dark theme's with [dark] (ST-01); the answer is published. */
+    suspend fun setPicture(
+        dark: Boolean,
+        bytes: ByteArray,
+        type: String,
+    ): ApiResult<Me> = session.call { setPicture(dark, bytes, type) }.also(::publish)
+
+    /** Removes the picture, or the dark theme's with [dark] (ST-01). */
+    suspend fun removePicture(dark: Boolean): ApiResult<Me> =
+        session.call { removePicture(dark) }.also(::publish)
+
     private fun publish(result: ApiResult<Me>) {
         if (result is ApiResult.Success) mutableState.value = result.value
     }

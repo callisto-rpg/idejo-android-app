@@ -5,6 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 <resources>
     <!-- Profile and account (ST), in the web's words: its groups are the web's tabs. -->
+    <string name="group_profile">Profile</string>
     <string name="group_interface">Interface</string>
     <string name="group_messages">Messages and notifications</string>
     <string name="group_account">Account</string>
@@ -15,6 +16,39 @@ SPDX-License-Identifier: Apache-2.0
     <string name="settings_load_offline">You are offline.</string>
     <string name="settings_unreadable">Couldn’t load this page.</string>
     <string name="settings_no_browser">No browser can open this page.</string>
+    <!-- Profile (ST-01). The crop dialog's words are the app's own: the web has none. -->
+    <string name="profile">Profile</string>
+    <string name="profile_name">Name</string>
+    <string name="profile_display_name">Display name (shown above your messages)</string>
+    <string name="profile_user_tag">User tag or nickname (shown after your name, optional)</string>
+    <string name="profile_save">Save</string>
+    <string name="profile_saved">Profile saved.</string>
+    <string name="profile_bio">Bio</string>
+    <string name="profile_bio_help">Shown on your user page, under your roles. Markdown, like a message; leave it empty for none.</string>
+    <string name="profile_bio_markdown">Bio (Markdown)</string>
+    <string name="profile_write">Write</string>
+    <string name="profile_preview">Preview</string>
+    <string name="profile_save_bio">Save bio</string>
+    <string name="profile_bio_saved">Bio saved.</string>
+    <string name="profile_avatar">Avatar</string>
+    <string name="profile_choose">Choose a picture</string>
+    <string name="profile_remove_avatar">Remove avatar</string>
+    <string name="profile_avatar_saved">Avatar saved.</string>
+    <string name="profile_dark_picture">Dark mode picture</string>
+    <string name="profile_dark_help">Shown instead of your avatar to people using the dark theme. Without one, your avatar shows in both themes.</string>
+    <string name="profile_remove_dark">Remove dark mode picture</string>
+    <string name="profile_dark_saved">Dark mode picture saved.</string>
+    <string name="profile_unreadable">This picture cannot be read. Choose a JPEG, PNG, GIF or WebP.</string>
+    <string name="profile_crop_title">Crop your picture</string>
+    <string name="profile_crop_area">The part of the picture kept. Drag to move it, pinch to zoom, or use the buttons.</string>
+    <string name="profile_crop_zoom_in">Zoom in</string>
+    <string name="profile_crop_zoom_out">Zoom out</string>
+    <string name="profile_crop_left">Left</string>
+    <string name="profile_crop_up">Up</string>
+    <string name="profile_crop_down">Down</string>
+    <string name="profile_crop_right">Right</string>
+    <string name="profile_crop_use">Use this picture</string>
+    <string name="profile_cancel">Cancel</string>
     <!-- Writing (ST-02). The web adds that open topics follow once reloaded; the app's follow at once. -->
     <string name="writing">Writing</string>
     <string name="writing_auto_punctuation">Automatic punctuation</string>

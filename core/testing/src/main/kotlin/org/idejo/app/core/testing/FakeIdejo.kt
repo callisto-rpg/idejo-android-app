@@ -553,6 +553,14 @@ class FakeIdejo(
         listOf(
             Route("GET", "server") { ok(server()) },
             Route("GET", "me") { call -> call.viewer?.let { ok(me(it)) } ?: unauthenticated() },
+            Route("PUT", "me/avatar") { call -> picture(call, dark = false) },
+            Route("PUT", "me/avatar-dark") { call -> picture(call, dark = true) },
+            Route("DELETE", "me/avatar") { call ->
+                member(call) { it.avatarUrl = null }
+            },
+            Route("DELETE", "me/avatar-dark") { call ->
+                member(call) { it.avatarDarkUrl = null }
+            },
             Route("GET", "me/tokens") { call ->
                 val person = call.viewer ?: return@Route unauthenticated()
                 val current = call.request.headers["Authorization"]?.removePrefix("Bearer ")
@@ -658,7 +666,21 @@ class FakeIdejo(
                 val body = call.request.body?.utf8() ?: "{}"
                 // Only the fields sent change (API guide: `PATCH /me`); unknown ones ignored.
                 val patch = IdejoJson.decodeFromString<MePatch>(body)
+                // idejo's own check (AC-04): a display name is never blank.
+                if (patch.displayName?.isBlank() == true) {
+                    return@Route error(
+                        HTTP_UNPROCESSABLE_ENTITY,
+                        "validation",
+                        "Display name can't be blank.",
+                    )
+                }
                 member(call) { reader ->
+                    patch.displayName?.let { reader.displayName = it.trim() }
+                    patch.userTag?.let {
+                        reader.userTag = it.trim().ifEmpty { null }
+                        reader.userTagChanged = true
+                    }
+                    patch.bioMd?.let { reader.bioMd = it.ifBlank { null } }
                     patch.autoPunctuation?.let { reader.autoPunctuation = it }
                     patch.graphicalComposer?.let { reader.graphicalComposer = it }
                     patch.controlsOnMobile?.let { reader.controlsOnMobile = it }
@@ -1420,8 +1442,12 @@ class FakeIdejo(
         val reader = reader(person)
         return Me(
             id = requireNotNull(person.id),
-            displayName = person.displayName,
+            displayName = reader.displayName ?: person.displayName,
             username = person.username,
+            userTag = if (reader.userTagChanged) reader.userTag else person.userTag,
+            bioMd = reader.bioMd,
+            avatarUrl = reader.avatarUrl,
+            avatarDarkUrl = reader.avatarDarkUrl,
             verified = true,
             roles = settings.roles.filter { it.id in reader.roles },
             welcomed = reader.welcomed,
@@ -1434,6 +1460,9 @@ class FakeIdejo(
             controlsOnDesktop = reader.controlsOnDesktop.takeIf { memberChoices },
         )
     }
+
+    /** The pictures sent with `PUT /me/avatar(-dark)`, by size of the request (ST-01). */
+    val pictures: MutableList<Int> = mutableListOf()
 
     /** [person]'s email summary and push choices (ST-03, NT-08), read back. */
     fun notificationSettingsOf(person: Person): NotificationSettings =
@@ -1541,6 +1570,23 @@ class FakeIdejo(
                 mayMessage = viewer != null && viewer.id != id && reader(person).acceptsPrivate,
             ),
         )
+    }
+
+    /** `PUT /me/avatar(-dark)`: a multipart `image`, kept as a new upload (ST-01). */
+    private fun picture(
+        call: Call,
+        dark: Boolean,
+    ): MockResponse {
+        val body =
+            call.request.body
+                ?.utf8()
+                .orEmpty()
+        if ("name=\"image\"" !in body) {
+            return error(HTTP_BAD_REQUEST, "bad_request", "The request is not valid.")
+        }
+        val url = "/uploads/avatar_" + nextId++ + ".webp"
+        pictures += body.length
+        return member(call) { if (dark) it.avatarDarkUrl = url else it.avatarUrl = url }
     }
 
     /** A change to the signed-in member, answered with `GET /me`. */

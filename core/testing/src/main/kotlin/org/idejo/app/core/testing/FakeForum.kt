@@ -114,6 +114,14 @@ internal class Reader(
     /** The people ignored, by id (AC-06). */
     val ignored: MutableSet<String> = mutableSetOf()
 
+    /** What Profile changed (ST-01): null keeps the person's own. */
+    var displayName: String? = null
+    var userTag: String? = null
+    var userTagChanged: Boolean = false
+    var bioMd: String? = null
+    var avatarUrl: String? = null
+    var avatarDarkUrl: String? = null
+
     /** "Members can send me private messages" (PC-03). */
     var acceptsPrivate: Boolean = true
 

@@ -105,6 +105,29 @@ class ForumApi(
 
     suspend fun me(): ApiResult<Me> = call { me() }
 
+    /**
+     * The member's picture (ST-01), or the dark theme's with [dark]: a square image as
+     * multipart `image`; the server answers with `GET /me`.
+     */
+    suspend fun setPicture(
+        dark: Boolean,
+        bytes: ByteArray,
+        type: String,
+    ): ApiResult<Me> =
+        call {
+            val part =
+                MultipartBody.Part.createFormData(
+                    "image",
+                    "picture." + type.substringAfter('/').replace("jpeg", "jpg"),
+                    bytes.toRequestBody(type.toMediaTypeOrNull()),
+                )
+            if (dark) setAvatarDark(part) else setAvatar(part)
+        }
+
+    /** Removes the picture, or the dark theme's with [dark] (ST-01). */
+    suspend fun removePicture(dark: Boolean): ApiResult<Me> =
+        call { if (dark) removeAvatarDark() else removeAvatar() }
+
     /** The devices signed in to the app, this one marked (ST-05, AP-09). */
     suspend fun tokens(): ApiResult<List<Token>> = call { tokens().data }
 

@@ -77,6 +77,24 @@ internal interface IdejoService {
     @GET("me")
     suspend fun me(): Me
 
+    @Multipart
+    @PUT("me/avatar")
+    suspend fun setAvatar(
+        @Part image: MultipartBody.Part,
+    ): Me
+
+    @Multipart
+    @PUT("me/avatar-dark")
+    suspend fun setAvatarDark(
+        @Part image: MultipartBody.Part,
+    ): Me
+
+    @DELETE("me/avatar")
+    suspend fun removeAvatar(): Me
+
+    @DELETE("me/avatar-dark")
+    suspend fun removeAvatarDark(): Me
+
     @GET("me/tokens")
     suspend fun tokens(): ListBody<Token>
 

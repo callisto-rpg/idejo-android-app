@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PushRegistration
@@ -29,6 +30,8 @@ import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsUiState
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesScreen
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesUiState
+import org.idejo.app.feature.settings.profile.ProfileScreen
+import org.idejo.app.feature.settings.profile.ProfileUiState
 import org.idejo.app.feature.settings.pushnotifications.PushNotificationsScreen
 import org.idejo.app.feature.settings.pushnotifications.PushNotificationsUiState
 import org.idejo.app.feature.settings.writing.WritingScreen
@@ -106,6 +109,22 @@ class ProfileAndAccountScreenshotTest {
                             allActivity = false,
                             onceAWeek = true,
                         ),
+                ),
+                {},
+            )
+        }
+    }
+
+    @Test
+    fun `ST-01 profile`() {
+        shoot("Profile") {
+            ProfileScreen(
+                ProfileUiState(
+                    loading = false,
+                    me = Me(id = "u_ada", displayName = "Ada Lovelace", userTag = "ada"),
+                    name = "Ada Lovelace",
+                    tag = "ada",
+                    bio = "Analyst of **engines**.",
                 ),
                 {},
             )

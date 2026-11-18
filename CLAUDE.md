@@ -393,8 +393,8 @@ Docker image) are added with them.
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M3 — Notifications and settings**: Profile and account with Writing
-(ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
+Current milestone: **M3 — Notifications and settings**: Profile and account with Profile
+(ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
 devices (ST-05) and Delete account (ST-06); App settings' About with the source code and
 the privacy note (ST-23). The other sections follow "Adding a settings section". M2

@@ -10,6 +10,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PushRegistration
@@ -30,6 +32,9 @@ import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersUiState
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsEvent
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsUiState
+import org.idejo.app.feature.settings.profile.ProfileEvent
+import org.idejo.app.feature.settings.profile.ProfileScreen
+import org.idejo.app.feature.settings.profile.ProfileUiState
 import org.idejo.app.feature.settings.pushnotifications.PushChoice
 import org.idejo.app.feature.settings.pushnotifications.PushNotificationsEvent
 import org.idejo.app.feature.settings.pushnotifications.PushNotificationsScreen
@@ -67,6 +72,7 @@ class ProfileAndAccountTest {
         rule.onNodeWithText("Delete account").assertExists()
         assertEquals(
             listOf(
+                "profile",
                 "writing",
                 "message-controls",
                 "private-messages",
@@ -212,6 +218,30 @@ class ProfileAndAccountTest {
             ),
             events,
         )
+    }
+
+    @Test
+    fun `ST-01 the bio's preview draws its Markdown`() {
+        val events = mutableListOf<ProfileEvent>()
+        rule.setContent {
+            ProfileScreen(
+                ProfileUiState(
+                    loading = false,
+                    me = Me(id = "u_ada", displayName = "Ada Lovelace"),
+                    name = "Ada Lovelace",
+                    tag = "",
+                    bio = "Analyst of **engines**.",
+                ),
+                onEvent = { events += it },
+            )
+        }
+        rule.onNodeWithText("Bio (Markdown)").assertExists()
+        rule.onNodeWithText("Preview").performClick()
+        rule.onNodeWithText("Analyst of engines.").assertExists()
+        rule.onNodeWithText("Bio (Markdown)").assertDoesNotExist()
+        rule.onNodeWithText("Save bio").performScrollTo().performClick()
+        rule.onNodeWithText("Remove avatar").assertDoesNotExist()
+        assertEquals(listOf<ProfileEvent>(ProfileEvent.SaveBio), events)
     }
 
     @Test

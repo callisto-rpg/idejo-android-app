@@ -49,6 +49,7 @@ import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersRoute
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsRoute
 import org.idejo.app.feature.settings.parts.SectionHeader
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesRoute
+import org.idejo.app.feature.settings.profile.ProfileRoute
 import org.idejo.app.feature.settings.pushnotifications.PushNotificationsRoute
 import org.idejo.app.feature.settings.writing.WritingRoute
 import javax.inject.Inject
@@ -74,6 +75,7 @@ class SettingsSection(
  */
 val SETTINGS_SECTIONS: List<SettingsSection> =
     listOf(
+        SettingsSection("profile", R.string.group_profile, R.string.profile) { ProfileRoute(it) },
         SettingsSection("writing", R.string.group_interface, R.string.writing) { WritingRoute(it) },
         SettingsSection(
             "message-controls",
