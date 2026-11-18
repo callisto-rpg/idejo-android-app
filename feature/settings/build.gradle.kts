@@ -17,6 +17,8 @@ android {
 dependencies {
     implementation(project(":core:data"))
     implementation(libs.androidx.hilt.viewmodel.compose)
+    implementation(libs.androidx.browser)
+    implementation(libs.coil.compose)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.kotlinx.coroutines.test)

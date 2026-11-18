@@ -41,6 +41,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.model.Discovery
+import org.idejo.app.feature.settings.deleteaccount.DeleteAccountRoute
+import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersRoute
+import org.idejo.app.feature.settings.messagecontrols.MessageControlsRoute
 import org.idejo.app.feature.settings.parts.SectionHeader
 import org.idejo.app.feature.settings.privatemessages.PrivateMessagesRoute
 import org.idejo.app.feature.settings.writing.WritingRoute
@@ -49,7 +53,7 @@ import javax.inject.Inject
 /**
  * One section of **Profile and account** (ST): its key in the route, the web's tab it sits
  * under ([group]), its title, and its screen. Shown only when the forum's discovery lists
- * [feature], when it names one.
+ * [feature], when it names one, and when [offered] holds for that discovery.
  */
 @Immutable
 class SettingsSection(
@@ -57,6 +61,7 @@ class SettingsSection(
     @param:StringRes val group: Int,
     @param:StringRes val title: Int,
     val feature: String? = null,
+    val offered: (Discovery) -> Boolean = { true },
     val content: @Composable (Modifier) -> Unit,
 )
 
@@ -68,12 +73,36 @@ val SETTINGS_SECTIONS: List<SettingsSection> =
     listOf(
         SettingsSection("writing", R.string.group_interface, R.string.writing) { WritingRoute(it) },
         SettingsSection(
+            "message-controls",
+            R.string.group_interface,
+            R.string.message_controls,
+        ) { MessageControlsRoute(it) },
+        SettingsSection(
             "private-messages",
             R.string.group_messages,
             R.string.private_messages,
             feature = "private_messages",
         ) { PrivateMessagesRoute(it) },
+        SettingsSection(
+            "ignored-users",
+            R.string.group_messages,
+            R.string.ignored_users,
+        ) { IgnoredUsersRoute(it) },
+        SettingsSection(
+            "delete-account",
+            R.string.group_account,
+            R.string.delete_account,
+            offered = { it.account?.deletionUrl != null },
+        ) { DeleteAccountRoute(it) },
     )
+
+/** Whether a forum of [discovery] has this section; unknown, only the plain ones. */
+internal fun SettingsSection.offeredBy(discovery: Discovery?): Boolean =
+    if (discovery == null) {
+        feature == null
+    } else {
+        (feature == null || feature in discovery.features) && offered(discovery)
+    }
 
 /** The overview: the sections this forum has, and the one open beside it on wide windows. */
 @Immutable
@@ -90,23 +119,21 @@ sealed interface ProfileAndAccountEvent {
     ) : ProfileAndAccountEvent
 }
 
-/** The sections the open forum offers: those with no [SettingsSection.feature], or its own. */
+/** The sections the open forum offers ([offeredBy]). */
 @HiltViewModel
 class ProfileAndAccountViewModel
     @Inject
     constructor(
         sessions: SessionManager,
     ) : ViewModel() {
-        private val features =
+        private val discovery =
             sessions.active
                 ?.record
                 ?.value
                 ?.discovery
-                ?.features
-                .orEmpty()
         val sections: StateFlow<List<SettingsSection>> =
             MutableStateFlow(
-                SETTINGS_SECTIONS.filter { it.feature == null || it.feature in features },
+                SETTINGS_SECTIONS.filter { it.offeredBy(discovery) },
             )
     }
 

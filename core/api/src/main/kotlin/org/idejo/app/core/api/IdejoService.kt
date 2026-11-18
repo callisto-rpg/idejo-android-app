@@ -23,10 +23,14 @@ import org.idejo.app.core.model.MePatch
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
+import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
 import org.idejo.app.core.model.PollCreate
+import org.idejo.app.core.model.PushRegistration
+import org.idejo.app.core.model.PushTest
 import org.idejo.app.core.model.Reaction
 import org.idejo.app.core.model.Reactor
 import org.idejo.app.core.model.ReadPosition
@@ -39,6 +43,7 @@ import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.SpoilerSet
 import org.idejo.app.core.model.Suggestion
 import org.idejo.app.core.model.Tag
+import org.idejo.app.core.model.Token
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.TopicCreate
 import org.idejo.app.core.model.TopicCreated
@@ -71,6 +76,36 @@ internal interface IdejoService {
 
     @GET("me")
     suspend fun me(): Me
+
+    @GET("me/tokens")
+    suspend fun tokens(): ListBody<Token>
+
+    @DELETE("me/tokens/{id}")
+    suspend fun deleteToken(
+        @Path("id") id: String,
+    ): Response<Unit>
+
+    @GET("me/notification-settings")
+    suspend fun notificationSettings(): NotificationSettings
+
+    @PATCH("me/notification-settings")
+    suspend fun updateNotificationSettings(
+        @Body settings: NotificationSettings,
+    ): NotificationSettings
+
+    @GET("me/ignored")
+    suspend fun ignored(): ListBody<Person>
+
+    @GET("me/push")
+    suspend fun push(): ListBody<PushRegistration>
+
+    @DELETE("me/push/unifiedpush/{id}")
+    suspend fun deletePush(
+        @Path("id") id: String,
+    ): Response<Unit>
+
+    @POST("me/push/test")
+    suspend fun testPush(): PushTest
 
     @GET("me/communities")
     suspend fun communities(): ListBody<Community>

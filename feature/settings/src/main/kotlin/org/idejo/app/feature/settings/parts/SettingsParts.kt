@@ -123,7 +123,11 @@ fun <T> RadioGroupRow(
     }
 }
 
-/** A line of a list with a button at its end (**Remove**, **Stop ignoring**…). */
+/**
+ * A line of a list with a button at its end (**Remove**, **Stop ignoring**…), after an
+ * optional [leading] mark (a person's picture). [actionLabel] is what TalkBack hears for the
+ * button when [action] alone is not enough ("Stop ignoring Leo Moreau").
+ */
 @Composable
 fun ActionRow(
     title: String,
@@ -132,11 +136,15 @@ fun ActionRow(
     modifier: Modifier = Modifier,
     detail: String? = null,
     enabled: Boolean = true,
+    leading: (@Composable () -> Unit)? = null,
+    actionLabel: String? = null,
 ) {
     Row(
         modifier.fillMaxWidth().heightIn(min = 48.dp).padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        leading?.invoke()
         Column(Modifier.weight(1f)) {
             Text(title, style = IdejoTheme.typography.bodyLarge)
             if (detail != null) {
@@ -147,7 +155,16 @@ fun ActionRow(
                 )
             }
         }
-        TextButton(onClick = onAction, enabled = enabled) { Text(action) }
+        TextButton(
+            onClick = onAction,
+            enabled = enabled,
+            modifier =
+                if (actionLabel == null) {
+                    Modifier
+                } else {
+                    Modifier.semantics { contentDescription = actionLabel }
+                },
+        ) { Text(action) }
     }
 }
 

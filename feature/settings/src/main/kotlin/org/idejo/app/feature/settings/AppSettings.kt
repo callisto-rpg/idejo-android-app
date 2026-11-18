@@ -7,11 +7,13 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -38,8 +40,9 @@ data class Licence(
 )
 
 /**
- * App settings in M1 (ST-23; steward decision, 2026-11-14): the app's version and licence,
- * and the licence of every library it ships, as the build's licence check lists them.
+ * App settings' About (ST-23; steward decision, 2026-11-14): the app's version and licence,
+ * its source code, the privacy note, and the licence of every library it ships, as the
+ * build's licence check lists them.
  */
 @Composable
 fun AppSettingsRoute(modifier: Modifier = Modifier) {
@@ -47,13 +50,19 @@ fun AppSettingsRoute(modifier: Modifier = Modifier) {
     val licences by produceState(emptyList<Licence>()) {
         value = withContext(Dispatchers.IO) { context.shippedLicences() }
     }
-    AppSettingsScreen(context.versionName(), licences, modifier)
+    AppSettingsScreen(
+        context.versionName(),
+        licences,
+        onOpenSource = { context.openPage(SOURCE_URL) },
+        modifier,
+    )
 }
 
 @Composable
 fun AppSettingsScreen(
     version: String,
     licences: List<Licence>,
+    onOpenSource: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp)) {
@@ -73,7 +82,21 @@ fun AppSettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                TextButton(
+                    onClick = onOpenSource,
+                    Modifier.heightIn(min = 48.dp),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text(stringResource(R.string.about_source))
+                }
             }
+        }
+        item { Heading(stringResource(R.string.about_privacy)) }
+        item {
+            Text(
+                stringResource(R.string.about_privacy_note),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
         item { Heading(stringResource(R.string.about_bundled)) }
         items(BUNDLED) { Text(stringResource(it), Modifier.padding(vertical = 6.dp)) }
@@ -167,6 +190,9 @@ private class Spdx(
 private class Unknown(
     val name: String? = null,
 )
+
+/** The app's source code (ST-23, LI-01). */
+const val SOURCE_URL = "https://github.com/callisto-rpg/idejo-android-app"
 
 /** Where the app's build puts licensee's report (app/build.gradle.kts). */
 const val LICENCES_ASSET = "licences.json"

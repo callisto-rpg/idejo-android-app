@@ -7,7 +7,9 @@ import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.CategoryPermissions
 import org.idejo.app.core.model.Message
 import org.idejo.app.core.model.MessageState
+import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PushRegistration
 import org.idejo.app.core.model.Tag
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.Warning
@@ -124,7 +126,19 @@ internal class Reader(
     /** "Show message controls on mobile / desktop" (MA-01), off at first. */
     var controlsOnMobile: Boolean = false
     var controlsOnDesktop: Boolean = false
+
+    /** The email summary and push choices (ST-03, NT-08); null while they are idejo's defaults. */
+    var notifications: NotificationSettings? = null
+
+    /** The browsers and devices taking push, by id (NT-02). */
+    val push: MutableMap<String, PushRecord> = linkedMapOf()
 }
+
+/** A push registration and the token that made it (NT-02): `this_device` is that one. */
+internal class PushRecord(
+    val registration: PushRegistration,
+    val token: String?,
+)
 
 /** Unread messages in a topic and the strongest reason (SH-32). */
 internal data class Unseen(

@@ -149,7 +149,11 @@ the reference; copy it, never invent a new shape.
    the server's `message`, or "You are offline: nothing was changed." No literal colours.
 5. Register: one `SettingsSection(key, group, title, feature?) { <Name>Route(it) }` in
    `SETTINGS_SECTIONS`, in the web's order (its tabs: Profile, Interface, Messages and
-   notifications, Account). `feature` names discovery's feature when the forum may lack it.
+   notifications, Account). `feature` names discovery's feature when the forum may lack it;
+   `offered` tests anything else in discovery (Delete account: `account.deletion_url`).
+   A section not built on `GET /me` (a list, a link) keeps the same UiState/Event/Screen
+   shape: Ignored users (ST-08) reads its own endpoint, Delete account (ST-06) only
+   discovery.
 6. Strings: in `feature/settings/src/main/res/values/strings.xml`, prefixed `<name>_`, in
    the web's words (idejo's member guide and settings page).
 7. Tests: `<name>/<Name>ViewModelTest.kt` with `SignedInForum` (loads, patches only the
@@ -389,7 +393,10 @@ Docker image) are added with them.
 - [ ] M7 — Right sidebar
 
 Current milestone: **M3 — Notifications and settings**: Profile and account with Writing
-(ST-02) and Private messages; the other sections follow "Adding a settings section". M2
+(ST-02), Message controls (ST-03), Private messages, Ignored users (ST-08) and Delete
+account (ST-06); App settings' About with the source code and the privacy note (ST-23).
+The other sections follow "Adding a settings section"; `ForumApi` already reads
+`/me/tokens` (ST-05), `/me/notification-settings` (ST-03) and `/me/push` (NT-08). M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.

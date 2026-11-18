@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** App settings, on this device: the version and the licences (ST-23). */
+/** App settings, on this device: the version, source code, privacy and licences (ST-23). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w390dp-h844dp-xhdpi")
@@ -68,6 +68,7 @@ class AppSettingsTest {
                                     Licence("Coil", "3.6.3", listOf("Apache-2.0")),
                                     Licence("commonmark-java", "0.32.0", listOf("BSD-2-Clause")),
                                 ),
+                                onOpenSource = {},
                             )
                         }
                     }
