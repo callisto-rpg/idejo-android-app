@@ -50,6 +50,7 @@ import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.MessageHeader
 import org.idejo.app.core.designsystem.component.relativeTime
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.designsystem.theme.MessageTextSize
 import org.idejo.app.core.designsystem.theme.onSecondaryClick
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
@@ -300,30 +301,33 @@ private fun Body(
                 .then(if (expanded) Modifier else Modifier.heightIn(max = screen).clipToBounds()),
         ) {
             // A long-press on the text selects it (MA-07).
-            SelectionContainer {
-                MarkdownBody(
-                    document,
-                    Modifier.onSizeChanged { tall = it.height >= limit },
-                    actions =
-                        MarkdownActions(
-                            onLink = context.onLink,
-                            onInlineLink = context.onInlineLink,
-                            onReveal = { spoilers = spoilers + it },
-                            emoji = { name -> context.emoji.firstOrNull { it.name == name } },
-                        ),
-                    revealed = spoilers,
-                    pulse = pulse,
-                    image = { MessageImage(it, message, context) },
-                    emojiImage = { emoji ->
-                        emoji.imageUrl?.let { url ->
-                            AsyncImage(
-                                absolute(context.origin, url),
-                                emoji.name,
-                                Modifier.heightIn(max = 22.dp),
-                            )
-                        }
-                    },
-                )
+            // At the member's text size inside messages (ST-22).
+            MessageTextSize {
+                SelectionContainer {
+                    MarkdownBody(
+                        document,
+                        Modifier.onSizeChanged { tall = it.height >= limit },
+                        actions =
+                            MarkdownActions(
+                                onLink = context.onLink,
+                                onInlineLink = context.onInlineLink,
+                                onReveal = { spoilers = spoilers + it },
+                                emoji = { name -> context.emoji.firstOrNull { it.name == name } },
+                            ),
+                        revealed = spoilers,
+                        pulse = pulse,
+                        image = { MessageImage(it, message, context) },
+                        emojiImage = { emoji ->
+                            emoji.imageUrl?.let { url ->
+                                AsyncImage(
+                                    absolute(context.origin, url),
+                                    emoji.name,
+                                    Modifier.heightIn(max = 22.dp),
+                                )
+                            }
+                        },
+                    )
+                }
             }
         }
         if (tall && !expanded) {

@@ -55,7 +55,7 @@ class AppSettingsTest {
     }
 
     @Test
-    fun `ST-23 about, and the licences`() {
+    fun `ST-20 to ST-23 the device's choices, about, and the licences`() {
         for (dark in listOf(false, true)) {
             val mode = if (dark) "dark" else "light"
             captureRoboImage("src/test/screenshots/AppSettings_$mode.png", OPTIONS) {
@@ -69,6 +69,17 @@ class AppSettingsTest {
                                     Licence("commonmark-java", "0.32.0", listOf("BSD-2-Clause")),
                                 ),
                                 onOpenSource = {},
+                                state =
+                                    AppSettingsUiState(
+                                        distributors = listOf("io.heckel.ntfy", "org.idejo.app"),
+                                        distributor = "io.heckel.ntfy",
+                                        cacheBytes = 48_300_000,
+                                    ),
+                                distributorNames =
+                                    mapOf(
+                                        "io.heckel.ntfy" to "ntfy",
+                                        "org.idejo.app" to "Google Play services",
+                                    ),
                             )
                         }
                     }

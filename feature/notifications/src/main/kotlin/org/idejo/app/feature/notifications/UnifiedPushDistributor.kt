@@ -3,7 +3,6 @@
 
 package org.idejo.app.feature.notifications
 
-import android.app.Activity
 import android.content.Context
 import org.idejo.app.core.data.DistributorChoice
 import org.idejo.app.core.data.PushDistributor
@@ -54,11 +53,12 @@ class UnifiedPushDistributor(
         UnifiedPush.unregister(context, instance)
     }
 
-    /** UnifiedPush's own picker (ST-20); [done] says whether one was chosen. */
-    fun pick(
-        activity: Activity,
-        done: (Boolean) -> Unit,
-    ) {
-        UnifiedPush.tryPickDistributor(activity, done)
+    override fun installed(): List<String> = UnifiedPush.getDistributors(context)
+
+    override fun current(): String? = UnifiedPush.getSavedDistributor(context)
+
+    /** Saved, the connector unregisters every instance from the one before (ST-20). */
+    override fun use(distributor: String) {
+        UnifiedPush.saveDistributor(context, distributor)
     }
 }

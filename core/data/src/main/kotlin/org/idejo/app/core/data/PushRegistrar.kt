@@ -48,6 +48,15 @@ interface PushDistributor {
     )
 
     fun unregister(instance: String)
+
+    /** The distributors installed, by package; the app's own for Play's embedded FCM. */
+    fun installed(): List<String> = emptyList()
+
+    /** The distributor in use, by package; null when none is chosen. */
+    fun current(): String? = null
+
+    /** Uses [distributor] from now on (ST-20); the one before ends its registrations. */
+    fun use(distributor: String) = Unit
 }
 
 /** How push stands on this device for the forum open (NT-06, NT-08). */
@@ -108,6 +117,16 @@ class PushRegistrar(
                     }
                 }
         }
+    }
+
+    /** The distributors to choose from (ST-20), and the one in use. */
+    fun distributors(): Pair<List<String>, String?> =
+        distributor.installed() to distributor.current()
+
+    /** [packageName] chosen in App settings (ST-20): the forum is registered through it. */
+    fun use(packageName: String) {
+        distributor.use(packageName)
+        retry()
     }
 
     /** A distributor was chosen (ST-20), or the member asks again: register now. */

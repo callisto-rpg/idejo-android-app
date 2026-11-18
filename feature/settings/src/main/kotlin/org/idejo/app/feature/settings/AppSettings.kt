@@ -18,12 +18,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -45,27 +49,45 @@ data class Licence(
  * build's licence check lists them.
  */
 @Composable
-fun AppSettingsRoute(modifier: Modifier = Modifier) {
+fun AppSettingsRoute(
+    modifier: Modifier = Modifier,
+    viewModel: AppSettingsViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val licences by produceState(emptyList<Licence>()) {
         value = withContext(Dispatchers.IO) { context.shippedLicences() }
     }
+    // A distributor installed meanwhile (NT-06) shows on returning.
+    LifecycleResumeEffect(viewModel) {
+        viewModel.distributors()
+        onPauseOrDispose {}
+    }
+    val names = remember(state.distributors) { context.distributorNames(state.distributors) }
     AppSettingsScreen(
         context.versionName(),
         licences,
         onOpenSource = { context.openPage(SOURCE_URL) },
         modifier,
+        state = state,
+        distributorNames = names,
+        onEvent = viewModel::onEvent,
     )
 }
 
+/** App settings: this device's choices (ST-20 to ST-22) when [state] has them, then About. */
 @Composable
 fun AppSettingsScreen(
     version: String,
     licences: List<Licence>,
     onOpenSource: () -> Unit,
     modifier: Modifier = Modifier,
+    state: AppSettingsUiState? = null,
+    distributorNames: Map<String, String> = emptyMap(),
+    onEvent: (AppSettingsEvent) -> Unit = {},
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp)) {
+        state?.let { deviceSections(it, distributorNames, onEvent) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(

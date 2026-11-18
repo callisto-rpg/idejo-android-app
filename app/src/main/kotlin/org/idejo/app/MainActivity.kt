@@ -21,12 +21,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import org.idejo.app.core.data.AppChoices
+import org.idejo.app.core.data.AppDisplay
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.Launch
 import org.idejo.app.core.data.PendingLink
 import org.idejo.app.core.data.PendingLinks
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.ThemeMode
+import org.idejo.app.core.designsystem.theme.DisplayChoices
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.feature.composer.SharedImages
@@ -42,24 +45,30 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var pendingLinks: PendingLinks
 
+    @Inject lateinit var choices: AppChoices
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) receive(intent)
         enableEdgeToEdge()
         setContent {
             val launch by sessions.launch.collectAsStateWithLifecycle()
+            // Text size, haptics and reduced motion (ST-22), the same in every forum.
+            val app by choices.display.collectAsStateWithLifecycle(AppDisplay())
+            val display =
+                DisplayChoices(app.messageText.scale, app.haptics, app.reduceMotion)
             when (val current = launch) {
                 Launch.Loading -> {
-                    IdejoTheme { Surface(Modifier.fillMaxSize()) {} }
+                    IdejoTheme(display = display) { Surface(Modifier.fillMaxSize()) {} }
                 }
 
                 Launch.Welcome -> {
-                    IdejoTheme { OnboardingFlow() }
+                    IdejoTheme(display = display) { OnboardingFlow() }
                 }
 
                 is Launch.Forum -> {
                     val record by current.session.record.collectAsStateWithLifecycle()
-                    IdejoTheme(record.forumTheme(), record.dark()) {
+                    IdejoTheme(record.forumTheme(), record.dark(), display) {
                         key(current.session) { ForumApp(current.session) }
                     }
                 }

@@ -396,6 +396,14 @@ Docker image) are added with them.
   (writing in one follows it), not dismissed in 14 days. idejo's API has no banner flag, so
   the dismissal is kept on the device (`AppState.pushBarDismissedAt`), for every forum.
   Refused twice, Android no longer asks: **Enable** then opens its notification settings.
+- 2026-11-18 — App settings (ST-20 to ST-22) are kept on the device for every forum
+  (`AppState`, `AppChoices`). The push service is chosen from UnifiedPush's list of
+  distributors (Play's embedded FCM among them, as "Google Play services"), not the
+  connector's picker, which shows only external ones. Text size scales message bodies over
+  Android's font size (`MessageTextSize`); haptics off silences Compose's feedback; reduce
+  motion adds to Android's animation setting (`IdejoTheme(display = …)`). The cache limit
+  (100 MB to 1 GB, 200 MB by default) sizes Coil's disk cache at the next start; **Clear
+  cache** empties the cache folder but the composer's camera pictures.
 
 ## Milestones (spec §26)
 
@@ -416,8 +424,10 @@ with the source code and the privacy note (ST-23); the live bubbles (NT-01: `Liv
 reads user:me's `notification`, the shell's `LiveBubbleStack` shows them); push (NT-02 to
 NT-06, NT-09: `PushRegistrar` in core/data, the connector's `IdejoPushService` and
 `PushNotifier` in feature/notifications, a tapped notification through `PendingLinks` and
-`linkTarget`); the notifications bar (NT-07: the shell's `PushBar`). Left in M3: ST-20 to
-ST-22; ST-07 (linked members) waits for M4's inbox. M2
+`linkTarget`); the notifications bar (NT-07: the shell's `PushBar`); App settings' push
+service, display and storage (ST-20 to ST-22, `AppSettingsViewModel`). M3's rest waits for
+later milestones: ST-07 (linked members) and ST-20's Mode for M4's idejo ID mode, ST-20's
+"open links in the app" for M5's App Links (DL-01). M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.

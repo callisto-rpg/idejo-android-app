@@ -7,11 +7,17 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
+import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.AppScope
 import org.idejo.app.core.data.ForegroundSockets
 import org.idejo.app.core.data.PushRegistrar
@@ -32,6 +38,8 @@ class IdejoApplication :
 
     @Inject lateinit var http: OkHttpClient
 
+    @Inject lateinit var choices: AppChoices
+
     @Inject @AppScope
     lateinit var scope: CoroutineScope
 
@@ -41,10 +49,26 @@ class IdejoApplication :
         scope.launch { sessions.restore() }
     }
 
-    /** Pictures through the app's https-only client, which never carries a token (SI-04). */
-    override fun newImageLoader(context: PlatformContext): ImageLoader =
-        ImageLoader
+    /**
+     * Pictures through the app's https-only client, which never carries a token (SI-04),
+     * kept on disk up to the member's limit (ST-21), read once: a new limit takes the next start.
+     */
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        val megabytes = runBlocking(Dispatchers.IO) { choices.cacheLimitMb.first() }
+        return ImageLoader
             .Builder(context)
             .components { add(OkHttpNetworkFetcherFactory(callFactory = { http })) }
-            .build()
+            .diskCache {
+                DiskCache
+                    .Builder()
+                    .directory(cacheDir.resolve(IMAGE_CACHE).toOkioPath())
+                    .maxSizeBytes(megabytes * MEGABYTE)
+                    .build()
+            }.build()
+    }
+
+    private companion object {
+        const val IMAGE_CACHE = "image_cache"
+        const val MEGABYTE = 1000L * 1000
+    }
 }

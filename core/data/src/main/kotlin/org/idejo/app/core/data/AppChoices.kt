@@ -37,6 +37,27 @@ class AppChoices
             store.update { it.copy(pushBarDismissedAt = now) }
         }
 
+        /** Text size, haptics and reduced motion (ST-22). */
+        val display: Flow<AppDisplay>
+            get() =
+                store.state
+                    .map { AppDisplay(it.messageText, it.haptics, it.reduceMotion) }
+                    .distinctUntilChanged()
+
+        suspend fun messageText(choice: MessageText) =
+            store.update { it.copy(messageText = choice) }
+
+        suspend fun haptics(on: Boolean) = store.update { it.copy(haptics = on) }
+
+        suspend fun reduceMotion(on: Boolean) = store.update { it.copy(reduceMotion = on) }
+
+        /** The image cache's limit (ST-21); the cache takes it at the app's next start. */
+        val cacheLimitMb: Flow<Int>
+            get() = store.state.map { it.cacheLimitMb }.distinctUntilChanged()
+
+        suspend fun cacheLimitMb(megabytes: Int) =
+            store.update { it.copy(cacheLimitMb = megabytes) }
+
         private companion object {
             const val QUIET_MS = 14L * 24 * 60 * 60 * 1000
         }
