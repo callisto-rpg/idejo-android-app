@@ -47,6 +47,19 @@ SPDX-License-Identifier: Apache-2.0
     <string name="email_notifications_new_topics">New topics created</string>
     <string name="email_notifications_all_activity">Any activity in the forum</string>
     <string name="email_notifications_once_a_week">Don\'t send me a second message in the same week if I don\'t log in.</string>
+    <!-- Apps and devices (ST-05). The confirmation for this device is the app's own. -->
+    <string name="apps_devices">Apps and devices</string>
+    <string name="apps_devices_help">Devices signed in to the idejo app. Remove one to sign it out; it stops getting notifications.</string>
+    <string name="apps_devices_none">No device is signed in to the idejo app.</string>
+    <string name="apps_devices_this">This device</string>
+    <string name="apps_devices_signed_in">signed in on %1$s</string>
+    <string name="apps_devices_last_used">last used %1$s</string>
+    <string name="apps_devices_remove">Remove</string>
+    <string name="apps_devices_remove_named">Remove %1$s</string>
+    <string name="apps_devices_this_title">Remove this device?</string>
+    <string name="apps_devices_this_text">This device is signed out of the forum. You can sign in again at any time.</string>
+    <string name="apps_devices_this_confirm">Remove and sign out</string>
+    <string name="apps_devices_cancel">Cancel</string>
     <!-- Delete account (ST-06): deleting stays on the forum's website (idejo API guide §10). -->
     <string name="delete_account">Delete account</string>
     <string name="delete_account_warning">Your email address, username, display name and password are removed and you are signed out everywhere. This cannot be undone.</string>

@@ -12,6 +12,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.Token
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesEvent
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesScreen
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesUiState
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountEvent
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountScreen
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountUiState
@@ -62,6 +66,7 @@ class ProfileAndAccountTest {
                 "private-messages",
                 "ignored-users",
                 "email-notifications",
+                "apps-devices",
                 "delete-account",
             ),
             SETTINGS_SECTIONS.map { it.key },
@@ -137,6 +142,36 @@ class ProfileAndAccountTest {
             IgnoredUsersScreen(IgnoredUsersUiState(loading = false, members = emptyList()), {})
         }
         rule.onNodeWithText("You ignore nobody.").assertExists()
+    }
+
+    @Test
+    fun `ST-05 this device is marked and removing it asks first`() {
+        val events = mutableListOf<AppsDevicesEvent>()
+        rule.setContent {
+            AppsDevicesScreen(
+                AppsDevicesUiState(
+                    loading = false,
+                    devices =
+                        listOf(
+                            Token("t_1", "Pixel 8", current = true),
+                            Token("t_2", "Galaxy Tab"),
+                        ),
+                ),
+                onEvent = { events += it },
+            )
+        }
+        rule.onNodeWithText("This device").assertExists()
+        rule.onNodeWithContentDescription("Remove Galaxy Tab").performClick()
+        rule.onNodeWithContentDescription("Remove Pixel 8").performClick()
+        assertEquals(listOf<AppsDevicesEvent>(AppsDevicesEvent.Remove("t_2")), events)
+        rule.onNodeWithText("Remove and sign out").performClick()
+        assertEquals(
+            listOf<AppsDevicesEvent>(
+                AppsDevicesEvent.Remove("t_2"),
+                AppsDevicesEvent.Remove("t_1"),
+            ),
+            events,
+        )
     }
 
     @Test

@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.StateFlow
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Discovery
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesRoute
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountRoute
 import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsRoute
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersRoute
@@ -94,6 +95,11 @@ val SETTINGS_SECTIONS: List<SettingsSection> =
             R.string.group_messages,
             R.string.email_notifications,
         ) { EmailNotificationsRoute(it) },
+        SettingsSection(
+            "apps-devices",
+            R.string.group_account,
+            R.string.apps_devices,
+        ) { AppsDevicesRoute(it) },
         SettingsSection(
             "delete-account",
             R.string.group_account,

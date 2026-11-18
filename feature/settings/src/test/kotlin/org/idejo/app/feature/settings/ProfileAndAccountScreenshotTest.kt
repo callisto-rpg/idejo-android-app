@@ -15,6 +15,9 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.Token
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesScreen
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesUiState
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountScreen
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountUiState
 import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsScreen
@@ -32,6 +35,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.Instant
 
 /** Profile and account's overview and sections, light and dark (ST-02, ST-03, ST-06, ST-08). */
 @RunWith(RobolectricTestRunner::class)
@@ -105,6 +109,28 @@ class ProfileAndAccountScreenshotTest {
         }
     }
 
+    @Test
+    fun `ST-05 the Account sections`() {
+        shoot("AppsDevices") {
+            AppsDevicesScreen(
+                AppsDevicesUiState(
+                    loading = false,
+                    devices =
+                        listOf(
+                            Token("t_1", "Pixel 8", signedInAt = NOON, current = true),
+                            Token(
+                                "t_2",
+                                "Galaxy Tab",
+                                signedInAt = NOON,
+                                lastUsedAt = NOON,
+                            ),
+                        ),
+                ),
+                {},
+            )
+        }
+    }
+
     private fun shoot(
         name: String,
         content: @Composable () -> Unit,
@@ -122,6 +148,9 @@ class ProfileAndAccountScreenshotTest {
     }
 
     private companion object {
+        /** Midday, so the date is the same in every zone a test runs in. */
+        val NOON: Instant = Instant.parse("2026-11-10T12:00:00Z")
+
         val OPTIONS =
             RoborazziOptions(
                 compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.01f),
