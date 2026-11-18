@@ -23,6 +23,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.Launch
+import org.idejo.app.core.data.PendingLink
+import org.idejo.app.core.data.PendingLinks
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.designsystem.theme.ForumTheme
@@ -37,6 +39,8 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var sessions: SessionManager
 
     @Inject lateinit var sharedImages: SharedImages
+
+    @Inject lateinit var pendingLinks: PendingLinks
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +75,15 @@ class MainActivity : ComponentActivity() {
 
 /** Pictures shared to the app (CO-14): read now, while the app may read them. */
 private fun MainActivity.receive(intent: Intent?) {
-    val uris = sharedUris(intent ?: return)
+    if (intent == null) return
+    // A notification tapped (NT-04): its address, opened in its forum once that is on screen.
+    val forum = intent.getStringExtra(PendingLinks.EXTRA_FORUM)
+    val url = intent.dataString
+    if (intent.action == Intent.ACTION_VIEW && forum != null && url != null) {
+        pendingLinks.offer(PendingLink(forum, url))
+        return
+    }
+    val uris = sharedUris(intent)
     if (uris.isNotEmpty()) lifecycleScope.launch { sharedImages.offer(contentResolver, uris) }
 }
 

@@ -81,4 +81,9 @@ object DataModule {
         sessions: SessionManager,
         @AppScope scope: CoroutineScope,
     ): ForegroundSockets = ForegroundSockets(sessions, scope)
+
+    /** The address a tapped notification opens (NT-04). */
+    @Provides
+    @Singleton
+    fun pendingLinks(): PendingLinks = PendingLinks()
 }

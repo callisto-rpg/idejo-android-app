@@ -33,6 +33,11 @@ data class ServerSettings(
     @SerialName("gm_early_reply") val earlyReply: Boolean = false,
     val gifs: Boolean = false,
     val push: Boolean = false,
+    /**
+     * The key that signs the forum's pushes (RFC 8292, IX-16), for distributors that need
+     * it (FCM, NT-06); null while push is off, or from a server without it.
+     */
+    @SerialName("push_vapid_key") val pushVapidKey: String? = null,
     @SerialName("upload_types") val uploadTypes: List<String> = emptyList(),
     @SerialName("upload_max_bytes") val uploadMaxBytes: Long? = null,
     val registration: String? = null,

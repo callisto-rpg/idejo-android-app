@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
+import org.idejo.app.core.data.PushStatus
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.NotificationSettings
@@ -152,6 +153,22 @@ class ProfileAndAccountScreenshotTest {
                             ),
                             PushRegistration("p_2", "web", "Firefox on Linux", createdAt = NOON),
                         ),
+                ),
+                {},
+            )
+        }
+    }
+
+    @Test
+    fun `NT-06 push without a distributor`() {
+        shoot("PushNoDistributor") {
+            PushNotificationsScreen(
+                PushNotificationsUiState(
+                    loading = false,
+                    username = "ada",
+                    push = NotificationSettings.Push(true, true, true, false, true),
+                    devices = emptyList(),
+                    device = PushStatus.NoDistributor,
                 ),
                 {},
             )

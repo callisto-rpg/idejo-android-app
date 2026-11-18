@@ -44,8 +44,25 @@ data class ForumRecord(
     val folded: Set<String> = emptySet(),
     /** The sidebar's links rolled up into icons (SH-35). */
     val linksRolled: Boolean = false,
+    /** This device's push registration with the forum (NT-02); null without one. */
+    val push: PushRecord? = null,
 ) {
     val name: String get() = discovery.name
+}
+
+/**
+ * What the forum keeps of this device's pushes (NT-02): its registration, and the endpoint,
+ * key and VAPID key it was made with, so a change is sent again and nothing else is.
+ */
+@Serializable
+data class PushRecord(
+    val registrationId: String,
+    val endpoint: String,
+    val publicKey: String,
+    val vapidKey: String? = null,
+) {
+    /** The endpoint is the distributor's secret address: never in a log. */
+    override fun toString(): String = "PushRecord($registrationId)"
 }
 
 /** Everything the app keeps: the forums and which one is open (single-forum mode: one). */

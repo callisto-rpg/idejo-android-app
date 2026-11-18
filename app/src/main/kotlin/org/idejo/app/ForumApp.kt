@@ -129,6 +129,7 @@ fun ForumApp(
             viewModel = hiltViewModel(key = "cards:${System.identityHashCode(session)}"),
         )
         SharedImagesCard(session, navigation)
+        NotificationLinks(session, navigation)
     }
 }
 

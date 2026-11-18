@@ -66,6 +66,9 @@ dependencies {
         "moderation",
     ).forEach { implementation(project(":feature:$it")) }
 
+    // NT-06: Play's embedded FCM distributor, without the Firebase SDK; never in foss.
+    "playImplementation"(libs.unifiedpush.fcm)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.activity.compose)

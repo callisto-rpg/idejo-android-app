@@ -85,6 +85,11 @@ SPDX-License-Identifier: Apache-2.0
     <string name="push_notifications">Push notifications</string>
     <string name="push_this_on">Notifications are on for this device.</string>
     <string name="push_this_off">Notifications are off for this device.</string>
+    <!-- NT-06: no UnifiedPush distributor on this device (the F-Droid and GitHub builds). -->
+    <string name="push_no_distributor">To get notifications on this device, install a UnifiedPush distributor such as ntfy (from F-Droid or Google Play), open it once, then come back here.</string>
+    <string name="push_choose_distributor">Several UnifiedPush distributors are installed. Choose the one to use in App settings.</string>
+    <string name="push_register_failed">This device could not be registered for notifications.</string>
+    <string name="push_register_again">Try again</string>
     <string name="push_send_for">Send me a notification for:</string>
     <string name="push_reply">Replies to me</string>
     <string name="push_mention">\@%1$s mentions</string>

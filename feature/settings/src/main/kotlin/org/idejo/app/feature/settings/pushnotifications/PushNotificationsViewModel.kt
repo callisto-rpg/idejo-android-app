@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiResult
+import org.idejo.app.core.data.PushRegistrar
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.model.NotificationSettings
 import javax.inject.Inject
@@ -29,12 +30,18 @@ class PushNotificationsViewModel
     @Inject
     constructor(
         sessions: SessionManager,
+        private val registrar: PushRegistrar,
     ) : ViewModel() {
         private val session = sessions.active
         private val mutableState = MutableStateFlow(PushNotificationsUiState())
         val state: StateFlow<PushNotificationsUiState> = mutableState.asStateFlow()
 
         init {
+            viewModelScope.launch {
+                registrar.status.collect { status ->
+                    mutableState.update { it.copy(device = status) }
+                }
+            }
             session?.let { forum ->
                 viewModelScope.launch {
                     forum.me.state.filterNotNull().collect { me ->
@@ -51,6 +58,7 @@ class PushNotificationsViewModel
                 is PushNotificationsEvent.Remove -> remove(event.id)
                 PushNotificationsEvent.SendTest -> sendTest()
                 PushNotificationsEvent.Retry -> load()
+                PushNotificationsEvent.Register -> registrar.retry()
             }
         }
 

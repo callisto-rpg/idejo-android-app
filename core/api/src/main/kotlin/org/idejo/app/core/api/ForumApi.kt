@@ -57,6 +57,7 @@ import org.idejo.app.core.model.TopicCreate
 import org.idejo.app.core.model.TopicCreated
 import org.idejo.app.core.model.TopicIcon
 import org.idejo.app.core.model.TopicUpdate
+import org.idejo.app.core.model.UnifiedPushSubscription
 import org.idejo.app.core.model.Unread
 import org.idejo.app.core.model.Upload
 import org.idejo.app.core.model.UserCard
@@ -157,6 +158,10 @@ class ForumApi(
 
     /** The browsers and devices taking push (NT-08). */
     suspend fun pushRegistrations(): ApiResult<List<PushRegistration>> = call { push().data }
+
+    /** This device's distributor endpoint and keys, for the forum's pushes (NT-02). */
+    suspend fun registerPush(subscription: UnifiedPushSubscription): ApiResult<PushRegistration> =
+        call { registerPush(subscription) }
 
     /** Ends one push registration (NT-08). */
     suspend fun deletePushRegistration(id: String): ApiResult<Unit> =

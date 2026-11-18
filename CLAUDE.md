@@ -381,6 +381,14 @@ Docker image) are added with them.
   more (SH-60) the overview stays at the left and the section shows beside it, a plain
   two-pane row (no new dependency). Writing follows the app spec: the open topic follows
   at once (the web reloads).
+- 2026-11-18 — Push (NT-02 to NT-06) is UnifiedPush's connector 3.x, which keeps the Web
+  Push keys in the Keystore and decrypts the pushes itself; one registration per forum,
+  its `instance` the forum's origin, ended when the forum is signed out of. The embedded
+  FCM distributor (`play` only) signs with the forum's VAPID key, which idejo now gives in
+  `GET /server`'s `push_vapid_key` (IX-16, callisto-rpg/Idejo#373; steward choice over a
+  push gateway). Each forum is a group of notification channels, one per kind; while the
+  app is on screen the live bubbles stand for the pushes (only the test push shows). A
+  tapped notification opens only addresses on its own forum; any other opens its home page.
 
 ## Milestones (spec §26)
 
@@ -398,14 +406,18 @@ Current milestone: **M3 — Notifications and settings**: Profile and account wi
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
 devices (ST-05), Change password (ST-04) and Delete account (ST-06); App settings' About
 with the source code and the privacy note (ST-23); the live bubbles (NT-01: `LiveBubbles`
-reads user:me's `notification`, the shell's `LiveBubbleStack` shows them). Left in M3: NT-02
-to NT-07 and NT-09 (push), ST-07 (linked members, with M4's inbox) and ST-20 to ST-22. M2
+reads user:me's `notification`, the shell's `LiveBubbleStack` shows them); push (NT-02 to
+NT-06, NT-09: `PushRegistrar` in core/data, the connector's `IdejoPushService` and
+`PushNotifier` in feature/notifications, a tapped notification through `PendingLinks` and
+`linkTarget`). Left in M3: NT-07 (asking for the permission) and ST-20 to ST-22; ST-07
+(linked members) waits for M4's inbox. M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.
 The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links), #359
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
 window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the
-reader's last message), #370 (category icons, `mark_colour`), #371 (followed topics) and
-#372 (the composer and controls choices; the app falls back without it) (Steward
-decisions, 2026-11-14 and 2026-11-15).
+reader's last message), #370 (category icons, `mark_colour`), #371 (followed topics),
+#372 (the composer and controls choices; the app falls back without it) and #373 (the push
+VAPID key; without it the `play` build's FCM cannot register) (Steward decisions,
+2026-11-14 to 2026-11-18).

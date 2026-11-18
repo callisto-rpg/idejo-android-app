@@ -250,7 +250,7 @@ class ShellViewModel
         }
 
         private fun remember(change: (ForumRecord) -> ForumRecord) {
-            viewModelScope.launch { sessions.updateForum(change) }
+            viewModelScope.launch { sessions.updateForum(transform = change) }
         }
     }
 

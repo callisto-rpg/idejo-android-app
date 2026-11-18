@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.idejo.app.core.data.AppScope
 import org.idejo.app.core.data.ForegroundSockets
+import org.idejo.app.core.data.PushRegistrar
 import org.idejo.app.core.data.SessionManager
 import javax.inject.Inject
 
@@ -25,6 +26,9 @@ class IdejoApplication :
     @Inject lateinit var sessions: SessionManager
 
     @Inject lateinit var foreground: ForegroundSockets
+
+    /** Push for every signed-in forum (NT-02): made at launch, so it follows sign-ins. */
+    @Inject lateinit var push: PushRegistrar
 
     @Inject lateinit var http: OkHttpClient
 
