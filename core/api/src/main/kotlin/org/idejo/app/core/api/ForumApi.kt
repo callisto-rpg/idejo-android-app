@@ -32,6 +32,7 @@ import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PasswordChange
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
@@ -104,6 +105,36 @@ class ForumApi(
     suspend fun server(): ApiResult<Server> = call { server() }
 
     suspend fun me(): ApiResult<Me> = call { me() }
+
+    /**
+     * Changes the password (ST-04). Every device of the account signs in again, this one
+     * too: its token stops working once the server agrees.
+     */
+    suspend fun changePassword(change: PasswordChange): ApiResult<Unit> =
+        call { changePassword(change).let { if (!it.isSuccessful) throw HttpException(it) } }
+
+    /**
+     * The member's picture (ST-01), or the dark theme's with [dark]: a square image as
+     * multipart `image`; the server answers with `GET /me`.
+     */
+    suspend fun setPicture(
+        dark: Boolean,
+        bytes: ByteArray,
+        type: String,
+    ): ApiResult<Me> =
+        call {
+            val part =
+                MultipartBody.Part.createFormData(
+                    "image",
+                    "picture." + type.substringAfter('/').replace("jpeg", "jpg"),
+                    bytes.toRequestBody(type.toMediaTypeOrNull()),
+                )
+            if (dark) setAvatarDark(part) else setAvatar(part)
+        }
+
+    /** Removes the picture, or the dark theme's with [dark] (ST-01). */
+    suspend fun removePicture(dark: Boolean): ApiResult<Me> =
+        call { if (dark) removeAvatarDark() else removeAvatar() }
 
     /** The devices signed in to the app, this one marked (ST-05, AP-09). */
     suspend fun tokens(): ApiResult<List<Token>> = call { tokens().data }

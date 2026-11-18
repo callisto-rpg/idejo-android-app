@@ -10,8 +10,15 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
+import org.idejo.app.core.model.PushRegistration
+import org.idejo.app.core.model.Token
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesEvent
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesScreen
+import org.idejo.app.feature.settings.appsdevices.AppsDevicesUiState
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountEvent
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountScreen
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountUiState
@@ -25,6 +32,16 @@ import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersUiState
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsEvent
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsUiState
+import org.idejo.app.feature.settings.password.PasswordScreen
+import org.idejo.app.feature.settings.password.PasswordUiState
+import org.idejo.app.feature.settings.profile.ProfileEvent
+import org.idejo.app.feature.settings.profile.ProfileScreen
+import org.idejo.app.feature.settings.profile.ProfileUiState
+import org.idejo.app.feature.settings.pushnotifications.PushChoice
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsEvent
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsScreen
+import org.idejo.app.feature.settings.pushnotifications.PushNotificationsUiState
+import org.idejo.app.feature.settings.pushnotifications.TestResult
 import org.idejo.app.feature.settings.writing.WritingEvent
 import org.idejo.app.feature.settings.writing.WritingScreen
 import org.idejo.app.feature.settings.writing.WritingUiState
@@ -57,11 +74,15 @@ class ProfileAndAccountTest {
         rule.onNodeWithText("Delete account").assertExists()
         assertEquals(
             listOf(
+                "profile",
                 "writing",
                 "message-controls",
                 "private-messages",
                 "ignored-users",
                 "email-notifications",
+                "push-notifications",
+                "apps-devices",
+                "change-password",
                 "delete-account",
             ),
             SETTINGS_SECTIONS.map { it.key },
@@ -137,6 +158,109 @@ class ProfileAndAccountTest {
             IgnoredUsersScreen(IgnoredUsersUiState(loading = false, members = emptyList()), {})
         }
         rule.onNodeWithText("You ignore nobody.").assertExists()
+    }
+
+    @Test
+    fun `ST-05 this device is marked and removing it asks first`() {
+        val events = mutableListOf<AppsDevicesEvent>()
+        rule.setContent {
+            AppsDevicesScreen(
+                AppsDevicesUiState(
+                    loading = false,
+                    devices =
+                        listOf(
+                            Token("t_1", "Pixel 8", current = true),
+                            Token("t_2", "Galaxy Tab"),
+                        ),
+                ),
+                onEvent = { events += it },
+            )
+        }
+        rule.onNodeWithText("This device").assertExists()
+        rule.onNodeWithContentDescription("Remove Galaxy Tab").performClick()
+        rule.onNodeWithContentDescription("Remove Pixel 8").performClick()
+        assertEquals(listOf<AppsDevicesEvent>(AppsDevicesEvent.Remove("t_2")), events)
+        rule.onNodeWithText("Remove and sign out").performClick()
+        assertEquals(
+            listOf<AppsDevicesEvent>(
+                AppsDevicesEvent.Remove("t_2"),
+                AppsDevicesEvent.Remove("t_1"),
+            ),
+            events,
+        )
+    }
+
+    @Test
+    fun `NT-08 the push screen reads as the web and sends each action`() {
+        val events = mutableListOf<PushNotificationsEvent>()
+        rule.setContent {
+            PushNotificationsScreen(
+                PushNotificationsUiState(
+                    loading = false,
+                    username = "ada",
+                    push = NotificationSettings.Push(reply = true, mention = false),
+                    devices = listOf(PushRegistration("p_1", "web", "Firefox on Linux")),
+                    tested = TestResult.NoDevice,
+                ),
+                onEvent = { events += it },
+            )
+        }
+        rule.onNodeWithText("Notifications are off for this device.").assertExists()
+        rule.onNodeWithText("Replies to me").assertIsOn()
+        rule.onNodeWithText("@ada mentions").assertIsOff().performClick()
+        rule.onNodeWithContentDescription("Remove Firefox on Linux").performClick()
+        rule.onNodeWithText("Send test notification").performClick()
+        rule
+            .onNodeWithText("No device takes notifications yet. Turn them on first.")
+            .assertExists()
+        assertEquals(
+            listOf(
+                PushNotificationsEvent.Set(PushChoice.Mention, true),
+                PushNotificationsEvent.Remove("p_1"),
+                PushNotificationsEvent.SendTest,
+            ),
+            events,
+        )
+    }
+
+    @Test
+    fun `ST-01 the bio's preview draws its Markdown`() {
+        val events = mutableListOf<ProfileEvent>()
+        rule.setContent {
+            ProfileScreen(
+                ProfileUiState(
+                    loading = false,
+                    me = Me(id = "u_ada", displayName = "Ada Lovelace"),
+                    name = "Ada Lovelace",
+                    tag = "",
+                    bio = "Analyst of **engines**.",
+                ),
+                onEvent = { events += it },
+            )
+        }
+        rule.onNodeWithText("Bio (Markdown)").assertExists()
+        rule.onNodeWithText("Preview").performClick()
+        rule.onNodeWithText("Analyst of engines.").assertExists()
+        rule.onNodeWithText("Bio (Markdown)").assertDoesNotExist()
+        rule.onNodeWithText("Save bio").performScrollTo().performClick()
+        rule.onNodeWithText("Remove avatar").assertDoesNotExist()
+        assertEquals(listOf<ProfileEvent>(ProfileEvent.SaveBio), events)
+    }
+
+    @Test
+    fun `ST-04 the password form warns, and says when it is done`() {
+        rule.setContent { PasswordScreen(PasswordUiState(), {}) }
+        rule.onNodeWithText("this one too", substring = true).assertExists()
+        rule.onNodeWithText("Current password").assertExists()
+        rule.onNodeWithText("New password (at least 12 characters)").assertExists()
+        rule.onNodeWithText("Repeat the new password").assertExists()
+    }
+
+    @Test
+    fun `ST-04 once changed, the form gives way to signing in again`() {
+        rule.setContent { PasswordScreen(PasswordUiState(changed = true), {}) }
+        rule.onNodeWithText("Password changed.", substring = true).assertExists()
+        rule.onNodeWithText("Current password").assertDoesNotExist()
     }
 
     @Test

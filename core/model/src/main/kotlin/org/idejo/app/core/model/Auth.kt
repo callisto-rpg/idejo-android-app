@@ -36,6 +36,19 @@ data class Token(
     val current: Boolean = false,
 )
 
+/**
+ * `PUT /me/password` (ST-04). Its [toString] hides the passwords, so they cannot reach a log
+ * by accident.
+ */
+@Serializable
+class PasswordChange(
+    @SerialName("current_password") val currentPassword: String,
+    val password: String,
+    @SerialName("password_confirmation") val passwordConfirmation: String,
+) {
+    override fun toString(): String = "PasswordChange(…)"
+}
+
 /** An `idj_…` token (SI-04). Its [toString] hides it, so it cannot reach a log by accident. */
 @Serializable
 @JvmInline

@@ -25,6 +25,7 @@ import org.idejo.app.core.model.MessageEdit
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PasswordChange
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PluginRun
 import org.idejo.app.core.model.Poll
@@ -76,6 +77,29 @@ internal interface IdejoService {
 
     @GET("me")
     suspend fun me(): Me
+
+    @PUT("me/password")
+    suspend fun changePassword(
+        @Body body: PasswordChange,
+    ): Response<Unit>
+
+    @Multipart
+    @PUT("me/avatar")
+    suspend fun setAvatar(
+        @Part image: MultipartBody.Part,
+    ): Me
+
+    @Multipart
+    @PUT("me/avatar-dark")
+    suspend fun setAvatarDark(
+        @Part image: MultipartBody.Part,
+    ): Me
+
+    @DELETE("me/avatar")
+    suspend fun removeAvatar(): Me
+
+    @DELETE("me/avatar-dark")
+    suspend fun removeAvatarDark(): Me
 
     @GET("me/tokens")
     suspend fun tokens(): ListBody<Token>

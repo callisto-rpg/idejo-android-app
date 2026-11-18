@@ -50,6 +50,7 @@ import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Page
+import org.idejo.app.core.model.PasswordChange
 import org.idejo.app.core.model.PendingTopic
 import org.idejo.app.core.model.Person
 import org.idejo.app.core.model.PluginBlock
@@ -124,6 +125,12 @@ class FakeIdejo(
      * `graphical_composer`, `controls_on_mobile` or `controls_on_desktop`.
      */
     @Volatile var memberChoices: Boolean = true
+
+    /** False plays a forum that signs in only with its provider (idejo AC-09): no passwords. */
+    @Volatile var passwords: Boolean = true
+
+    /** Passwords changed with `PUT /me/password`, by person; [FakePeople.PASSWORD] before. */
+    private val passwordOf = mutableMapOf<String, String>()
 
     /** False plays a forum whose discovery gives no `account.deletion_url` (ST-06). */
     @Volatile var accountDeletion: Boolean = true
@@ -553,6 +560,15 @@ class FakeIdejo(
         listOf(
             Route("GET", "server") { ok(server()) },
             Route("GET", "me") { call -> call.viewer?.let { ok(me(it)) } ?: unauthenticated() },
+            Route("PUT", "me/password") { call -> changePassword(call) },
+            Route("PUT", "me/avatar") { call -> picture(call, dark = false) },
+            Route("PUT", "me/avatar-dark") { call -> picture(call, dark = true) },
+            Route("DELETE", "me/avatar") { call ->
+                member(call) { it.avatarUrl = null }
+            },
+            Route("DELETE", "me/avatar-dark") { call ->
+                member(call) { it.avatarDarkUrl = null }
+            },
             Route("GET", "me/tokens") { call ->
                 val person = call.viewer ?: return@Route unauthenticated()
                 val current = call.request.headers["Authorization"]?.removePrefix("Bearer ")
@@ -658,7 +674,21 @@ class FakeIdejo(
                 val body = call.request.body?.utf8() ?: "{}"
                 // Only the fields sent change (API guide: `PATCH /me`); unknown ones ignored.
                 val patch = IdejoJson.decodeFromString<MePatch>(body)
+                // idejo's own check (AC-04): a display name is never blank.
+                if (patch.displayName?.isBlank() == true) {
+                    return@Route error(
+                        HTTP_UNPROCESSABLE_ENTITY,
+                        "validation",
+                        "Display name can't be blank.",
+                    )
+                }
                 member(call) { reader ->
+                    patch.displayName?.let { reader.displayName = it.trim() }
+                    patch.userTag?.let {
+                        reader.userTag = it.trim().ifEmpty { null }
+                        reader.userTagChanged = true
+                    }
+                    patch.bioMd?.let { reader.bioMd = it.ifBlank { null } }
                     patch.autoPunctuation?.let { reader.autoPunctuation = it }
                     patch.graphicalComposer?.let { reader.graphicalComposer = it }
                     patch.controlsOnMobile?.let { reader.controlsOnMobile = it }
@@ -1327,7 +1357,7 @@ class FakeIdejo(
                                 ?.toString()
                                 ?.takeIf { accountDeletion },
                     ),
-                features = listOf("polls", "private_messages"),
+                features = listOf("unifiedpush", "polls", "private_messages"),
             ),
         )
     }
@@ -1420,8 +1450,12 @@ class FakeIdejo(
         val reader = reader(person)
         return Me(
             id = requireNotNull(person.id),
-            displayName = person.displayName,
+            displayName = reader.displayName ?: person.displayName,
             username = person.username,
+            userTag = if (reader.userTagChanged) reader.userTag else person.userTag,
+            bioMd = reader.bioMd,
+            avatarUrl = reader.avatarUrl,
+            avatarDarkUrl = reader.avatarDarkUrl,
             verified = true,
             roles = settings.roles.filter { it.id in reader.roles },
             welcomed = reader.welcomed,
@@ -1434,6 +1468,9 @@ class FakeIdejo(
             controlsOnDesktop = reader.controlsOnDesktop.takeIf { memberChoices },
         )
     }
+
+    /** The pictures sent with `PUT /me/avatar(-dark)`, by size of the request (ST-01). */
+    val pictures: MutableList<Int> = mutableListOf()
 
     /** [person]'s email summary and push choices (ST-03, NT-08), read back. */
     fun notificationSettingsOf(person: Person): NotificationSettings =
@@ -1541,6 +1578,63 @@ class FakeIdejo(
                 mayMessage = viewer != null && viewer.id != id && reader(person).acceptsPrivate,
             ),
         )
+    }
+
+    /**
+     * `PUT /me/password` (ST-04) as idejo checks it: the current password, at least 12
+     * characters, the same twice. Then every token of the account is revoked, this one too.
+     */
+    private fun changePassword(call: Call): MockResponse {
+        val person = call.viewer ?: return unauthenticated()
+        val change =
+            IdejoJson.decodeFromString<PasswordChange>(call.request.body?.utf8() ?: "{}")
+        val message =
+            when {
+                !passwords -> {
+                    "Passwords are not used here: sign in with your provider."
+                }
+
+                change.currentPassword != (passwordOf[person.id] ?: FakePeople.PASSWORD) -> {
+                    "That is not your current password."
+                }
+
+                change.password.length < PASSWORD_MIN -> {
+                    "New password should be at least 12 characters."
+                }
+
+                change.password != change.passwordConfirmation -> {
+                    "The passwords do not match."
+                }
+
+                else -> {
+                    null
+                }
+            }
+        if (message != null) return error(HTTP_UNPROCESSABLE_ENTITY, "validation", message)
+        passwordOf[requireNotNull(person.id)] = change.password
+        tokens
+            .filterValues { it.id == person.id }
+            .keys
+            .toList()
+            .forEach(::revokeLocked)
+        return status(HTTP_NO_CONTENT)
+    }
+
+    /** `PUT /me/avatar(-dark)`: a multipart `image`, kept as a new upload (ST-01). */
+    private fun picture(
+        call: Call,
+        dark: Boolean,
+    ): MockResponse {
+        val body =
+            call.request.body
+                ?.utf8()
+                .orEmpty()
+        if ("name=\"image\"" !in body) {
+            return error(HTTP_BAD_REQUEST, "bad_request", "The request is not valid.")
+        }
+        val url = "/uploads/avatar_" + nextId++ + ".webp"
+        pictures += body.length
+        return member(call) { if (dark) it.avatarDarkUrl = url else it.avatarUrl = url }
     }
 
     /** A change to the signed-in member, answered with `GET /me`. */
@@ -2250,6 +2344,7 @@ class FakeIdejo(
     )
 
     private companion object {
+        const val PASSWORD_MIN = 12
         const val API = "/api/v1"
         const val AUTH_TOKEN_PREFIX = "base64url.bearer.phx."
         const val CHALLENGE_LENGTH = 43
