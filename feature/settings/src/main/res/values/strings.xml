@@ -36,6 +36,17 @@ SPDX-License-Identifier: Apache-2.0
     <string name="ignored_users_none">You ignore nobody.</string>
     <string name="ignored_users_stop">Stop ignoring</string>
     <string name="ignored_users_stop_named">Stop ignoring %1$s</string>
+    <!-- Email notifications (ST-03, idejo NO-04). -->
+    <string name="email_notifications">Email notifications</string>
+    <string name="email_notifications_when">If I haven\'t logged in for 24 hours, send me a summary of activity if there are:</string>
+    <string name="email_notifications_mentions">\@%1$s mentions and replies to my posts</string>
+    <string name="email_notifications_mentions_plain">My mentions and replies to my posts</string>
+    <string name="email_notifications_role_mentions">+role mentions</string>
+    <string name="email_notifications_own_topics">New messages in a thread I created</string>
+    <string name="email_notifications_followed_topics">New messages in a thread I follow</string>
+    <string name="email_notifications_new_topics">New topics created</string>
+    <string name="email_notifications_all_activity">Any activity in the forum</string>
+    <string name="email_notifications_once_a_week">Don\'t send me a second message in the same week if I don\'t log in.</string>
     <!-- Delete account (ST-06): deleting stays on the forum's website (idejo API guide §10). -->
     <string name="delete_account">Delete account</string>
     <string name="delete_account_warning">Your email address, username, display name and password are removed and you are signed out everywhere. This cannot be undone.</string>

@@ -10,10 +10,15 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountEvent
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountScreen
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountUiState
+import org.idejo.app.feature.settings.emailnotifications.EmailChoice
+import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsEvent
+import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsScreen
+import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsUiState
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersEvent
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersScreen
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersUiState
@@ -56,6 +61,7 @@ class ProfileAndAccountTest {
                 "message-controls",
                 "private-messages",
                 "ignored-users",
+                "email-notifications",
                 "delete-account",
             ),
             SETTINGS_SECTIONS.map { it.key },
@@ -74,6 +80,38 @@ class ProfileAndAccountTest {
         rule.onNodeWithText("Show message controls on desktop").assertIsOn()
         rule.onNodeWithText("Show message controls on mobile").assertIsOff().performClick()
         assertEquals(listOf<MessageControlsEvent>(MessageControlsEvent.OnMobile(true)), events)
+    }
+
+    @Test
+    fun `ST-03 the email summary reads as the web and sends one choice`() {
+        val events = mutableListOf<EmailNotificationsEvent>()
+        rule.setContent {
+            EmailNotificationsScreen(
+                EmailNotificationsUiState(
+                    loading = false,
+                    username = "ada",
+                    email = NotificationSettings.Email(mentions = true, newTopics = false),
+                ),
+                onEvent = { events += it },
+            )
+        }
+        rule.onNodeWithText("@ada mentions and replies to my posts").assertIsOn()
+        rule.onNodeWithText("Any activity in the forum").assertDoesNotExist()
+        rule.onNodeWithText("New topics created").assertIsOff().performClick()
+        assertEquals(
+            listOf<EmailNotificationsEvent>(
+                EmailNotificationsEvent.Set(EmailChoice.NewTopics, true),
+            ),
+            events,
+        )
+    }
+
+    @Test
+    fun `ST-03 a server without the email choices has no rows`() {
+        rule.setContent {
+            EmailNotificationsScreen(EmailNotificationsUiState(loading = false), {})
+        }
+        rule.onNodeWithText("New topics created").assertDoesNotExist()
     }
 
     @Test

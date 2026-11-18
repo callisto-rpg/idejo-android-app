@@ -1435,6 +1435,10 @@ class FakeIdejo(
         )
     }
 
+    /** [person]'s email summary and push choices (ST-03, NT-08), read back. */
+    fun notificationSettingsOf(person: Person): NotificationSettings =
+        synchronized(lock) { notificationSettings(person) }
+
     /** [person]'s choices as Profile and account sets them (ST-02, MA-01), read back. */
     fun choicesOf(person: Person): MePatch =
         synchronized(lock) {
