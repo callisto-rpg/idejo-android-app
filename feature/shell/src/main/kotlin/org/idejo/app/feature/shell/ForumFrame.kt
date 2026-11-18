@@ -87,6 +87,7 @@ fun ForumFrame(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val warnings by viewModel.warnings.collectAsStateWithLifecycle()
+    val bubbles by viewModel.bubbles.collectAsStateWithLifecycle()
     val shell = state ?: return
     val context = LocalContext.current
     var overlay by rememberSaveable { mutableStateOf(Overlay.None) }
@@ -134,6 +135,18 @@ fun ForumFrame(
             },
             modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
             page = content,
+        )
+
+        // Over the page, under the menus (NT-01).
+        LiveBubbleStack(
+            bubbles,
+            onOpen = { go(viewModel.open(it)) },
+            onDismiss = viewModel::dismiss,
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .safeDrawingPadding()
+                    .padding(start = 12.dp, end = 12.dp, top = BUBBLES_TOP),
         )
 
         Slide(overlay == Overlay.LogoMenu, horizontal = false) {
@@ -306,3 +319,6 @@ private fun WholeTitle(
         ) { Text(title, Modifier.padding(16.dp), style = IdejoTheme.typography.titleMedium) }
     }
 }
+
+/** Under the top bar. */
+private val BUBBLES_TOP = 64.dp

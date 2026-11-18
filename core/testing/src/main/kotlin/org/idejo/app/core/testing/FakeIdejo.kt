@@ -407,6 +407,31 @@ class FakeIdejo(
         }
 
     /**
+     * A live notification for [person] (NT-01), as idejo's user:me sends it: `mention`,
+     * `reply`, `role_mention`, `follow` or `reaction` (with [emojiUrl]), by Mina in
+     * "Tomatoes".
+     */
+    fun notify(
+        person: Person,
+        kind: String,
+        topicId: String,
+        messageId: String = "m_live",
+        emojiUrl: String? = null,
+    ) = synchronized(lock) {
+        val payload =
+            buildJsonObject {
+                put("kind", kind)
+                put("message_id", messageId)
+                put("topic_id", topicId)
+                put("topic_title", "Tomatoes")
+                put("author_name", "Mina")
+                put("excerpt", "Sungold every year")
+                put("emoji_url", emojiUrl)
+            }
+        socketsOf(person).forEach { it.push("user:me", "notification", payload) }
+    }
+
+    /**
      * A moderator warns [person] about [messageId] (TV-11): waiting until acknowledged, and
      * the `warning` notification on their user:me channels, as idejo's.
      */

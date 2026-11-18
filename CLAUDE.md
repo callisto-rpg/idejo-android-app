@@ -397,8 +397,9 @@ Current milestone: **M3 — Notifications and settings**: Profile and account wi
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
 devices (ST-05), Change password (ST-04) and Delete account (ST-06); App settings' About
-with the source code and the privacy note (ST-23). Left in M3: NT-01 to NT-07 and NT-09
-(push and in-app bubbles), ST-07 (linked members, with M4's inbox) and ST-20 to ST-22. M2
+with the source code and the privacy note (ST-23); the live bubbles (NT-01: `LiveBubbles`
+reads user:me's `notification`, the shell's `LiveBubbleStack` shows them). Left in M3: NT-02
+to NT-07 and NT-09 (push), ST-07 (linked members, with M4's inbox) and ST-20 to ST-22. M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.

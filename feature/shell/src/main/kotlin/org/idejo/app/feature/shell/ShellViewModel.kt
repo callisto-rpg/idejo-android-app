@@ -27,6 +27,9 @@ import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.ForumSidebar
 import org.idejo.app.core.data.Launch
+import org.idejo.app.core.data.LiveBubble
+import org.idejo.app.core.data.LiveBubbles
+import org.idejo.app.core.data.NotificationKind
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.data.ThemeMode
@@ -71,6 +74,7 @@ class ShellViewModel
     ) : ViewModel() {
         private val openTopic = MutableStateFlow<Topic?>(null)
         private val warned = MutableStateFlow<Warnings?>(null)
+        private val live = MutableStateFlow<LiveBubbles?>(null)
         private var sidebar: ForumSidebar? = null
         private var conversations: ForumConversations? = null
         private var reading: Job? = null
@@ -88,6 +92,12 @@ class ShellViewModel
                 .flatMapLatest { it?.state ?: flowOf(WarningsState()) }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, WarningsState())
 
+        /** The live bubbles at the top (NT-01). */
+        val bubbles: StateFlow<List<LiveBubble>> =
+            live
+                .flatMapLatest { it?.state ?: flowOf(emptyList()) }
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
         private fun follow(session: ForumSession) =
             ForumSidebar(session, viewModelScope).let { opened ->
                 sidebar?.close()
@@ -98,6 +108,12 @@ class ShellViewModel
                 conversations = private
                 warned.value?.close()
                 val warnings = Warnings(session, viewModelScope).also { warned.value = it }
+                live.value?.close()
+                live.value =
+                    LiveBubbles(session, viewModelScope).also {
+                        it.onScreen = openTopic.value?.id
+                        it.start()
+                    }
                 viewModelScope.launch {
                     // The forum's one copy of `GET /me` (MeRepository), read afresh on opening.
                     val me = session.me.refresh()?.getOrNull()
@@ -122,6 +138,7 @@ class ShellViewModel
         fun at(place: Place) {
             reading?.cancel()
             val id = (place as? Place.Topic)?.id
+            live.value?.onScreen = id
             if (id == null) {
                 openTopic.value = null
                 return
@@ -143,6 +160,27 @@ class ShellViewModel
         fun refresh() {
             sidebar?.refresh()
             conversations?.refresh()
+        }
+
+        /** A bubble swiped away, closed with ×, or its time over (NT-01). */
+        fun dismiss(bubble: LiveBubble) {
+            live.value?.dismiss(bubble.key)
+        }
+
+        /**
+         * A bubble tapped (NT-01): where the member left off in the topic, as the web's
+         * `?unread`; a reaction, the message reacted to.
+         */
+        fun open(bubble: LiveBubble): Place {
+            dismiss(bubble)
+            val private =
+                state.value
+                    ?.conversations
+                    ?.conversations
+                    .orEmpty()
+                    .any { it.id == bubble.topicId }
+            val message = bubble.messageId.takeIf { bubble.kind == NotificationKind.Reaction }
+            return Place.Topic(bubble.topicId, message, private = private)
         }
 
         /** **I understand** on the warning card, or the card closed (TV-11). */
@@ -208,6 +246,7 @@ class ShellViewModel
             sidebar?.close()
             conversations?.close()
             warned.value?.close()
+            live.value?.close()
         }
 
         private fun remember(change: (ForumRecord) -> ForumRecord) {

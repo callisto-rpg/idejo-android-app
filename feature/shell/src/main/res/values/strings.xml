@@ -95,4 +95,10 @@ SPDX-License-Identifier: Apache-2.0
     <string name="warning_understand">I understand</string>
     <string name="warning_offline">You’re offline.</string>
     <string name="warning_failed">That did not work. Please try again.</string>
+    <!-- Live bubbles (NT-01), the web's words. -->
+    <string name="bubble_mention">%1$s mentioned you in “%2$s”</string>
+    <string name="bubble_reply">%1$s replied to you in “%2$s”</string>
+    <string name="bubble_role_mention">%1$s mentioned one of your roles in “%2$s”</string>
+    <string name="bubble_reaction">%1$s reacted to your message in “%2$s”</string>
+    <string name="bubble_followed">%1$s posted in “%2$s”</string>
 </resources>
