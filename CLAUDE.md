@@ -389,6 +389,13 @@ Docker image) are added with them.
   push gateway). Each forum is a group of notification channels, one per kind; while the
   app is on screen the live bubbles stand for the pushes (only the test push shows). A
   tapped notification opens only addresses on its own forum; any other opens its home page.
+- 2026-11-18 — Android 13's notification permission (NT-07) is asked from the web's banner,
+  in its words today ("Push notifications not enabled…", **Enable** with its tutorial
+  bubble, **Dismiss**, which the spec calls **Not now**), on category and topic pages under
+  the top bar, on the web's conditions: push on, the welcome card seen, a topic followed
+  (writing in one follows it), not dismissed in 14 days. idejo's API has no banner flag, so
+  the dismissal is kept on the device (`AppState.pushBarDismissedAt`), for every forum.
+  Refused twice, Android no longer asks: **Enable** then opens its notification settings.
 
 ## Milestones (spec §26)
 
@@ -409,8 +416,8 @@ with the source code and the privacy note (ST-23); the live bubbles (NT-01: `Liv
 reads user:me's `notification`, the shell's `LiveBubbleStack` shows them); push (NT-02 to
 NT-06, NT-09: `PushRegistrar` in core/data, the connector's `IdejoPushService` and
 `PushNotifier` in feature/notifications, a tapped notification through `PendingLinks` and
-`linkTarget`). Left in M3: NT-07 (asking for the permission) and ST-20 to ST-22; ST-07
-(linked members) waits for M4's inbox. M2
+`linkTarget`); the notifications bar (NT-07: the shell's `PushBar`). Left in M3: ST-20 to
+ST-22; ST-07 (linked members) waits for M4's inbox. M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.

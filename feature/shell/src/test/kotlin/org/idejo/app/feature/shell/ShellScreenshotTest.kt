@@ -152,6 +152,12 @@ class ShellScreenshotTest {
         }
 
     @Test
+    fun `NT-07 the notifications bar`() =
+        snapshots("PushBar") {
+            PushBarContent(on = false, bubble = true, onEnable = {}, onDismiss = {})
+        }
+
+    @Test
     fun `NT-01 the live bubbles`() =
         snapshots("Bubbles") {
             LiveBubbleStack(

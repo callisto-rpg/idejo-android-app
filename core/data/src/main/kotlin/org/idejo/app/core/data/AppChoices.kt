@@ -23,4 +23,21 @@ class AppChoices
         suspend fun tutorialBubbles(choice: TutorialBubbles) {
             store.update { it.copy(tutorialBubbles = choice) }
         }
+
+        /**
+         * The notifications bar was dismissed in the last 14 days (NT-07), as the web's
+         * banner (idejo PN-21); kept on this device, for every forum.
+         */
+        fun pushBarQuiet(now: () -> Long = System::currentTimeMillis): Flow<Boolean> =
+            store.state
+                .map { state -> state.pushBarDismissedAt?.let { now() - it < QUIET_MS } == true }
+                .distinctUntilChanged()
+
+        suspend fun dismissPushBar(now: Long = System.currentTimeMillis()) {
+            store.update { it.copy(pushBarDismissedAt = now) }
+        }
+
+        private companion object {
+            const val QUIET_MS = 14L * 24 * 60 * 60 * 1000
+        }
     }

@@ -134,7 +134,18 @@ fun ForumFrame(
                 }
             },
             modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
-            page = content,
+            page = {
+                Column(Modifier.fillMaxSize()) {
+                    // In the page's flow, so it never covers the composer (NT-07).
+                    PushBar(
+                        offered = shell.pushBarOffered,
+                        bubble = shell.tutorialBubbles == TutorialBubbles.All,
+                        place = place,
+                        onDismiss = viewModel::dismissPushBar,
+                    )
+                    Box(Modifier.weight(1f)) { content() }
+                }
+            },
         )
 
         // Over the page, under the menus (NT-01).

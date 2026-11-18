@@ -54,12 +54,26 @@ data class ShellState(
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
     /** **Private Conversations** at the sidebar's foot (PC-01, SH-36). */
     val conversations: ConversationsState = ConversationsState(),
+    /** The forum sends pushes (`GET /server`'s `settings.push`). */
+    val pushOn: Boolean = false,
+    /** **Dismiss** was said to the notifications bar in the last 14 days (NT-07). */
+    val pushBarQuiet: Boolean = false,
 ) {
     val name: String get() = record.name
 
     /** The forum's address as people write it: `garden.example.org`. */
     val address: String get() = record.origin.removePrefix("https://").trimEnd('/')
     val signedIn: Boolean get() = access == Access.SignedIn || access is Access.Barred
+
+    /**
+     * The notifications bar may be offered (NT-07), as the web's banner: push on, the
+     * welcome card seen, a topic followed (writing in one follows it), not dismissed lately.
+     * Whether Android may already notify is the bar's own question.
+     */
+    val pushBarOffered: Boolean
+        get() =
+            access == Access.SignedIn && pushOn && me?.welcomed == true &&
+                sidebar.topics.isNotEmpty() && !pushBarQuiet
 }
 
 /** The open forum's frame: its sidebar, the member, and the choices kept per forum. */
@@ -131,6 +145,10 @@ class ShellViewModel
                     shell.copy(tutorialBubbles = bubbles)
                 }.combine(private.state) { shell, private ->
                     shell.copy(conversations = private)
+                }.combine(session.server) { shell, server ->
+                    shell.copy(pushOn = server?.settings?.push == true)
+                }.combine(choices.pushBarQuiet()) { shell, quiet ->
+                    shell.copy(pushBarQuiet = quiet)
                 }
             }
 
@@ -206,6 +224,11 @@ class ShellViewModel
         fun rollLinks(rolled: Boolean) = remember { it.copy(linksRolled = rolled) }
 
         fun themeMode(mode: ThemeMode) = remember { it.copy(themeMode = mode) }
+
+        /** **Dismiss** on the notifications bar, or Android's question refused (NT-07). */
+        fun dismissPushBar() {
+            viewModelScope.launch { choices.dismissPushBar() }
+        }
 
         fun tutorialBubbles(choice: TutorialBubbles) {
             viewModelScope.launch { choices.tutorialBubbles(choice) }

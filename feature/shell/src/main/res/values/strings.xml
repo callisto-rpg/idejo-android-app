@@ -101,4 +101,11 @@ SPDX-License-Identifier: Apache-2.0
     <string name="bubble_role_mention">%1$s mentioned one of your roles in “%2$s”</string>
     <string name="bubble_reaction">%1$s reacted to your message in “%2$s”</string>
     <string name="bubble_followed">%1$s posted in “%2$s”</string>
+    <!-- NT-07: the web's notifications banner, in its words. -->
+    <string name="push_bar_region">Notifications</string>
+    <string name="push_bar_offer">Push notifications not enabled. You will not be notified of new messages.</string>
+    <string name="push_bar_on">Notifications are on</string>
+    <string name="push_bar_enable">Enable</string>
+    <string name="push_bar_bubble">This can always be\nturned off and on\nin user settings</string>
+    <string name="push_bar_dismiss">Dismiss</string>
 </resources>

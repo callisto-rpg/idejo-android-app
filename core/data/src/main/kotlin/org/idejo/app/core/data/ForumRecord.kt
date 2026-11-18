@@ -72,6 +72,8 @@ data class AppState(
     val active: String? = null,
     /** The app's one **Tutorial bubbles** choice (SH-21). */
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
+    /** When **Dismiss** was last said to the notifications bar (NT-07), epoch milliseconds. */
+    val pushBarDismissedAt: Long? = null,
 ) {
     fun forum(origin: String?): ForumRecord? = forums.firstOrNull { it.origin == origin }
 
