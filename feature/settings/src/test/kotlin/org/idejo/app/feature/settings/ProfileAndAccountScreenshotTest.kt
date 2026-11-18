@@ -13,9 +13,12 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.model.NotificationSettings
 import org.idejo.app.core.model.Person
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountScreen
 import org.idejo.app.feature.settings.deleteaccount.DeleteAccountUiState
+import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsScreen
+import org.idejo.app.feature.settings.emailnotifications.EmailNotificationsUiState
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersScreen
 import org.idejo.app.feature.settings.ignoredusers.IgnoredUsersUiState
 import org.idejo.app.feature.settings.messagecontrols.MessageControlsScreen
@@ -52,6 +55,16 @@ class ProfileAndAccountScreenshotTest {
                 {},
             )
         }
+        shoot("DeleteAccount") {
+            DeleteAccountScreen(
+                DeleteAccountUiState("https://garden.example.org/users/settings?tab=account"),
+                {},
+            )
+        }
+    }
+
+    @Test
+    fun `ST-03 ST-08 the Messages and notifications sections`() {
         shoot("MessageControls") {
             MessageControlsScreen(
                 MessageControlsUiState(loading = false, onMobile = true, onDesktop = false),
@@ -71,9 +84,22 @@ class ProfileAndAccountScreenshotTest {
                 {},
             )
         }
-        shoot("DeleteAccount") {
-            DeleteAccountScreen(
-                DeleteAccountUiState("https://garden.example.org/users/settings?tab=account"),
+        shoot("EmailNotifications") {
+            EmailNotificationsScreen(
+                EmailNotificationsUiState(
+                    loading = false,
+                    username = "ada",
+                    email =
+                        NotificationSettings.Email(
+                            mentions = true,
+                            roleMentions = false,
+                            ownTopics = true,
+                            followedTopics = false,
+                            newTopics = false,
+                            allActivity = false,
+                            onceAWeek = true,
+                        ),
+                ),
                 {},
             )
         }
