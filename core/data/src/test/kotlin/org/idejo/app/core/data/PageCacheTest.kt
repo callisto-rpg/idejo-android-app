@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.idejo.app.core.api.ApiResult
@@ -121,5 +122,23 @@ class PageCacheTest {
 
             // Nothing saved: the failure, as before.
             assertTrue(session.cached("active:false") { activeTopics(false) } is ApiResult.Failure)
+        }
+
+    @Test
+    fun `OF-05 the network lost is offline at once, back asks the forum again`() =
+        runBlocking {
+            val found = DiscoveryClient(http).discover(fake.address) as DiscoveryResult.Found
+            sessions.add(found, TokenGrant(fake.tokenFor(FakePeople.Ada), user = FakePeople.Ada))
+            val session = requireNotNull(sessions.active)
+            val network = kotlinx.coroutines.flow.MutableStateFlow(true)
+            NetworkWatch(sessions, network).start(scope)
+            val asked = fake.requests.size
+
+            network.value = false
+            kotlinx.coroutines.withTimeout(5_000) { session.offline.first { it } }
+
+            network.value = true
+            kotlinx.coroutines.withTimeout(5_000) { session.offline.first { !it } }
+            assertTrue(fake.requests.drop(asked).any { it.url.encodedPath == "/api/v1/server" })
         }
 }

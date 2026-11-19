@@ -467,7 +467,8 @@ limit; forgotten with the forum, emptied by **Clear cache**) and the offline bar
 `OfflineBar` over the page while `ForumSession.savedCopy` says a saved copy is shown, the
 forum not answering or answering 5xx); nothing else queued offline (OF-05: `ForumSession.offline`, set by any call the forum
 does not answer and cleared by any it does, disables the topic's and inline cards' **Follow**,
-reactions, **Vote**, and the sidebar's follows, Unfollow & mute and Mark unread).
+reactions, **Vote**, and the sidebar's follows, Unfollow & mute and Mark unread; Android's
+network, `NetworkWatch`, makes the open forum offline when lost and asks it again when back).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);

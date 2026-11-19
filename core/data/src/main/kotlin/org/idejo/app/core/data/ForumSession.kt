@@ -163,6 +163,18 @@ class ForumSession internal constructor(
      */
     val offline: StateFlow<Boolean> = mutableOffline.asStateFlow()
 
+    /**
+     * Android's network went [up] or down (OF-05, `NetworkWatch`): down, offline at once;
+     * up, the forum is asked again, whose answer clears [offline].
+     */
+    fun networkChanged(up: Boolean) {
+        if (!up) {
+            mutableOffline.value = true
+        } else if (mutableOffline.value) {
+            scope.launch { refreshServer() }
+        }
+    }
+
     private val mutableSavedCopy = MutableStateFlow<Long?>(null)
 
     /**
