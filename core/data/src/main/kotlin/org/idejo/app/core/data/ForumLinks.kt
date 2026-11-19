@@ -74,6 +74,8 @@ private suspend fun message(
 data class PendingLink(
     val origin: String,
     val url: String,
+    /** A topic tapped in the inbox's Topics: Back from it returns to the inbox (IB-08). */
+    val fromInbox: Boolean = false,
 )
 
 /** The address a tapped notification opens, waiting for its forum's screen. */

@@ -18,7 +18,9 @@ import org.idejo.app.core.testing.FakeIdejo
 import org.idejo.app.core.testing.FakePeople
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -108,5 +110,17 @@ class ForumLinksTest {
         assertNull(links.take("https://b.example/"))
         assertEquals("https://a.example/unread", links.take("https://a.example/")?.url)
         assertNull(links.take("https://a.example/"))
+    }
+
+    @Test
+    fun `IB-08 a topic tapped in the inbox's Topics waits for its forum, Back then to the inbox`() {
+        val links = PendingLinks()
+        links.offer(PendingLink("https://a.example/", "https://a.example/t/t_1", fromInbox = true))
+        assertNull(links.take("https://b.example/"))
+        val link = requireNotNull(links.take("https://a.example/"))
+        assertTrue(link.fromInbox)
+        // A notification tapped leads back through the forum, as before.
+        links.offer(PendingLink("https://a.example/", "https://a.example/unread"))
+        assertFalse(requireNotNull(links.take("https://a.example/")).fromInbox)
     }
 }
