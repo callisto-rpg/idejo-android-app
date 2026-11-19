@@ -19,6 +19,8 @@ import org.idejo.app.core.model.Topic
 internal fun Follow(
     topic: Topic,
     actions: TopicActions,
+    /** Not queued offline (OF-05): the button waits for the forum. */
+    offline: Boolean = false,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (topic.followedByEveryone) {
@@ -28,12 +30,13 @@ internal fun Follow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else if (topic.followed) {
-            OutlinedButton(onClick = { actions.onFollow(false) }) {
+            OutlinedButton(onClick = { actions.onFollow(false) }, enabled = !offline) {
                 Text(stringResource(R.string.topic_unfollow))
             }
         } else {
             Button(
                 onClick = { actions.onFollow(true) },
+                enabled = !offline,
             ) { Text(stringResource(R.string.topic_follow)) }
         }
     }

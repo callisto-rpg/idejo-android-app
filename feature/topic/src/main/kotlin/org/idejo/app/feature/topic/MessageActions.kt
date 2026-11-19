@@ -246,7 +246,8 @@ internal fun messageActions(
     return MessageActions(
         quick = state.quick,
         searchEmoji = actions.searchEmoji,
-        onReact = actions.onReact.takeIf { signedIn },
+        // Not queued offline (OF-05): reactions wait for the forum.
+        onReact = actions.onReact.takeIf { signedIn && !state.offline },
         reactors = actions.reactors,
         onReply =
             then { writing.onReply(it, aboveOpen(topic, it, writing.openMessageId)) }

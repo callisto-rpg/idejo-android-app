@@ -68,7 +68,7 @@ internal fun TopicCard(
         if (state.signedIn) {
             OutlinedButton(
                 onClick = { actions.onFollow(!topic.followed) },
-                enabled = !state.busy,
+                enabled = !state.busy && !state.offline,
             ) {
                 Text(
                     stringResource(

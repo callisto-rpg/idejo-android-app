@@ -211,6 +211,9 @@ class ShellViewModel
                         val news = logoNews(read.levels, session.origin)
                         shell.copy(news = news.takeIf { shell.idejoId })
                     }.combine(session.savedCopy) { shell, at -> shell.copy(savedCopy = at) }
+                    .combine(session.offline) { shell, offline ->
+                        shell.copy(sidebar = shell.sidebar.copy(offline = offline))
+                    }
             }
 
         /** The page shown changed: the topic open is read for the breadcrumbs. */

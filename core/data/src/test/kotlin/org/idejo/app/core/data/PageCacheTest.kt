@@ -102,7 +102,7 @@ class PageCacheTest {
         }
 
     @Test
-    fun `OF-02 an unreachable forum answers from the saved copy, and says from when`() =
+    fun `OF-02 OF-05 an unreachable forum answers from the saved copy, and says from when`() =
         runBlocking {
             val found = DiscoveryClient(http).discover(fake.address) as DiscoveryResult.Found
             sessions.add(found, TokenGrant(fake.tokenFor(FakePeople.Ada), user = FakePeople.Ada))
@@ -111,8 +111,11 @@ class PageCacheTest {
             val names = (read as ApiResult.Success).value.map { it.title }
             assertNull(session.savedCopy.value)
 
+            assertTrue(!session.offline.value)
             fake.close()
             val offline = session.cached("categories") { categories() }
+            // OF-05: the forum is offline for what is not queued.
+            assertTrue(session.offline.value)
             assertEquals(names, (offline as ApiResult.Success).value.map { it.title })
             assertNotNull(session.savedCopy.value)
 

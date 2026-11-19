@@ -30,6 +30,8 @@ data class InlineCardUi(
     val origin: String = "",
     /** **Follow** shows for signed-in members only, as on the web. */
     val signedIn: Boolean = false,
+    /** The forum does not answer: **Follow** waits (OF-05). */
+    val offline: Boolean = false,
 )
 
 /** The card an inline link opens (TV-22), and **Follow** / **Unfollow** on a topic's. */
@@ -62,6 +64,13 @@ class InlineCardViewModel
 
         init {
             load()
+            session?.let { forum ->
+                viewModelScope.launch {
+                    forum.offline.collect { offline ->
+                        mutableState.update { it.copy(offline = offline) }
+                    }
+                }
+            }
         }
 
         fun load() {

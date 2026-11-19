@@ -135,6 +135,7 @@ fun Sidebar(
                     signedIn = signedIn,
                     actions = actions,
                     onExpand = { expanded = expanded + entry.category.id },
+                    offline = state.offline,
                 )
             }
         }
@@ -156,6 +157,8 @@ private fun LazyListScope.category(
     signedIn: Boolean,
     actions: SidebarActions,
     onExpand: () -> Unit,
+    /** Not queued offline (OF-05): follows and Mark unread wait. */
+    offline: Boolean = false,
 ) {
     val id = entry.category.id
     item(key = "category:$id") {
@@ -175,6 +178,7 @@ private fun LazyListScope.category(
                 followed = entry.topics.any { it.id == topic.id },
                 glow = glowing[topic.id],
                 actions = actions,
+                offline = offline,
             )
         }
     }
@@ -313,6 +317,7 @@ private fun TopicRow(
     followed: Boolean,
     glow: Int?,
     actions: SidebarActions,
+    offline: Boolean,
 ) {
     var menu by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -339,7 +344,11 @@ private fun TopicRow(
             }
             GlowingName(topic.title, glow, Modifier.weight(1f))
             if (followed) {
-                IconButton(onClick = { actions.follow(topic, false) }, Modifier.size(TARGET)) {
+                IconButton(
+                    onClick = { actions.follow(topic, false) },
+                    Modifier.size(TARGET),
+                    enabled = !offline,
+                ) {
                     Icon(
                         painterResource(org.idejo.app.core.designsystem.R.drawable.ic_close),
                         stringResource(R.string.sidebar_unfollow, topic.title),
@@ -347,7 +356,11 @@ private fun TopicRow(
                     )
                 }
             } else if (open) {
-                IconButton(onClick = { actions.follow(topic, true) }, Modifier.size(TARGET)) {
+                IconButton(
+                    onClick = { actions.follow(topic, true) },
+                    Modifier.size(TARGET),
+                    enabled = !offline,
+                ) {
                     Icon(
                         painterResource(R.drawable.ic_add),
                         stringResource(R.string.sidebar_follow, topic.title),
@@ -355,7 +368,7 @@ private fun TopicRow(
                 }
             }
         }
-        TopicMenu(topic, followed, menu, onDismiss = { menu = false }, actions)
+        TopicMenu(topic, followed, menu, onDismiss = { menu = false }, actions, offline)
     }
 }
 
@@ -367,6 +380,7 @@ private fun TopicMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     actions: SidebarActions,
+    offline: Boolean,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         fun pick(action: () -> Unit) {
@@ -382,14 +396,17 @@ private fun TopicMenu(
                 )
             },
             onClick = { pick { actions.follow(topic, !followed) } },
+            enabled = !offline,
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.topic_menu_unfollow_mute)) },
             onClick = { pick { actions.unfollowAndMute(topic) } },
+            enabled = !offline,
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.topic_menu_mark_unread)) },
             onClick = { pick { actions.markUnread(topic) } },
+            enabled = !offline,
         )
         if (topic.url != null) {
             DropdownMenuItem(
