@@ -75,7 +75,7 @@ class AppSettingsViewModelTest {
 
     private fun viewModel(): AppSettingsViewModel {
         val registrar = PushRegistrar(forum.sessions, distributors, "Pixel 8", scope)
-        return AppSettingsViewModel(choices, registrar, cache)
+        return AppSettingsViewModel(choices, registrar, cache, forum.sessions)
     }
 
     @After

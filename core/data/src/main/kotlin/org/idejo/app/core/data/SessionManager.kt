@@ -305,6 +305,31 @@ class SessionManager(
         }
 
     /**
+     * MD-04: idejo ID mode left for single-forum mode, keeping the forum at [keep] (none: the
+     * welcome screen). The inbox's token and every other forum's are revoked and forgotten,
+     * with what the app kept of them; [keep] keeps its token and opens.
+     */
+    suspend fun leaveIdejoId(keep: String?) =
+        lock.withLock {
+            val state = store.current()
+            val left = state.forums.filter { it.origin != keep } + listOfNotNull(state.inbox)
+            left.forEach { revoke(it) }
+            val kept = state.forum(keep)
+            store.update {
+                it.copy(
+                    mode = AppMode.Single,
+                    forums = listOfNotNull(kept),
+                    active = kept?.origin,
+                    inbox = null,
+                    seenForums = emptySet(),
+                    inboxTopics = InboxTopicChoices(),
+                )
+            }
+            open(kept)
+            left.forEach { mutableSignedOut.tryEmit(it.origin) }
+        }
+
+    /**
      * Changes what the app keeps of the forum at [origin], open or not (NT-02); by default
      * the open forum's kept choices (theme mode, view, folds…).
      */

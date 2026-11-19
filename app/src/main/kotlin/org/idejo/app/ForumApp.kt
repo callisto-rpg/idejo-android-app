@@ -51,7 +51,6 @@ import org.idejo.app.feature.inbox.ConversationsRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
-import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
 import org.idejo.app.feature.shell.ForwardDialog
 import org.idejo.app.feature.shell.InlineCardDialog
@@ -117,7 +116,6 @@ fun ForumApp(
             }
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
-            composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
             addForumPages(navigation)
             profileAndAccountPage(navigation) { content -> Page(session, signIn, content) }
             conversationsPage(navigation) { content -> Page(session, signIn, content) }

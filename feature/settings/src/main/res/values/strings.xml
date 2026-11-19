@@ -136,6 +136,16 @@ SPDX-License-Identifier: Apache-2.0
     <string name="delete_account_open">Delete my account…</string>
     <!-- App settings → About (ST-23). -->
     <!-- App settings on this device (ST-20 to ST-22). -->
+    <string name="app_mode">Mode</string>
+    <string name="app_mode_note">With your idejo ID, the app keeps your group\'s inbox and every forum you joined. With one forum, it keeps that forum only.</string>
+    <string name="app_mode_idejo_id">idejo ID: your inbox and all your forums</string>
+    <string name="app_mode_single">One forum</string>
+    <string name="app_mode_leave_title">Keep one forum only?</string>
+    <string name="app_mode_leave_keep">The forum to keep:</string>
+    <string name="app_mode_leave_none">The app holds no forum besides your inbox: it will open on its welcome screen.</string>
+    <string name="app_mode_leave_signed_out">You will be signed out of %1$s on this device, and the app forgets them.</string>
+    <string name="app_mode_leave_confirm">Keep one forum</string>
+    <string name="app_mode_cancel">Cancel</string>
     <string name="app_notifications">Notifications</string>
     <string name="app_push_service">Push service for notifications</string>
     <string name="app_no_distributor">No push service is installed. To get notifications, install a UnifiedPush distributor such as ntfy (from F-Droid or Google Play) and open it once.</string>

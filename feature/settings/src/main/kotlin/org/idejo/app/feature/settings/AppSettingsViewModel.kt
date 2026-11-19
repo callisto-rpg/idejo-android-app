@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.data.AppChoices
+import org.idejo.app.core.data.AppMode
 import org.idejo.app.core.data.MessageText
 import org.idejo.app.core.data.PushRegistrar
+import org.idejo.app.core.data.SessionManager
 import javax.inject.Inject
 
 /** App settings' choices on this device (ST-20 to ST-22). */
@@ -33,6 +35,21 @@ data class AppSettingsUiState(
     val cacheLimitMb: Int = org.idejo.app.core.data.DEFAULT_CACHE_MB,
     /** **Clear cache** is at work. */
     val clearing: Boolean = false,
+    /** The app's mode (MD-04); null until read. */
+    val mode: AppMode? = null,
+    /** The forums held, for the forum kept when leaving idejo ID mode. */
+    val forums: List<HeldForum> = emptyList(),
+    /** idejo ID mode's inbox, by name. */
+    val inboxName: String? = null,
+    /** The forum open, kept by default. */
+    val current: String? = null,
+)
+
+/** A forum the app holds, for **Mode** (MD-04). */
+@Immutable
+data class HeldForum(
+    val origin: String,
+    val name: String,
 )
 
 /** What the member does in App settings. */
@@ -58,13 +75,18 @@ sealed interface AppSettingsEvent {
     ) : AppSettingsEvent
 
     data object ClearCache : AppSettingsEvent
+
+    /** MD-04: to single-forum mode, keeping [keep] (none: the welcome screen). */
+    data class LeaveIdejoId(
+        val keep: String?,
+    ) : AppSettingsEvent
 }
 
 /**
  * App settings (ST-20 to ST-22), kept on this device for every forum: the push distributor
  * (UnifiedPush's own list: the embedded FCM distributor in Play is one), text size inside
- * messages, haptics, reduced motion, and the cache. Mode (MD-04) and opening links in the
- * app (DL-01) come with M4 and M5.
+ * messages, haptics, reduced motion, and the cache; the mode (MD-04). Opening links in the
+ * app (DL-01) comes with M5.
  */
 @HiltViewModel
 class AppSettingsViewModel
@@ -73,6 +95,7 @@ class AppSettingsViewModel
         private val choices: AppChoices,
         private val registrar: PushRegistrar,
         private val cache: AppCache,
+        private val sessions: SessionManager,
     ) : ViewModel() {
         private val mutableState = MutableStateFlow(AppSettingsUiState())
         val state: StateFlow<AppSettingsUiState> = mutableState.asStateFlow()
@@ -96,6 +119,21 @@ class AppSettingsViewModel
                     }
             }
             measure()
+            viewModelScope.launch {
+                sessions.state.collect { app ->
+                    mutableState.update {
+                        it.copy(
+                            mode = app.mode,
+                            forums =
+                                app.forums.map { forum ->
+                                    HeldForum(forum.origin, forum.name)
+                                },
+                            inboxName = app.inbox?.name,
+                            current = sessions.active?.origin?.takeIf { o -> app.forum(o) != null },
+                        )
+                    }
+                }
+            }
         }
 
         fun onEvent(event: AppSettingsEvent) {
@@ -123,6 +161,10 @@ class AppSettingsViewModel
 
                 AppSettingsEvent.ClearCache -> {
                     clear()
+                }
+
+                is AppSettingsEvent.LeaveIdejoId -> {
+                    viewModelScope.launch { sessions.leaveIdejoId(event.keep) }
                 }
             }
         }

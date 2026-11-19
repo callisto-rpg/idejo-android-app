@@ -25,14 +25,20 @@ import org.idejo.app.feature.settings.parts.RadioGroupRow
 import org.idejo.app.feature.settings.parts.SwitchRow
 
 /**
- * App settings above About (ST-20 to ST-22): **Notifications** (the push distributor),
- * **Display** (text size inside messages, haptics, reduced motion), **Storage** (the cache).
+ * App settings above About (ST-20 to ST-22): **Mode** (MD-04), **Notifications** (the push
+ * distributor), **Display** (text size inside messages, haptics, reduced motion),
+ * **Storage** (the cache).
  */
 internal fun LazyListScope.deviceSections(
     state: AppSettingsUiState,
     names: Map<String, String>,
     onEvent: (AppSettingsEvent) -> Unit,
+    onIdejoId: () -> Unit = {},
 ) {
+    state.mode?.let { mode ->
+        item { SectionTitle(stringResource(R.string.app_mode)) }
+        item { ModeChoice(mode, state, onEvent, onIdejoId) }
+    }
     item { SectionTitle(stringResource(R.string.app_notifications)) }
     item { Distributors(state, names, onEvent) }
     item { SectionTitle(stringResource(R.string.app_display)) }
@@ -128,7 +134,7 @@ private fun Storage(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+internal fun SectionTitle(text: String) {
     Text(
         text,
         Modifier.padding(top = 24.dp, bottom = 8.dp).semantics { heading() },
@@ -137,7 +143,7 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun Note(text: String) {
+internal fun Note(text: String) {
     Text(
         text,
         Modifier.padding(vertical = 4.dp),
