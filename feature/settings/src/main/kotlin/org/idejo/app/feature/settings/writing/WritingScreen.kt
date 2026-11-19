@@ -23,6 +23,7 @@ import org.idejo.app.feature.settings.R
 import org.idejo.app.feature.settings.parts.ErrorState
 import org.idejo.app.feature.settings.parts.LoadingState
 import org.idejo.app.feature.settings.parts.ProblemText
+import org.idejo.app.feature.settings.parts.SaveForAllForums
 import org.idejo.app.feature.settings.parts.SectionHeader
 import org.idejo.app.feature.settings.parts.SwitchRow
 
@@ -63,7 +64,7 @@ fun WritingRoute(
     viewModel: WritingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    WritingScreen(state, viewModel::onEvent, modifier)
+    WritingScreen(state, viewModel::onEvent, modifier) { SaveForAllForums(it) }
 }
 
 @Composable
@@ -71,6 +72,7 @@ fun WritingScreen(
     state: WritingUiState,
     onEvent: (WritingEvent) -> Unit,
     modifier: Modifier = Modifier,
+    everywhere: @Composable (sections: List<String>) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         SectionHeader(stringResource(R.string.writing))
@@ -102,6 +104,7 @@ fun WritingScreen(
                         onCheckedChange = { onEvent(WritingEvent.GraphicalComposer(it)) },
                     )
                 }
+                everywhere(listOf("writing"))
                 state.problem?.let { ProblemText(it) }
             }
         }

@@ -60,6 +60,7 @@ import org.idejo.app.feature.settings.R
 import org.idejo.app.feature.settings.parts.ErrorState
 import org.idejo.app.feature.settings.parts.LoadingState
 import org.idejo.app.feature.settings.parts.ProblemText
+import org.idejo.app.feature.settings.parts.SaveForAllForums
 import org.idejo.app.feature.settings.parts.SectionHeader
 
 /** The forms and pictures of **Profile** (ST-01). */
@@ -135,7 +136,7 @@ fun ProfileRoute(
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ProfileScreen(state, viewModel::onEvent, modifier)
+    ProfileScreen(state, viewModel::onEvent, modifier) { SaveForAllForums(it) }
 }
 
 @Composable
@@ -143,6 +144,7 @@ fun ProfileScreen(
     state: ProfileUiState,
     onEvent: (ProfileEvent) -> Unit,
     modifier: Modifier = Modifier,
+    everywhere: @Composable (sections: List<String>) -> Unit = {},
 ) {
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -163,6 +165,8 @@ fun ProfileScreen(
                 NameForm(state, onEvent)
                 BioForm(state, onEvent)
                 Pictures(state, state.me, onEvent)
+                // One button for the page: the web's three forms are one section here.
+                everywhere(listOf("profile", "bio", "avatar"))
             }
         }
     }

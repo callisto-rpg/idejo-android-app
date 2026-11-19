@@ -22,6 +22,8 @@ import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Conversation
 import org.idejo.app.core.model.ConversationStart
 import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.EverywhereRequest
+import org.idejo.app.core.model.EverywhereResult
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
@@ -377,6 +379,13 @@ class ForumApi(
 
     /** The member's choices (ST, PC-03): only [patch]'s fields change; answers `GET /me`. */
     suspend fun updateMe(patch: MePatch): ApiResult<Me> = call { updateMe(patch) }
+
+    /**
+     * On a group's inbox (ST-07, IX-17): [sections] as they are here, saved on every forum
+     * the member joined, as the web's **Save for all forums**.
+     */
+    suspend fun saveEverywhere(sections: List<String>): ApiResult<EverywhereResult> =
+        call { saveEverywhere(EverywhereRequest(sections)) }
 
     /** A message reported to the moderators (MA-04). */
     suspend fun report(

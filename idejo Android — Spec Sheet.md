@@ -368,7 +368,7 @@ The home of idejo ID mode, matching my.idejo.org's pages, in the inbox's own col
 | ST-04 | Password change (`PUT /me/password`), warning that every device signs out — this one included, which then signs in again | Must |
 | ST-05 | Apps and devices: the list (`GET /me/tokens`), this device marked, **Remove** | Must |
 | ST-06 | **Delete account** opens `account.deletion_url` in a Custom Tab | Must |
-| ST-07 | Linked members (idejo ID): the note that settings apply only to this forum, with a link to the inbox's settings, which offer **Save for all forums** as the web (when the inbox's API offers it) | Should |
+| ST-07 | Linked members (idejo ID): the note that settings apply only to this forum, with a link to the inbox's settings, which offer **Save for all forums** as the web (IX-17) | Should |
 | ST-08 | Ignored users list (`GET /me/ignored`) with unignore | Must |
 
 ### 15.2 App settings (on this device)
@@ -467,6 +467,7 @@ falls back as stated.
 | IX-14 | A category gives `mark_colour`, the colour the web draws its mark in (its `colour`, else one of eight tints from its id); idejo's category icons are CC-BY-4.0 drawings the app bundles (callisto-rpg/Idejo#370) | TH-05 | Tiles without a colour take the forum's; icons as initials |
 | IX-15 | `GET /me` gives `graphical_composer`, `controls_on_mobile` and `controls_on_desktop`, and `PATCH /me` changes them (callisto-rpg/Idejo#372) | CO-10, CO-11, MA-01, ST | The graphical composer on (new accounts' default); message controls on a tap |
 | IX-16 | `GET /server` gives `push_vapid_key`, the forum's VAPID public key (base64url, 87 characters) while push is on (callisto-rpg/Idejo#373) | NT-02, NT-06 | Distributors that need no VAPID key (ntfy…) work; the embedded FCM distributor cannot register, so the `play` build behaves as `foss` |
+| IX-17 | On a group's inbox, `GET /me` says `everywhere` (a member linked to its provider), and `POST /me/everywhere` `{sections}` saves the inbox's Profile and account sections on every forum the member joined, as the web's **Save for all forums**, answering `{saved, missed}` (callisto-rpg/Idejo#375) | ST-07 | The inbox's settings apply to the inbox only |
 
 ## 23. Non-functional requirements
 

@@ -14,6 +14,8 @@ import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Conversation
 import org.idejo.app.core.model.ConversationStart
 import org.idejo.app.core.model.Emoji
+import org.idejo.app.core.model.EverywhereRequest
+import org.idejo.app.core.model.EverywhereResult
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifSettings
 import org.idejo.app.core.model.IntroClose
@@ -385,6 +387,11 @@ internal interface IdejoService {
     suspend fun updateMe(
         @Body body: MePatch,
     ): Me
+
+    @POST("me/everywhere")
+    suspend fun saveEverywhere(
+        @Body body: EverywhereRequest,
+    ): EverywhereResult
 
     @DELETE("scheduled/{id}")
     suspend fun cancelScheduled(

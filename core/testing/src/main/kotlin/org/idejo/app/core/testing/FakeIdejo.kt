@@ -35,6 +35,8 @@ import org.idejo.app.core.model.ConversationStart
 import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.Emoji
 import org.idejo.app.core.model.ErrorBody
+import org.idejo.app.core.model.EverywhereRequest
+import org.idejo.app.core.model.EverywhereResult
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifConfig
 import org.idejo.app.core.model.GifSettings
@@ -142,6 +144,18 @@ class FakeIdejo(
 
     /** A group's inbox: `POST /conversations` takes an idejo ID (`subject`, IX-04). */
     @Volatile var inbox: Boolean = false
+
+    /**
+     * A group's inbox offering **Save for all forums** (IX-17): `GET /me` says `everywhere`,
+     * and `POST /me/everywhere` answers with these forums; null plays an idejo without it.
+     */
+    @Volatile var everywhere: EverywhereResult? = null
+
+    /** The sections each `POST /me/everywhere` asked for, in order. */
+    val savedEverywhere: MutableList<List<String>> =
+        java.util.Collections.synchronizedList(
+            mutableListOf(),
+        )
 
     /** False plays a server older than idejo 0.3.16: no `GET /me/followed` (IX-02). */
     @Volatile var followedList: Boolean = true
@@ -770,6 +784,14 @@ class FakeIdejo(
                     ?: notFound()
             },
             Route("GET", "me/communities") { ok(ListBody(communities)) },
+            Route("POST", "me/everywhere") { call ->
+                val answer = everywhere ?: return@Route notFound()
+                if (call.viewer == null) return@Route unauthenticated()
+                val body =
+                    IdejoJson.decodeFromString<EverywhereRequest>(call.request.body?.utf8() ?: "{}")
+                savedEverywhere += body.sections
+                ok(answer)
+            },
             Route("GET", "me/warnings") { call ->
                 call.viewer?.let { ok(ListBody(reader(it).warnings.toList())) } ?: unauthenticated()
             },
@@ -1575,6 +1597,7 @@ class FakeIdejo(
             graphicalComposer = reader.graphicalComposer.takeIf { memberChoices },
             controlsOnMobile = reader.controlsOnMobile.takeIf { memberChoices },
             controlsOnDesktop = reader.controlsOnDesktop.takeIf { memberChoices },
+            everywhere = everywhere != null,
         )
     }
 

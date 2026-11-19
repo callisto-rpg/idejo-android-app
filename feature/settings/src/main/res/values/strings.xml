@@ -182,4 +182,12 @@ SPDX-License-Identifier: Apache-2.0
     <string name="about_bundled_symbols" translatable="false">Material Symbols · Apache-2.0</string>
     <string name="about_bundled_logo" translatable="false">idejo logo · CC-BY-4.0</string>
     <string name="about_bundled_category_icons" translatable="false">idejo category icons · CC-BY-4.0</string>
+    <string name="settings_save_everywhere">Save for all forums</string>
+    <plurals name="settings_everywhere_saved">
+        <item quantity="one">Saved on your forum too.</item>
+        <item quantity="other">Saved on all %1$d of your forums too.</item>
+    </plurals>
+    <string name="settings_everywhere_none">You have joined no other forum yet.</string>
+    <string name="settings_everywhere_missed">Not saved on %1$s: they did not answer or need an update. Try again later.</string>
+    <string name="settings_everywhere_unreachable">Your forums could not be reached. Try again later.</string>
 </resources>

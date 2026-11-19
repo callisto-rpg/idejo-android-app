@@ -26,6 +26,7 @@ import org.idejo.app.feature.settings.R
 import org.idejo.app.feature.settings.parts.ErrorState
 import org.idejo.app.feature.settings.parts.LoadingState
 import org.idejo.app.feature.settings.parts.ProblemText
+import org.idejo.app.feature.settings.parts.SaveForAllForums
 import org.idejo.app.feature.settings.parts.SectionHeader
 import org.idejo.app.feature.settings.parts.SwitchRow
 
@@ -77,7 +78,7 @@ fun EmailNotificationsRoute(
     viewModel: EmailNotificationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    EmailNotificationsScreen(state, viewModel::onEvent, modifier)
+    EmailNotificationsScreen(state, viewModel::onEvent, modifier) { SaveForAllForums(it) }
 }
 
 @Composable
@@ -85,6 +86,7 @@ fun EmailNotificationsScreen(
     state: EmailNotificationsUiState,
     onEvent: (EmailNotificationsEvent) -> Unit,
     modifier: Modifier = Modifier,
+    everywhere: @Composable (sections: List<String>) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         SectionHeader(stringResource(R.string.email_notifications))
@@ -99,6 +101,7 @@ fun EmailNotificationsScreen(
 
             else -> {
                 state.email?.let { email -> Choices(email, state, onEvent) }
+                everywhere(listOf("email"))
                 state.problem?.let { ProblemText(it) }
             }
         }
