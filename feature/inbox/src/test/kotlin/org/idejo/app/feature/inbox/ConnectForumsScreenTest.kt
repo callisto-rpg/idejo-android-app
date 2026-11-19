@@ -49,7 +49,6 @@ class ConnectForumsScreenTest {
     fun `SI-06 each forum joined, connected or not, and Connect N forums`() {
         val events = mutableListOf<ConnectForumsEvent>()
         rule.setContent { ConnectForumsScreen(state, { events += it }) }
-        rule.onNodeWithText("Connected").assertExists()
         rule.onAllNodesWithText("Not connected").assertCountEquals(2)
         rule.onNodeWithText("Connect 2 forums").performClick()
         rule.onAllNodesWithText("Connect")[0].performClick()
@@ -62,6 +61,32 @@ class ConnectForumsScreenTest {
             ),
             events,
         )
+    }
+
+    @Test
+    fun `IB-02 a connected forum's card says how many messages are new`() {
+        rule.setContent {
+            ConnectForumsScreen(state.copy(unread = mapOf(garden.url to 3, bees.url to 7)), {})
+        }
+        rule.onNodeWithText("3 new messages").assertExists()
+        // Not connected: no count, Connect instead.
+        rule.onNodeWithText("7 new messages").assertDoesNotExist()
+    }
+
+    @Test
+    fun `IB-02 every forum connected, the cards alone`() {
+        rule.setContent {
+            ConnectForumsScreen(
+                state.copy(
+                    forums = listOf(garden, bees.copy(connected = true)),
+                    unread =
+                        mapOf(garden.url to 1),
+                ),
+                {},
+            )
+        }
+        rule.onNodeWithText("Connect your forums").assertDoesNotExist()
+        rule.onNodeWithText("1 new message").assertExists()
     }
 
     @Test
@@ -109,7 +134,9 @@ class ConnectForumsScreenTest {
 
     @Test
     fun `SI-06 screenshots`() {
-        snapshots("ConnectForums") { ConnectForumsScreen(state, {}) }
+        snapshots(
+            "ConnectForums",
+        ) { ConnectForumsScreen(state.copy(unread = mapOf(garden.url to 3)), {}) }
         snapshots("ConnectForumsConnecting") {
             ConnectForumsScreen(state.copy(connecting = bees.url), {})
         }

@@ -30,6 +30,7 @@ annotation class AppScope
 
 @Module
 @InstallIn(SingletonComponent::class)
+@Suppress("TooManyFunctions") // One provider per app-wide object.
 object DataModule {
     @Provides
     @Singleton
@@ -68,6 +69,11 @@ object DataModule {
         sessions: SessionManager,
         http: OkHttpClient,
     ): SignInCoordinator = SignInCoordinator(sessions, http)
+
+    /** The inbox's Forums and Topics (IB-02, IB-03), read from every connected forum. */
+    @Provides
+    @Singleton
+    fun inboxTopics(sessions: SessionManager): InboxTopics = InboxTopics(sessions)
 
     /** idejo ID mode's forums (SI-06): `device_name` as at any sign-in (SI-03). */
     @Provides

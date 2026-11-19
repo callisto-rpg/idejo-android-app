@@ -58,6 +58,13 @@ class AppChoices
         suspend fun cacheLimitMb(megabytes: Int) =
             store.update { it.copy(cacheLimitMb = megabytes) }
 
+        /** The inbox's Topics toolbar (IB-03), the same at every launch. */
+        val inboxTopics: Flow<InboxTopicChoices>
+            get() = store.state.map { it.inboxTopics }.distinctUntilChanged()
+
+        suspend fun inboxTopics(transform: (InboxTopicChoices) -> InboxTopicChoices) =
+            store.update { it.copy(inboxTopics = transform(it.inboxTopics)) }
+
         private companion object {
             const val QUIET_MS = 14L * 24 * 60 * 60 * 1000
         }

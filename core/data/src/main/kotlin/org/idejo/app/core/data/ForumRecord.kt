@@ -91,6 +91,15 @@ data class PushRecord(
     override fun toString(): String = "PushRecord($registrationId)"
 }
 
+/** The inbox's **Topics** toolbar (IB-03): the view, **Unread only**, **Filter** by forum. */
+@Serializable
+data class InboxTopicChoices(
+    val view: TopicView = TopicView.Compact,
+    val unreadOnly: Boolean = false,
+    /** Forums filtered out, by origin: a forum connected later shows. */
+    val hidden: Set<String> = emptySet(),
+)
+
 /** The app's two modes (MD-02, MD-03). */
 @Serializable
 enum class AppMode {
@@ -118,6 +127,8 @@ data class AppState(
      * among them, is new (its Connect card, the logo's dot).
      */
     val seenForums: Set<String> = emptySet(),
+    /** The inbox's Topics toolbar (IB-03), remembered. */
+    val inboxTopics: InboxTopicChoices = InboxTopicChoices(),
     /** The app's one **Tutorial bubbles** choice (SH-21). */
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
     /** When **Dismiss** was last said to the notifications bar (NT-07), epoch milliseconds. */

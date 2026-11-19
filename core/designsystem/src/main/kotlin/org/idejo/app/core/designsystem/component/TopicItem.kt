@@ -23,7 +23,8 @@ import java.time.Instant
  * A [Topic] as a row of a list (BR-02, BR-03): led by its starter's picture, or with
  * [category] (the home page's active topics) by the category's mark and name. [expanded]
  * shows its preview when the list was read with one. [picture] draws an address; [onTag]
- * opens a tag tapped (BR-04).
+ * opens a tag tapped (BR-04). The inbox's Topics (IB-03) give their own [lead] (the forum's
+ * logo) and [starter], and show the counts beside the row instead ([showUnread] false).
  */
 @Composable
 fun TopicItem(
@@ -34,13 +35,16 @@ fun TopicItem(
     category: Category? = null,
     picture: (@Composable (url: String, modifier: Modifier) -> Unit)? = null,
     onTag: ((Tag) -> Unit)? = null,
+    lead: (@Composable () -> Unit)? = null,
+    starter: String? = null,
+    showUnread: Boolean = true,
 ) {
     val dark = IdejoTheme.dark
     val scheme = MaterialTheme.colorScheme
     val author = topic.author
     TopicRow(
         title = topic.title,
-        starter = category?.title ?: author?.displayName.orEmpty(),
+        starter = starter ?: category?.title ?: author?.displayName.orEmpty(),
         lastActivity = relativeTime(topic.lastActivityAt ?: topic.createdAt),
         messagesCount = topic.messagesCount,
         onClick = onClick,
@@ -48,7 +52,7 @@ fun TopicItem(
         tags = topic.tags.map { it.name },
         dot = topic.dot(),
         pinned = topic.pinned,
-        unread = topic.unreadCount,
+        unread = if (showUnread) topic.unreadCount else 0,
         inactive = topic.inactive,
         onTag = onTag?.let { open -> { open(topic.tags[it]) } },
         expansion =
@@ -68,24 +72,25 @@ fun TopicItem(
                     writersCount = maxOf(preview.writersCount, preview.writers.size),
                 )
             },
-        lead = {
-            if (category != null) {
-                CategoryMark(category, size = CategoryMarkSize.Sidebar)
-            } else if (author != null) {
-                val url = pictureUrl(author.avatarUrl, author.avatarDarkUrl, dark)
-                Avatar(
-                    author.displayName,
-                    parseHexColor(author.colour) ?: scheme.tertiary,
-                    size = 30.dp,
-                    image =
-                        if (picture != null && url != null) {
-                            { picture(url, Modifier.fillMaxSize()) }
-                        } else {
-                            null
-                        },
-                )
-            }
-        },
+        lead =
+            lead ?: {
+                if (category != null) {
+                    CategoryMark(category, size = CategoryMarkSize.Sidebar)
+                } else if (author != null) {
+                    val url = pictureUrl(author.avatarUrl, author.avatarDarkUrl, dark)
+                    Avatar(
+                        author.displayName,
+                        parseHexColor(author.colour) ?: scheme.tertiary,
+                        size = 30.dp,
+                        image =
+                            if (picture != null && url != null) {
+                                { picture(url, Modifier.fillMaxSize()) }
+                            } else {
+                                null
+                            },
+                    )
+                }
+            },
         picture = picture,
     )
 }

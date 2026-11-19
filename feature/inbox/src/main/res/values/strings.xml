@@ -30,6 +30,33 @@ SPDX-License-Identifier: Apache-2.0
     <string name="connect_joined">You joined %1$s</string>
     <string name="connect_joined_text">Connect it to read it here.</string>
 
+    <!-- IB-01 to IB-03 -->
+    <string name="inbox_tab_forums">Forums</string>
+    <string name="inbox_tab_topics">Topics</string>
+    <string name="inbox_tab_chats">Chats</string>
+    <string name="inbox_chats_soon">Your private conversations come here in a later version of the app.</string>
+    <plurals name="inbox_new_messages">
+        <item quantity="one">1 new message</item>
+        <item quantity="other">%d new messages</item>
+    </plurals>
+    <plurals name="inbox_mentions">
+        <item quantity="one">1 mention</item>
+        <item quantity="other">%d mentions</item>
+    </plurals>
+    <plurals name="inbox_reactions">
+        <item quantity="one">1 reaction</item>
+        <item quantity="other">%d reactions</item>
+    </plurals>
+    <string name="inbox_view_compact">Compact</string>
+    <string name="inbox_view_expanded">Expanded</string>
+    <string name="inbox_unread_only">Unread only</string>
+    <string name="inbox_filter">Filter</string>
+    <string name="inbox_filter_title">Show the topics of</string>
+    <string name="inbox_filter_done">Done</string>
+    <string name="inbox_unreachable">Couldn\'t reach %1$s</string>
+    <string name="inbox_none">No followed topics yet. The topics you write in, or follow, in your forums show here.</string>
+    <string name="inbox_none_unread">Nothing unread in your followed topics.</string>
+
     <!-- SI-08 -->
     <string name="find_more">Find more forums</string>
     <string name="find_back">Back to your forums</string>
@@ -43,6 +70,5 @@ SPDX-License-Identifier: Apache-2.0
     <string name="find_load_more">More forums</string>
     <string name="find_none">No forum matches “%1$s”.</string>
     <string name="find_failed">The directory did not answer. Try again in a moment.</string>
-    <string name="connect_connected">Connected</string>
     <string name="connect_not_connected">Not connected</string>
 </resources>

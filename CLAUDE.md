@@ -431,7 +431,10 @@ the joined forums read again at launch and hourly (SI-07: `GroupForums.start`, w
 menu's **Your forums** (SH-12's full list comes later); **Find more forums** (SI-08: the
 group's directory at discovery's `community.directory_url`, `DirectoryClient` in core/api,
 `FindForumsRoute`), whose **Join** is the forum's own app sign-in, not the web's
-`/users/oidc`.
+`/users/oidc`; the inbox (IB-01 to IB-03: `InboxRoute` with **Forums**, **Topics** and
+**Chats** tabs; `InboxTopics` in core/data reads every connected forum with its own token,
+`SessionManager.signedIn`, as IB-04 says; a topic tapped opens in its forum through
+`PendingLinks`). IB-05's sockets, IB-06's Chats and IB-08's back stack come next.
 M3 closed on 2026-11-19 (steward): Profile and account with Profile
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and

@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.data.GroupForum
 import org.idejo.app.core.data.GroupForums
+import org.idejo.app.core.data.InboxTopics
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.SignInCoordinator
 import javax.inject.Inject
@@ -32,6 +33,8 @@ data class ConnectForumsState(
     val fresh: Set<String> = emptySet(),
     /** The group has a directory: **Find more forums** (SI-08). */
     val directory: Boolean = false,
+    /** Each connected forum's new messages (IB-02), by origin. */
+    val unread: Map<String, Int> = emptyMap(),
 ) {
     val notConnected: List<GroupForum> get() = forums.filterNot { it.connected }
 
@@ -62,6 +65,7 @@ class ConnectForumsViewModel
         private val sessions: SessionManager,
         private val group: GroupForums,
         private val signIn: SignInCoordinator,
+        private val topics: InboxTopics,
     ) : ViewModel() {
         private val mutableState =
             MutableStateFlow(ConnectForumsState(inboxName = sessions.inbox?.name.orEmpty()))
@@ -73,6 +77,11 @@ class ConnectForumsViewModel
 
         init {
             refresh()
+            viewModelScope.launch {
+                topics.state.collect { read ->
+                    mutableState.update { it.copy(unread = read.unread) }
+                }
+            }
         }
 
         fun onEvent(event: ConnectForumsEvent) {
@@ -156,6 +165,7 @@ class ConnectForumsViewModel
                     }
                     mutableState.update { it.copy(connecting = null) }
                     read()
+                    topics.refresh()
                 }
         }
     }
