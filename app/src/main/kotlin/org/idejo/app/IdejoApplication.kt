@@ -21,6 +21,7 @@ import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.AppScope
 import org.idejo.app.core.data.ForegroundSockets
 import org.idejo.app.core.data.GroupForums
+import org.idejo.app.core.data.NetworkWatch
 import org.idejo.app.core.data.PushRegistrar
 import org.idejo.app.core.data.SessionManager
 import javax.inject.Inject
@@ -38,6 +39,9 @@ class IdejoApplication :
     @Inject lateinit var push: PushRegistrar
 
     @Inject lateinit var http: OkHttpClient
+
+    /** Android's network, watched from launch for the open forum (OF-05). */
+    @Inject lateinit var network: NetworkWatch
 
     /** idejo ID mode's forums, read at launch and once an hour (SI-07). */
     @Inject lateinit var groupForums: GroupForums

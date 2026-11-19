@@ -48,6 +48,8 @@ data class TopicUi(
     val continuedFrom: ContinuedFrom? = null,
     /** Messages pinned by moderators, for the jump button (SH-04). */
     val pins: List<Message> = emptyList(),
+    /** The forum does not answer: follow, reactions and votes wait (OF-05). */
+    val offline: Boolean = false,
 ) {
     /** The unread messages naming the member, glowing once reached (TV-07). */
     val glows: Map<String, Glow> by lazy { mentionGlows(topic.messages, topic.glowFrom, me) }
@@ -106,7 +108,10 @@ class TopicViewModel
                     continuedFrom = extra.continuedFrom,
                     pins = extra.pins,
                 )
-            }.stateIn(viewModelScope, SharingStarted.Eagerly, TopicUi())
+            }.combine(
+                session?.offline ?: flowOf(false),
+            ) { ui, offline -> ui.copy(offline = offline) }
+                .stateIn(viewModelScope, SharingStarted.Eagerly, TopicUi())
 
         init {
             reader?.start()

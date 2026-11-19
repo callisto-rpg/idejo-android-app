@@ -242,6 +242,7 @@ private fun Messages(
             onTopic = actions.onTopic,
             onVote = actions.onVote,
             mayVote = open && state.signedIn,
+            offline = state.offline,
             voting = topic.voting,
             me = state.me,
             actions = messageActions(state, actions, writing, open, close),
@@ -254,7 +255,7 @@ private fun Messages(
         state = list,
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
-        item(key = "header") { Header(topic.topic!!, actions, state.continuedFrom) }
+        item(key = "header") { Header(topic.topic!!, actions, state.continuedFrom, state.offline) }
         topic.opening?.let { opening ->
             item(key = opening.id) {
                 MessageItem(opening, context)

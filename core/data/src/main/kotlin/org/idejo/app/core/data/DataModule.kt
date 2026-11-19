@@ -159,6 +159,15 @@ object DataModule {
             scope.launch { sessions.forgotten.collect { drafts.forget(it) } }
         }
 
+    /** Android's network, watched for the open forum's offline state (OF-05). */
+    @Provides
+    @Singleton
+    fun networkWatch(
+        @ApplicationContext context: Context,
+        sessions: SessionManager,
+        @AppScope scope: CoroutineScope,
+    ): NetworkWatch = NetworkWatch(sessions, NetworkWatch.of(context)).also { it.start(scope) }
+
     /** The address a tapped notification opens (NT-04). */
     @Provides
     @Singleton

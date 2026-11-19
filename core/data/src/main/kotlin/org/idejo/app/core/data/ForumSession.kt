@@ -136,6 +136,10 @@ class ForumSession internal constructor(
     /** [request] on this forum's API, watching for SI-09, SI-10 and SI-12. */
     suspend fun <T> call(request: suspend ForumApi.() -> ApiResult<T>): ApiResult<T> {
         val result = api.request()
+        when (result) {
+            is ApiResult.Success -> mutableOffline.value = false
+            is ApiResult.Failure -> if (result.problem.unreachable) mutableOffline.value = true
+        }
         val problem =
             ((result as? ApiResult.Failure)?.problem as? ApiProblem.Server) ?: return result
         when {
@@ -149,6 +153,26 @@ class ForumSession internal constructor(
             }
         }
         return result
+    }
+
+    private val mutableOffline = MutableStateFlow(false)
+
+    /**
+     * The forum did not answer the last call (OF-05): reactions, follows and votes are not
+     * queued, so their buttons wait, disabled, until any call is answered again.
+     */
+    val offline: StateFlow<Boolean> = mutableOffline.asStateFlow()
+
+    /**
+     * Android's network went [up] or down (OF-05, `NetworkWatch`): down, offline at once;
+     * up, the forum is asked again, whose answer clears [offline].
+     */
+    fun networkChanged(up: Boolean) {
+        if (!up) {
+            mutableOffline.value = true
+        } else if (mutableOffline.value) {
+            scope.launch { refreshServer() }
+        }
     }
 
     private val mutableSavedCopy = MutableStateFlow<Long?>(null)

@@ -44,6 +44,8 @@ data class SidebarState(
     val problem: ApiProblem? = null,
     /** Topics whose name glows (SH-32): a number that changes with each new message. */
     val glowing: Map<String, Int> = emptyMap(),
+    /** The forum does not answer: follows and Mark unread wait (OF-05). */
+    val offline: Boolean = false,
 ) {
     val topics: List<Topic> get() = sections.flatMap { s -> s.categories.flatMap { it.topics } }
 

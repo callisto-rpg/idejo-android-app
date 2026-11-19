@@ -87,6 +87,8 @@ data class MessageContext(
     val onVote: (String, String, List<String>) -> Unit = { _, _, _ -> },
     /** Polls may take votes here (signed in, the topic open). */
     val mayVote: Boolean = false,
+    /** The forum does not answer: **Vote** waits, disabled (OF-05). */
+    val offline: Boolean = false,
     /** Polls whose vote is being sent. */
     val voting: Set<String> = emptySet(),
     /** The member, whose tags pulse in a glowing message (TV-07). */

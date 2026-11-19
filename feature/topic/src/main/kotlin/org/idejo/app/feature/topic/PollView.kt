@@ -96,7 +96,10 @@ internal fun PollView(
             val sending = poll.id in context.voting
             OutlinedButton(
                 onClick = { context.onVote(messageId, poll.id, chosen) },
-                enabled = !sending && (chosen.isNotEmpty() || poll.myVotes.isNotEmpty()),
+                enabled =
+                    !sending &&
+                        !context.offline &&
+                        (chosen.isNotEmpty() || poll.myVotes.isNotEmpty()),
             ) {
                 if (sending) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)

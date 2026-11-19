@@ -60,6 +60,7 @@ internal fun Header(
     topic: Topic,
     actions: TopicActions,
     continuedFrom: ContinuedFrom? = null,
+    offline: Boolean = false,
 ) = Column(
     Modifier.fillMaxWidth().padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -84,7 +85,7 @@ internal fun Header(
         )
     }
     // A private conversation is followed by both participants, always (PC-01).
-    if (!topic.private) Follow(topic, actions)
+    if (!topic.private) Follow(topic, actions, offline)
     continuedFrom?.let { ContinuedFromQuote(it, actions.onMessage) }
 }
 
