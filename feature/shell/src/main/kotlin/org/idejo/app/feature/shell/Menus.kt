@@ -3,8 +3,10 @@
 
 package org.idejo.app.feature.shell
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
@@ -14,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -46,6 +50,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -61,8 +66,9 @@ import org.idejo.app.core.model.Role as MemberRole
 /**
  * The logo menu (SH-10, SH-11, SH-14): **This forum** with its logo, name and address,
  * **Home** and **Share link**; then **Add a forum**, which in single-forum mode explains
- * that the app holds this forum only (MD-03). The forum list and the inbox's shortcuts come
- * with idejo ID mode (SH-12, SH-13: M4).
+ * that the app holds this forum only (MD-03). In idejo ID mode, **Your forums** leads to the
+ * group's forums ([onForums]), with a dot for one joined since last seen (SI-07). The forum
+ * list and the inbox's shortcuts come later in M4 (SH-12, SH-13).
  */
 @Composable
 fun LogoMenu(
@@ -73,6 +79,8 @@ fun LogoMenu(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     logo: (@Composable () -> Unit)? = null,
+    onForums: (() -> Unit)? = null,
+    newForums: Boolean = false,
 ) {
     MenuPage(onClose, modifier) {
         Heading(stringResource(R.string.logo_menu_this_forum))
@@ -96,12 +104,21 @@ fun LogoMenu(
         Item(R.drawable.ic_home, stringResource(R.string.logo_menu_home), onHome)
         Item(R.drawable.ic_share, stringResource(R.string.logo_menu_share), onShare)
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        Heading(stringResource(R.string.logo_menu_add_forum))
-        Text(
-            stringResource(R.string.logo_menu_single_forum, name),
-            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.bodyLarge,
-        )
+        if (onForums != null) {
+            Item(
+                R.drawable.ic_accounts,
+                stringResource(R.string.logo_menu_your_forums),
+                dot = if (newForums) stringResource(R.string.logo_menu_new_forum) else null,
+                onClick = onForums,
+            )
+        } else {
+            Heading(stringResource(R.string.logo_menu_add_forum))
+            Text(
+                stringResource(R.string.logo_menu_single_forum, name),
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
     }
 }
 
@@ -183,9 +200,11 @@ fun UserMenu(
             stringResource(R.string.user_menu_app_settings),
             actions::appSettings,
         )
-        Item(R.drawable.ic_accounts, stringResource(R.string.user_menu_accounts)) {
-            accounts = true
-        }
+        Item(
+            R.drawable.ic_accounts,
+            stringResource(R.string.user_menu_accounts),
+            onClick = { accounts = true },
+        )
         if (administrator) {
             Item(R.drawable.ic_admin, stringResource(R.string.user_menu_admin), actions::admin)
         }
@@ -379,6 +398,8 @@ private fun Item(
     icon: Int,
     label: String,
     onClick: () -> Unit,
+    /** A dot after the label, and what it says to TalkBack. */
+    dot: String? = null,
 ) {
     Row(
         Modifier
@@ -391,6 +412,15 @@ private fun Item(
     ) {
         Icon(painterResource(icon), null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(label, style = MaterialTheme.typography.bodyLarge)
+        if (dot != null) {
+            // A forum joined since last seen (SI-07), as on the logo.
+            Box(
+                Modifier
+                    .semantics { contentDescription = dot }
+                    .size(10.dp)
+                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+            )
+        }
     }
 }
 

@@ -133,7 +133,7 @@ internal fun crumbs(
     openLogoMenu: () -> Unit,
     showWhole: (String) -> Unit,
 ): List<Crumb> {
-    val forum = Crumb.Forum(shell.name, onClick = openLogoMenu, logo = logo)
+    val forum = Crumb.Forum(shell.name, onClick = openLogoMenu, logo = logo, dot = shell.newForums)
     return when (place) {
         Place.Home -> {
             listOf(forum)

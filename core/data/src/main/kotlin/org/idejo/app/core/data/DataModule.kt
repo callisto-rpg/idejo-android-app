@@ -69,6 +69,25 @@ object DataModule {
         http: OkHttpClient,
     ): SignInCoordinator = SignInCoordinator(sessions, http)
 
+    /** idejo ID mode's forums (SI-06): `device_name` as at any sign-in (SI-03). */
+    @Provides
+    @Singleton
+    fun groupForums(
+        sessions: SessionManager,
+        signIn: SignInCoordinator,
+        discovery: org.idejo.app.core.api.DiscoveryClient,
+        http: OkHttpClient,
+    ): GroupForums =
+        GroupForums(
+            sessions,
+            signIn,
+            discovery,
+            org.idejo.app.core.api
+                .DirectoryClient(http),
+            android.os.Build.MODEL
+                ?.takeIf { it.isNotBlank() } ?: "Android",
+        )
+
     @Provides
     @Singleton
     fun discovery(http: OkHttpClient): org.idejo.app.core.api.DiscoveryClient =

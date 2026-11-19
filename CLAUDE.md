@@ -404,19 +404,35 @@ Docker image) are added with them.
   motion adds to Android's animation setting (`IdejoTheme(display = …)`). The cache limit
   (100 MB to 1 GB, 200 MB by default) sizes Coil's disk cache at the next start; **Clear
   cache** empties the cache folder but the composer's camera pictures.
+- 2026-11-19 — idejo ID mode (MD-02) signs in to the group's inbox (`my.idejo.org` unless
+  "Use another idejo group") as to any forum: its own token, `AppState.inbox`, `AppMode.IdejoId`.
+  Each joined forum (`GET /me/communities` on the inbox) is connected with its own token
+  through its own sign-in page in a Custom Tab, one at a time (`GroupForums`; the idejo ID
+  session makes each one tap). One session is open at a time, the inbox's (`Launch.Inbox`)
+  or a forum's; Back on a forum's first page leads to the inbox. Single-forum mode is
+  unchanged. Push registers the open forum only, until push for every connected forum.
 
 ## Milestones (spec §26)
 
 - [x] M0 — Foundations
 - [x] M1 — Read a forum
 - [x] M2 — Write
-- [ ] **M3 — Notifications and settings**
-- [ ] M4 — idejo ID mode
+- [x] M3 — Notifications and settings
+- [ ] **M4 — idejo ID mode**
 - [ ] M5 — 1.0, web parity
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M3 — Notifications and settings**: Profile and account with Profile
+Current milestone: **M4 — idejo ID mode**: the welcome screen's **Sign in with idejo ID**
+and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
+core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);
+the joined forums read again at launch and hourly (SI-07: `GroupForums.start`, with
+`AppState.seenForums`), a Connect card for one joined since, the logo's dot and the logo
+menu's **Your forums** (SH-12's full list comes later); **Find more forums** (SI-08: the
+group's directory at discovery's `community.directory_url`, `DirectoryClient` in core/api,
+`FindForumsRoute`), whose **Join** is the forum's own app sign-in, not the web's
+`/users/oidc`.
+M3 closed on 2026-11-19 (steward): Profile and account with Profile
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
 devices (ST-05), Change password (ST-04) and Delete account (ST-06); App settings' About

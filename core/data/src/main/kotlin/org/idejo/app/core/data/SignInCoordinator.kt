@@ -3,8 +3,11 @@
 
 package org.idejo.app.core.data
 
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -47,6 +50,12 @@ sealed interface SignInState {
     }
 }
 
+/** How a sign-in [origin] started ended: signed in, or not (cancelled, refused, failed). */
+data class SignInOutcome(
+    val origin: String,
+    val signedIn: Boolean,
+)
+
 /**
  * The one sign-in in progress. [start] gives the page to open; the redirect comes back to
  * [complete] through the callback activity. Cancel on the forum's page returns quietly
@@ -63,18 +72,51 @@ class SignInCoordinator(
     private val mutableState = MutableStateFlow<SignInState>(SignInState.Idle)
     val state: StateFlow<SignInState> = mutableState.asStateFlow()
 
+    private val mutableOutcomes = MutableSharedFlow<SignInOutcome>(extraBufferCapacity = OUTCOMES)
+
+    /** Each sign-in's end, for flows that run several in a row (SI-06). */
+    val outcomes: SharedFlow<SignInOutcome> = mutableOutcomes.asSharedFlow()
+
+    /** What the token is for. */
+    private enum class Purpose {
+        /** A forum added by address (SI-01): opened. */
+        Add,
+
+        /** Signing in again to a forum the app holds (SI-05, SI-09). */
+        Again,
+
+        /** The group's inbox (SI-06): idejo ID mode. */
+        Inbox,
+
+        /** A forum of the group, connected from the inbox (SI-06): held, not opened. */
+        Connect,
+    }
+
     private class Pending(
         val found: DiscoveryResult.Found,
         val request: SignInRequest,
-        /** Signing in again to a forum the app holds (SI-05, SI-09). */
-        val again: Boolean,
-    )
+        val purpose: Purpose,
+    ) {
+        val origin: String get() = found.address.toString()
+    }
 
     /** The forum's sign-in page for [found], or null when it has none (state: Failed). */
     fun start(
         found: DiscoveryResult.Found,
         deviceName: String,
-    ): HttpUrl? = begin(found, deviceName, again = false)
+    ): HttpUrl? = begin(found, deviceName, Purpose.Add)
+
+    /** SI-06: the group's inbox, for idejo ID mode. */
+    fun startInbox(
+        found: DiscoveryResult.Found,
+        deviceName: String,
+    ): HttpUrl? = begin(found, deviceName, Purpose.Inbox)
+
+    /** SI-06: one of the group's forums, connected while the inbox stays on screen. */
+    fun startConnect(
+        found: DiscoveryResult.Found,
+        deviceName: String,
+    ): HttpUrl? = begin(found, deviceName, Purpose.Connect)
 
     /** Signing in again to the open forum: a visitor, or after "You were signed out". */
     fun startAgain(
@@ -84,13 +126,13 @@ class SignInCoordinator(
         begin(
             DiscoveryResult.Found(session.address, session.record.value.discovery),
             deviceName,
-            true,
+            Purpose.Again,
         )
 
     private fun begin(
         found: DiscoveryResult.Found,
         deviceName: String,
-        again: Boolean,
+        purpose: Purpose,
     ): HttpUrl? {
         val name = found.discovery.name
         val request = found.discovery.oauth?.let { SignInRequest(found.address, it) }
@@ -98,9 +140,10 @@ class SignInCoordinator(
         if (request == null || url == null) {
             pending = null
             mutableState.value = SignInState.Failed(name, SignInState.Reason.NoSignIn)
+            mutableOutcomes.tryEmit(SignInOutcome(found.address.toString(), signedIn = false))
             return null
         }
-        pending = Pending(found, request, again)
+        pending = Pending(found, request, purpose)
         mutableState.value = SignInState.Waiting(name)
         return url
     }
@@ -108,6 +151,7 @@ class SignInCoordinator(
     /** The Custom Tab was closed without an answer: back where the member was. */
     fun cancelIfWaiting() {
         if (mutableState.value is SignInState.Waiting) {
+            pending?.let { mutableOutcomes.tryEmit(SignInOutcome(it.origin, signedIn = false)) }
             pending = null
             mutableState.value = SignInState.Idle
         }
@@ -136,10 +180,11 @@ class SignInCoordinator(
             SignInRequest.Callback.Denied -> {
                 pending = null
                 mutableState.value = SignInState.Idle
+                mutableOutcomes.tryEmit(SignInOutcome(current.origin, signedIn = false))
             }
 
             is SignInRequest.Callback.Error -> {
-                fail(name, SignInState.Reason.Refused)
+                fail(current, SignInState.Reason.Refused)
             }
 
             is SignInRequest.Callback.Code -> {
@@ -154,20 +199,22 @@ class SignInCoordinator(
         current: Pending,
         code: String,
     ) {
-        val name = current.found.discovery.name
         when (val result = oauth.exchange(current.request, code)) {
             is ApiResult.Success -> {
-                if (current.again) {
-                    sessions.signedIn(current.found.address.toString(), result.value)
-                } else {
-                    sessions.add(current.found, result.value)
+                val grant = result.value
+                when (current.purpose) {
+                    Purpose.Add -> sessions.add(current.found, grant)
+                    Purpose.Again -> sessions.signedIn(current.origin, grant)
+                    Purpose.Inbox -> sessions.signedInToInbox(current.found, grant)
+                    Purpose.Connect -> sessions.connect(current.found, grant)
                 }
                 mutableState.value = SignInState.Idle
+                mutableOutcomes.tryEmit(SignInOutcome(current.origin, signedIn = true))
             }
 
             is ApiResult.Failure -> {
                 fail(
-                    name,
+                    current,
                     if (result.problem is org.idejo.app.core.api.ApiProblem.Server) {
                         SignInState.Reason.Refused
                     } else {
@@ -179,10 +226,15 @@ class SignInCoordinator(
     }
 
     private fun fail(
-        name: String,
+        current: Pending,
         reason: SignInState.Reason,
     ) {
         pending = null
-        mutableState.value = SignInState.Failed(name, reason)
+        mutableState.value = SignInState.Failed(current.found.discovery.name, reason)
+        mutableOutcomes.tryEmit(SignInOutcome(current.origin, signedIn = false))
+    }
+
+    private companion object {
+        const val OUTCOMES = 8
     }
 }

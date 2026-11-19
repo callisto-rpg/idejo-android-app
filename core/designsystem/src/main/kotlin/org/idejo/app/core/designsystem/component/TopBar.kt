@@ -4,6 +4,7 @@
 package org.idejo.app.core.designsystem.component
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -54,6 +57,8 @@ sealed interface Crumb {
         val name: String,
         val onClick: () -> Unit,
         val logo: (@Composable () -> Unit)? = null,
+        /** A forum joined since last seen waits to be connected (SI-07). */
+        val dot: Boolean = false,
     ) : Crumb
 
     /** A category's tile. */
@@ -163,7 +168,8 @@ private fun Separator() {
 
 @Composable
 private fun ForumCrumb(crumb: Crumb.Forum) {
-    val label = stringResource(R.string.top_bar_forum_menu, crumb.name)
+    val menu = stringResource(R.string.top_bar_forum_menu, crumb.name)
+    val label = if (crumb.dot) stringResource(R.string.top_bar_new_forum, menu) else menu
     Box(
         Modifier
             .minimumInteractiveComponentSize()
@@ -173,6 +179,16 @@ private fun ForumCrumb(crumb: Crumb.Forum) {
         contentAlignment = Alignment.Center,
     ) {
         ForumLogo(crumb.name, image = crumb.logo)
+        if (crumb.dot) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .size(12.dp)
+                    .background(MaterialTheme.colorScheme.background, CircleShape)
+                    .padding(2.dp)
+                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+            )
+        }
     }
 }
 

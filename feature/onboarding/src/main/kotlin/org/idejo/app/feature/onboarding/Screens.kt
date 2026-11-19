@@ -54,21 +54,34 @@ import org.idejo.app.core.designsystem.component.ForumLogo
 /** The first launch (MD-01): welcome, then the address. Single-forum mode in M1. */
 @Composable
 fun OnboardingFlow(modifier: Modifier = Modifier) {
-    var adding by rememberSaveable { mutableStateOf(false) }
-    if (adding) {
-        BackHandler { adding = false }
-        AddForumRoute(onBack = { adding = false }, modifier = modifier)
-    } else {
-        WelcomeScreen(onEnterAddress = { adding = true }, modifier = modifier)
+    var step by rememberSaveable { mutableStateOf(Step.Welcome) }
+    when (step) {
+        Step.Welcome -> {
+            WelcomeScreen(
+                onIdejoId = { step = Step.IdejoId },
+                onEnterAddress = { step = Step.Address },
+                modifier = modifier,
+            )
+        }
+
+        Step.IdejoId -> {
+            BackHandler { step = Step.Welcome }
+            IdejoIdRoute(onBack = { step = Step.Welcome }, modifier = modifier)
+        }
+
+        Step.Address -> {
+            BackHandler { step = Step.Welcome }
+            AddForumRoute(onBack = { step = Step.Welcome }, modifier = modifier)
+        }
     }
 }
 
-/**
- * MD-01, in idejo's default theme. **Sign in with idejo ID** comes with idejo ID mode (M4;
- * steward decision 2026-11-14: the later milestone wins).
- */
+private enum class Step { Welcome, IdejoId, Address }
+
+/** MD-01, in idejo's default theme: idejo ID mode, or one forum by its address. */
 @Composable
 fun WelcomeScreen(
+    onIdejoId: () -> Unit,
     onEnterAddress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,7 +99,18 @@ fun WelcomeScreen(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(40.dp))
-        Button(onClick = onEnterAddress, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onIdejoId, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.welcome_idejo_id))
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.welcome_idejo_id_line),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(24.dp))
+        OutlinedButton(onClick = onEnterAddress, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.welcome_enter_address))
         }
         Spacer(Modifier.height(8.dp))
@@ -275,7 +299,7 @@ private fun SignInProgress(signIn: SignInState) {
 }
 
 @Composable
-private fun problemText(problem: AddForumState.Problem): String =
+internal fun problemText(problem: AddForumState.Problem): String =
     when (problem) {
         is AddForumState.Problem.Address -> {
             when (problem.problem) {
@@ -374,7 +398,7 @@ fun SignInFailure(
 }
 
 @Composable
-private fun Page(
+internal fun Page(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {

@@ -19,10 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.AppDisplay
+import org.idejo.app.core.data.AppMode
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.Launch
 import org.idejo.app.core.data.PendingLink
@@ -33,6 +35,7 @@ import org.idejo.app.core.designsystem.theme.DisplayChoices
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.feature.composer.SharedImages
+import org.idejo.app.feature.inbox.InboxRoute
 import org.idejo.app.feature.onboarding.OnboardingFlow
 import javax.inject.Inject
 
@@ -68,8 +71,29 @@ class MainActivity : ComponentActivity() {
 
                 is Launch.Forum -> {
                     val record by current.session.record.collectAsStateWithLifecycle()
+                    val state by sessions.state.collectAsStateWithLifecycle(null)
+                    // idejo ID mode: Back at a forum's home leads to the inbox (MD-02).
+                    val toInbox =
+                        if (state?.mode == AppMode.IdejoId) {
+                            {
+                                lifecycleScope.launch { sessions.openInbox() }
+                                Unit
+                            }
+                        } else {
+                            null
+                        }
                     IdejoTheme(record.forumTheme(), record.dark(), display) {
-                        key(current.session) { ForumApp(current.session) }
+                        key(current.session) {
+                            val navigation = rememberNavController()
+                            BackToInbox(navigation, toInbox)
+                            ForumApp(current.session, navigation = navigation)
+                        }
+                    }
+                }
+
+                is Launch.Inbox -> {
+                    IdejoTheme(display = display) {
+                        key(current.session) { InboxRoute() }
                     }
                 }
             }
