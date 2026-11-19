@@ -260,20 +260,53 @@ class ComposerMachineTest {
         assertNull(run(ComposerEvent.ErrorSeen, state = state).first.error)
     }
 
+    private val offline = ApiProblem.Network(IOException("offline"))
+
     @Test
-    fun `CO-08 offline keeps everything typed`() {
+    fun `CO-08 OF-04 offline keeps everything typed, waiting to send`() {
         val attempt = Commit("Hi. there")
         val (state, _) =
             run(
-                ComposerEvent.Failed(attempt, ApiProblem.Network(IOException("offline"))),
+                ComposerEvent.Failed(attempt, offline),
                 state = sentState().copy(text = "Hi. there", inFlight = attempt),
             )
-        assertEquals(ComposerError.Unreachable, state.error)
+        assertNull(state.error)
         assertEquals("Hi. there", state.text)
-        assertEquals(ComposerStatus.SentAppendsUnsent, state.status)
-        // The next Enter sends it again.
-        val (_, effects) = run(ComposerEvent.Enter(0), state = state)
+        assertEquals(ComposerStatus.WillSend, state.status)
+        // More Enters send nothing yet; a completion is remembered.
+        val (later, effects) = run(ComposerEvent.Enter(0), ComposerEvent.Complete, state = state)
+        assertTrue(effects.isEmpty())
+        assertTrue(later.waitingBreak)
+    }
+
+    @Test
+    fun `OF-04 back online, the open message still open, one commit into it`() {
+        val waiting = sentState().copy(text = "Hi. there", waiting = true)
+        val (state, effects) =
+            run(ComposerEvent.BackOnline(open(), message("Hi.")), state = waiting)
         assertEquals(listOf(ComposerEffect.Send(Commit("Hi. there"))), effects)
+        assertTrue(!state.waiting)
+    }
+
+    @Test
+    fun `OF-04 back online, the message closed meanwhile, the unsent part starts a new one`() {
+        val waiting = sentState().copy(text = "Hi. there", waiting = true, waitingBreak = true)
+        val (_, effects) =
+            run(ComposerEvent.BackOnline(open(null), null), state = waiting)
+        assertEquals(listOf(ComposerEffect.Send(Commit("there", breakMessage = true))), effects)
+    }
+
+    @Test
+    fun `OF-04 refused once back, the text stays with the server's words`() {
+        val waiting = ComposerState(text = "Hello", waiting = true)
+        val (sending, effects) = run(ComposerEvent.BackOnline(open(null), null), state = waiting)
+        val attempt = (effects.single() as ComposerEffect.Send).commit
+        val refusal = ApiError(ApiError.TOO_SOON, "Wait a little.")
+        val (state, _) =
+            run(ComposerEvent.Failed(attempt, ApiProblem.Server(429, refusal)), state = sending)
+        assertEquals("Hello", state.text)
+        assertEquals(ComposerError.Refused(refusal), state.error)
+        assertTrue(!state.waiting)
     }
 
     @Test

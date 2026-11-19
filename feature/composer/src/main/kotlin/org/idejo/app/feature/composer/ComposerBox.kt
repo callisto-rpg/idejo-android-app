@@ -285,6 +285,7 @@ private fun statusText(status: ComposerStatus): String? =
         ComposerStatus.SentAppendsUnsent -> stringResource(R.string.composer_appends)
         ComposerStatus.SentAndCommitted -> stringResource(R.string.composer_committed)
         ComposerStatus.Editing -> null
+        ComposerStatus.WillSend -> stringResource(R.string.composer_will_send)
     }
 
 @Composable
