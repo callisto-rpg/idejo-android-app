@@ -475,7 +475,10 @@ once: into the open message if still open, else its unsent part as a new message
 `/c/{slug}/t/{id}-{slug}`, `/t/{id}`, `/m/{id}`, `/u/{id}`, `/p…`, `/unread`, and `/chat…` on the
 inbox, anything else `LinkTarget.External`; DL-03: `rememberLinkOpener` opens a link on the forum
 here, on another forum held or the inbox there (`AppState.originOf`, a `PendingLink`), the rest in
-a Custom Tab with the forum's primary colour).
+a Custom Tab with the forum's primary colour); DL-01: App Links hosts are build-time only, `my.idejo.org`,
+`*.idejo.org` and the `idejo.appLinkHosts` Gradle property, written into a generated manifest by
+`AppLinksManifest` in `app/build.gradle.kts`; MainActivity opens a link with `openAt`, else in a
+Custom Tab).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);

@@ -394,7 +394,7 @@ The home of idejo ID mode, matching my.idejo.org's pages, in the inbox's own col
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| DL-01 | Verified App Links: the app declares the hosts of the forums added (and the inbox) and asks the system to verify them; forums serve `/.well-known/assetlinks.json` (IX-03) with the fingerprints of the three release keys. Forum links whose host is not added open in the browser | Must |
+| DL-01 | Verified App Links: Android takes App Links hosts from the manifest only, so they are fixed at build time: `my.idejo.org` and `*.idejo.org`, plus the hosts listed in the `idejo.appLinkHosts` Gradle property by whoever builds the app; the system verifies each against the forum's `/.well-known/assetlinks.json` (IX-03) with the fingerprints of the release keys. A verified link opens on its forum when the app holds it, else in a Custom Tab; links to other forums open in the browser | Must |
 | DL-02 | Paths understood: `/`, `/c/{slug}`, `/c/{slug}/t/{id}-{slug}`, `/m/{id}` (with `?unread`), `/u/…`, `/p/{id}`, `/chat…` on the inbox; anything else opens in a Custom Tab | Must |
 | DL-03 | Links inside messages to an added forum open in the app; other links in a Custom Tab (with the forum's toolbar colour) | Must |
 | DL-04 | **Share** to the app: text or images shared from another app open a picker of forum and topic, then the composer with it | Should |

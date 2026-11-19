@@ -6,6 +6,7 @@ package org.idejo.app.core.data
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.idejo.app.core.api.getOrNull
@@ -140,6 +141,26 @@ private suspend fun message(
         messageId = id.takeUnless { unread },
         private = private,
     )
+}
+
+/**
+ * [url] opened on the forum held, or the inbox, it is on (DL-01, DL-03): its page waits as a
+ * [PendingLink] and the app switches there, once launched. False for an address on none.
+ */
+suspend fun SessionManager.openAt(
+    url: String,
+    links: PendingLinks,
+): Boolean {
+    launch.first { it !is Launch.Loading }
+    val state = state.first()
+    val origin = state.originOf(url) ?: return false
+    links.offer(PendingLink(origin, url))
+    when {
+        active?.origin == origin -> Unit
+        state.inbox?.origin == origin -> openInbox()
+        else -> enter(origin)
+    }
+    return true
 }
 
 /** A forum address to open once the forum is on screen: a notification tapped (NT-04). */

@@ -165,4 +165,14 @@ class ForumLinksTest {
         links.offer(PendingLink("https://a.example/", "https://a.example/unread"))
         assertFalse(requireNotNull(links.take("https://a.example/")).fromInbox)
     }
+
+    @Test
+    fun `DL-01 a link on the forum held waits for its page, any other is left to the browser`() =
+        runBlocking {
+            val links = PendingLinks()
+            val url = session.origin + "t/t_1"
+            assertTrue(sessions.openAt(url, links))
+            assertEquals(PendingLink(session.origin, url), links.pending.value)
+            assertFalse(sessions.openAt("https://bees.example.org/t/t_1", PendingLinks()))
+        }
 }
