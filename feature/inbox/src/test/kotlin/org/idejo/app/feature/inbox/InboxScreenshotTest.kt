@@ -34,6 +34,7 @@ class InboxScreenshotTest {
                 state,
                 forums = {},
                 topics = { TopicsTab(state, {}) },
+                chats = {},
                 initialTab = InboxTab.Topics,
             )
         }
@@ -46,6 +47,7 @@ class InboxScreenshotTest {
                 state,
                 forums = {},
                 topics = { TopicsTab(state, {}) },
+                chats = {},
                 initialTab = InboxTab.Topics,
             )
         }

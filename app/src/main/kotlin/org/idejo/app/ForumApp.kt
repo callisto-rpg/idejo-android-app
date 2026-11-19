@@ -153,7 +153,7 @@ private fun NavGraphBuilder.cards(navigation: NavHostController) {
 }
 
 /** The forward card (CO-17): the target chosen opens with the message over its composer. */
-private fun NavGraphBuilder.forwardCard(navigation: NavHostController) =
+internal fun NavGraphBuilder.forwardCard(navigation: NavHostController) =
     dialog<ForwardDialog> { entry ->
         ForwardRoute(
             onPick = { target ->

@@ -14,11 +14,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
- * idejo ID mode's inbox (MD-02): **Forums**, **Topics** and **Chats** (IB-01 to IB-03), and
- * the group's directory (SI-08).
+ * idejo ID mode's inbox (MD-02): **Forums**, **Topics** and **Chats** (IB-01 to IB-03,
+ * IB-06: a chat opens with [onConversation]), and the group's directory (SI-08).
  */
 @Composable
 fun InboxRoute(
+    onConversation: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: InboxViewModel = hiltViewModel(),
 ) {
@@ -33,6 +34,7 @@ fun InboxRoute(
         state,
         forums = { ConnectForumsRoute(onFindMore = { finding = true }) },
         topics = { TopicsTab(state, viewModel::onEvent) },
+        chats = { ConversationsRoute(onConversation, titled = false) },
         modifier = modifier,
     )
 }

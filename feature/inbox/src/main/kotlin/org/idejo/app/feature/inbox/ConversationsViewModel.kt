@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.idejo.app.core.data.ConversationsState
 import org.idejo.app.core.data.ForumConversations
 import org.idejo.app.core.data.SessionManager
@@ -24,6 +25,13 @@ class ConversationsViewModel
         private val conversations = session?.let { ForumConversations(it, viewModelScope) }
 
         val origin: String = session?.origin.orEmpty()
+
+        /** The forum's (in idejo ID mode the inbox's) name and logo, for a chat's frame. */
+        val forumName: String = session?.name.orEmpty()
+        val logoUrl: String? =
+            session?.record?.value?.discovery?.logoUrl?.let {
+                origin.toHttpUrlOrNull()?.resolve(it)?.toString()
+            }
 
         val state: StateFlow<ConversationsState> =
             conversations?.state ?: MutableStateFlow(ConversationsState(loading = false))

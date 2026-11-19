@@ -51,10 +51,18 @@ import org.idejo.app.core.model.Conversation
 fun ConversationsRoute(
     onConversation: (String) -> Unit,
     modifier: Modifier = Modifier,
+    titled: Boolean = true,
     viewModel: ConversationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ConversationsScreen(state, viewModel.origin, onConversation, viewModel::refresh, modifier)
+    ConversationsScreen(
+        state,
+        viewModel.origin,
+        onConversation,
+        viewModel::refresh,
+        modifier,
+        titled,
+    )
 }
 
 /**
@@ -69,6 +77,8 @@ fun ConversationsScreen(
     onConversation: (String) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+    /** False under the inbox's **Chats** tab, which names the page (IB-06). */
+    titled: Boolean = true,
 ) {
     PullToRefreshBox(
         state.loading && state.conversations.isNotEmpty(),
@@ -80,12 +90,14 @@ fun ConversationsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item(key = "title") {
-                Text(
-                    stringResource(R.string.conversations_title),
-                    Modifier.semantics { heading() },
-                    style = IdejoTheme.typography.headlineSmall,
-                )
+            if (titled) {
+                item(key = "title") {
+                    Text(
+                        stringResource(R.string.conversations_title),
+                        Modifier.semantics { heading() },
+                        style = IdejoTheme.typography.headlineSmall,
+                    )
+                }
             }
             items(state.conversations, key = { it.id }) { conversation ->
                 ConversationCard(conversation, origin) { onConversation(conversation.id) }

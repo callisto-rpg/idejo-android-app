@@ -3,13 +3,11 @@
 
 package org.idejo.app.feature.inbox
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -22,10 +20,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -47,7 +43,8 @@ enum class InboxTab(
 
 /**
  * The inbox (IB-01): its logo, the breadcrumb "› Forums", "› Topics" or "› Chats", the
- * member's picture; the three tabs under it, swiped between.
+ * member's picture; the three tabs under it, swiped between. **Chats** are the inbox's own
+ * private conversations (IB-06).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +52,7 @@ fun InboxScreen(
     state: InboxState,
     forums: @Composable () -> Unit,
     topics: @Composable () -> Unit,
+    chats: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     initialTab: InboxTab = InboxTab.Forums,
 ) {
@@ -89,22 +87,10 @@ fun InboxScreen(
                 when (InboxTab.entries[page]) {
                     InboxTab.Forums -> forums()
                     InboxTab.Topics -> topics()
-                    InboxTab.Chats -> Chats()
+                    InboxTab.Chats -> chats()
                 }
             }
         }
-    }
-}
-
-/** IB-06 brings the inbox's conversations here. */
-@Composable
-private fun Chats() {
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-        Text(
-            stringResource(R.string.inbox_chats_soon),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
