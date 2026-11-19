@@ -66,46 +66,11 @@ class AddForumViewModel
 
         /** SI-01: what the member typed, then discovery. */
         fun lookUp(typed: String) {
-            val address =
-                when (val parsed = ForumAddress.parse(typed)) {
-                    is ForumAddress.Parsed.Invalid -> {
-                        mutableState.value =
-                            AddForumState.Typing(AddForumState.Problem.Address(parsed.problem))
-                        return
-                    }
-
-                    is ForumAddress.Parsed.Valid -> {
-                        parsed.address
-                    }
-                }
             looking?.cancel()
-            mutableState.value = AddForumState.Looking
             looking =
                 viewModelScope.launch {
-                    mutableState.value =
-                        when (val result = discovery.discover(address)) {
-                            is DiscoveryResult.Found -> {
-                                AddForumState.Found(result)
-                            }
-
-                            DiscoveryResult.NotIdejo -> {
-                                AddForumState.Typing(AddForumState.Problem.NotIdejo)
-                            }
-
-                            is DiscoveryResult.AppTurnedOff -> {
-                                AddForumState.Typing(
-                                    AddForumState.Problem.AppTurnedOff(result.name),
-                                )
-                            }
-
-                            is DiscoveryResult.NeedsNewerApp -> {
-                                AddForumState.Typing(AddForumState.Problem.NeedsNewerApp)
-                            }
-
-                            is DiscoveryResult.Unreachable -> {
-                                AddForumState.Typing(AddForumState.Problem.Unreachable)
-                            }
-                        }
+                    mutableState.value = AddForumState.Looking
+                    mutableState.value = discover(discovery, typed)
                 }
         }
 
@@ -131,3 +96,41 @@ class AddForumViewModel
 
         fun dismissFailure() = signIn.dismiss()
     }
+
+/** What [typed] leads to (SI-01, SI-02): a forum found, or why not. */
+internal suspend fun discover(
+    discovery: DiscoveryClient,
+    typed: String,
+): AddForumState {
+    val address =
+        when (val parsed = ForumAddress.parse(typed)) {
+            is ForumAddress.Parsed.Invalid -> {
+                return AddForumState.Typing(AddForumState.Problem.Address(parsed.problem))
+            }
+
+            is ForumAddress.Parsed.Valid -> {
+                parsed.address
+            }
+        }
+    return when (val result = discovery.discover(address)) {
+        is DiscoveryResult.Found -> {
+            AddForumState.Found(result)
+        }
+
+        DiscoveryResult.NotIdejo -> {
+            AddForumState.Typing(AddForumState.Problem.NotIdejo)
+        }
+
+        is DiscoveryResult.AppTurnedOff -> {
+            AddForumState.Typing(AddForumState.Problem.AppTurnedOff(result.name))
+        }
+
+        is DiscoveryResult.NeedsNewerApp -> {
+            AddForumState.Typing(AddForumState.Problem.NeedsNewerApp)
+        }
+
+        is DiscoveryResult.Unreachable -> {
+            AddForumState.Typing(AddForumState.Problem.Unreachable)
+        }
+    }
+}

@@ -7,8 +7,19 @@ SPDX-License-Identifier: Apache-2.0
     <!-- MD-01 -->
     <string name="welcome_title">Welcome to idejo</string>
     <string name="welcome_text">Forums where every topic is a live conversation.</string>
+    <string name="welcome_idejo_id">Sign in with idejo ID</string>
+    <string name="welcome_idejo_id_line">One sign-in for every forum you joined in an idejo group, with their topics and chats together.</string>
     <string name="welcome_enter_address">Enter a forum address</string>
     <string name="welcome_enter_address_line">Your forum\'s administrators can tell you its address.</string>
+
+    <!-- SI-06, MD-02: idejo ID mode -->
+    <string name="idejo_id_title">idejo ID</string>
+    <string name="idejo_id_text">Sign in to your group\'s inbox; then connect the forums you joined, one tap each.</string>
+    <string name="idejo_id_sign_in">Sign in with idejo ID</string>
+    <string name="idejo_id_another_group">Use another idejo group</string>
+    <string name="idejo_id_group_label">The group\'s inbox</string>
+    <string name="idejo_id_group_hint">my.example.org</string>
+    <string name="idejo_id_looking">Looking for the inbox…</string>
 
     <!-- SI-01, SI-02 -->
     <string name="add_title">Add a forum</string>

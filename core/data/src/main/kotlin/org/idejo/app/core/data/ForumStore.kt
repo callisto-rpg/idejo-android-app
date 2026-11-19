@@ -34,7 +34,13 @@ class ForumStore(
         transform: (ForumRecord) -> ForumRecord,
     ): AppState =
         update { state ->
-            state.forum(origin)?.let { state.with(transform(it)) } ?: state
+            val forum = state.forum(origin)
+            val inbox = state.inbox
+            when {
+                forum != null -> state.with(transform(forum))
+                inbox?.origin == origin -> state.copy(inbox = transform(inbox))
+                else -> state
+            }
         }
 
     companion object {

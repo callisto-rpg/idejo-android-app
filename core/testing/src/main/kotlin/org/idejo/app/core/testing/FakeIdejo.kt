@@ -119,6 +119,12 @@ class FakeIdejo(
     private val random = SecureRandom()
     private var nextId = 100L
 
+    /**
+     * `GET /me/communities` (API guide §9): the group's forums the member joined. Asked of
+     * an inbox (idejo ID mode, SI-06), every one of them.
+     */
+    @Volatile var communities: List<org.idejo.app.core.model.Community> = emptyList()
+
     /** False plays a server older than idejo 0.3.16: no `GET /me/followed` (IX-02). */
     @Volatile var followedList: Boolean = true
 
@@ -744,7 +750,7 @@ class FakeIdejo(
                     ?.let { ok(it) }
                     ?: notFound()
             },
-            Route("GET", "me/communities") { ok(ListBody<Topic>(emptyList())) },
+            Route("GET", "me/communities") { ok(ListBody(communities)) },
             Route("GET", "me/warnings") { call ->
                 call.viewer?.let { ok(ListBody(reader(it).warnings.toList())) } ?: unauthenticated()
             },

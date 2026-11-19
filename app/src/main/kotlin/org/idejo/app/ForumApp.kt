@@ -63,16 +63,16 @@ import org.idejo.app.feature.topic.TopicRoute
 
 /**
  * The open forum: its pages in the frame (spec §6), one back stack per forum, and the cards
- * over them (BR-07, BR-11). The topic page (TV) comes with the next pull requests of M1.
+ * over them (BR-07, BR-11). A new back stack ([navigation]) for each forum and each sign-in
+ * (SessionManager opens a new session each time).
  */
 @Composable
 fun ForumApp(
     session: ForumSession,
     modifier: Modifier = Modifier,
+    navigation: NavHostController = rememberNavController(),
     access: AccessViewModel = hiltViewModel(),
 ) {
-    // A new back stack for each forum and each sign-in (SessionManager opens a new session).
-    val navigation = rememberNavController()
     val entry by navigation.currentBackStackEntryAsState()
     val signIn = rememberSignInAgain(access)
     LaunchedEffect(session) { session.refreshServer() }

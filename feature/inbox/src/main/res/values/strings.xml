@@ -14,4 +14,19 @@ SPDX-License-Identifier: Apache-2.0
         <item quantity="one">1 new</item>
         <item quantity="other">%d new</item>
     </plurals>
+
+    <!-- SI-06 -->
+    <string name="connect_title">Connect your forums</string>
+    <string name="connect_text">Each forum signs you in with your idejo ID: one tap each, and the app keeps them all.</string>
+    <string name="connect_loading">Looking for the forums you joined…</string>
+    <string name="connect_failed">%1$s did not answer. Try again.</string>
+    <string name="connect_none">You have not joined a forum in %1$s yet.</string>
+    <string name="connect_try_again">Try again</string>
+    <plurals name="connect_all">
+        <item quantity="one">Connect 1 forum</item>
+        <item quantity="other">Connect %d forums</item>
+    </plurals>
+    <string name="connect_one">Connect</string>
+    <string name="connect_connected">Connected</string>
+    <string name="connect_not_connected">Not connected</string>
 </resources>

@@ -91,11 +91,28 @@ data class PushRecord(
     override fun toString(): String = "PushRecord($registrationId)"
 }
 
-/** Everything the app keeps: the forums and which one is open (single-forum mode: one). */
+/** The app's two modes (MD-02, MD-03). */
+@Serializable
+enum class AppMode {
+    /** One forum, typed by address (MD-03). */
+    Single,
+
+    /** Signed in to a group's inbox, with every joined forum one tap away (MD-02). */
+    IdejoId,
+}
+
+/**
+ * Everything the app keeps: the forums and which one is open. Single-forum mode keeps one;
+ * idejo ID mode keeps the group's [inbox] beside any number of forums, [active] null while
+ * the inbox is on screen.
+ */
 @Serializable
 data class AppState(
     val forums: List<ForumRecord> = emptyList(),
     val active: String? = null,
+    val mode: AppMode = AppMode.Single,
+    /** idejo ID mode's inbox (`https://my.idejo.org/` by default), signed in as a forum is. */
+    val inbox: ForumRecord? = null,
     /** The app's one **Tutorial bubbles** choice (SH-21). */
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
     /** When **Dismiss** was last said to the notifications bar (NT-07), epoch milliseconds. */
@@ -110,6 +127,10 @@ data class AppState(
     val reduceMotion: Boolean = false,
 ) {
     fun forum(origin: String?): ForumRecord? = forums.firstOrNull { it.origin == origin }
+
+    /** The forum or the inbox at [origin]. */
+    fun record(origin: String?): ForumRecord? =
+        forum(origin) ?: inbox?.takeIf { it.origin == origin }
 
     fun with(record: ForumRecord): AppState =
         copy(forums = forums.filterNot { it.origin == record.origin } + record)

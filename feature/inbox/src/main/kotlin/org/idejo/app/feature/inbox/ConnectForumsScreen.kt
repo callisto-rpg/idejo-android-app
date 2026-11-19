@@ -1,0 +1,216 @@
+// SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package org.idejo.app.feature.inbox
+
+import android.content.ActivityNotFoundException
+import android.content.Context
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import okhttp3.HttpUrl
+import org.idejo.app.core.data.GroupForum
+import org.idejo.app.core.designsystem.component.ForumLogo
+
+/** idejo ID mode's inbox (MD-02): for now, the group's forums to connect and open (SI-06). */
+@Composable
+fun ConnectForumsRoute(
+    modifier: Modifier = Modifier,
+    viewModel: ConnectForumsViewModel = hiltViewModel(),
+) {
+    val context = LocalContext.current
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val tab by viewModel.tab.collectAsStateWithLifecycle()
+    var leftForTab by remember { mutableStateOf(false) }
+    LaunchedEffect(tab) {
+        val url = tab ?: return@LaunchedEffect
+        viewModel.tabOpened(context.openTab(url))
+    }
+    // Back from a sign-in page without its answer: closed, so on to the next forum.
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { leftForTab = state.connecting != null }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        if (leftForTab) viewModel.tabClosed()
+        leftForTab = false
+    }
+    ConnectForumsScreen(state, viewModel::onEvent, modifier)
+}
+
+/**
+ * **Connect your forums** (SI-06): each forum the member joined in the group, with its logo
+ * and name, connected or not; **Connect N forums** signs in to each in a row.
+ */
+@Composable
+fun ConnectForumsScreen(
+    state: ConnectForumsState,
+    onEvent: (ConnectForumsEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        LazyColumn(
+            Modifier.safeDrawingPadding().padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            item { Heading(state, onEvent) }
+            items(state.forums, key = { it.url }) { forum ->
+                ForumRow(
+                    forum,
+                    connecting = state.connecting == forum.url,
+                    busy = state.connecting != null,
+                    onEvent = onEvent,
+                    modifier = Modifier.widthIn(max = 560.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Heading(
+    state: ConnectForumsState,
+    onEvent: (ConnectForumsEvent) -> Unit,
+) {
+    Column(
+        Modifier.widthIn(max = 560.dp).padding(vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            stringResource(R.string.connect_title),
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        Spacer(Modifier.height(8.dp))
+        val text =
+            when {
+                state.loading -> stringResource(R.string.connect_loading)
+                state.failed -> stringResource(R.string.connect_failed, state.inboxName)
+                state.forums.isEmpty() -> stringResource(R.string.connect_none, state.inboxName)
+                else -> stringResource(R.string.connect_text)
+            }
+        Text(text, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(16.dp))
+        val waiting = state.notConnected.size
+        when {
+            state.loading -> {
+                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+            }
+
+            state.failed || state.forums.isEmpty() -> {
+                OutlinedButton(onClick = { onEvent(ConnectForumsEvent.Refresh) }) {
+                    Text(stringResource(R.string.connect_try_again))
+                }
+            }
+
+            waiting > 0 -> {
+                Button(
+                    onClick = { onEvent(ConnectForumsEvent.ConnectAll) },
+                    enabled = state.connecting == null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(pluralStringResource(R.plurals.connect_all, waiting, waiting)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForumRow(
+    forum: GroupForum,
+    connecting: Boolean,
+    busy: Boolean,
+    onEvent: (ConnectForumsEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clickable(enabled = forum.connected && !busy) {
+                onEvent(ConnectForumsEvent.Enter(forum))
+            }.padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        ForumLogo(
+            name = forum.name,
+            size = 44.dp,
+            image = forum.logoUrl?.let { { AsyncImage(model = it, contentDescription = null) } },
+        )
+        Column(Modifier.weight(1f)) {
+            Text(forum.name, style = MaterialTheme.typography.titleMedium)
+            val status =
+                if (forum.connected) R.string.connect_connected else R.string.connect_not_connected
+            Text(
+                stringResource(status),
+                style = MaterialTheme.typography.bodyMedium,
+                color =
+                    if (forum.connected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+            )
+        }
+        when {
+            connecting -> {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
+
+            !forum.connected -> {
+                TextButton(
+                    onClick = { onEvent(ConnectForumsEvent.Connect(forum)) },
+                    enabled = !busy,
+                ) {
+                    Text(stringResource(R.string.connect_one))
+                }
+            }
+        }
+    }
+}
+
+/** A forum's sign-in page in a Custom Tab (SI-03); false without a browser. */
+private fun Context.openTab(url: HttpUrl): Boolean =
+    try {
+        CustomTabsIntent
+            .Builder()
+            .setShowTitle(true)
+            .build()
+            .launchUrl(this, url.toString().toUri())
+        true
+    } catch (_: ActivityNotFoundException) {
+        false
+    }

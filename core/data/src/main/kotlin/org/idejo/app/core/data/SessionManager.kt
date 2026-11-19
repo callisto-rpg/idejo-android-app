@@ -35,13 +35,21 @@ sealed interface Launch {
     data class Forum(
         val session: ForumSession,
     ) : Launch
+
+    /** idejo ID mode with no forum open: the group's inbox (MD-02, SI-06). */
+    data class Inbox(
+        val session: ForumSession,
+    ) : Launch
 }
 
 /**
- * The forums the app holds and the one open. Single-forum mode (MD-03, M1): one forum; adding
- * another replaces it, signing the old one out.
+ * The forums the app holds and the one open. Single-forum mode (MD-03): one forum; adding
+ * another replaces it, signing the old one out. idejo ID mode (MD-02): the group's inbox,
+ * signed in first (SI-06), and any number of forums, each connected with its own token; one
+ * session is open at a time, the inbox's or a forum's.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("TooManyFunctions") // One per thing done to the forums held, each small.
 class SessionManager(
     private val store: ForumStore,
     private val vault: TokenVault,
@@ -78,11 +86,71 @@ class SessionManager(
     /** The forum open, if any. */
     val active: ForumSession? get() = (mutableLaunch.value as? Launch.Forum)?.session
 
-    /** Reads the app's state and opens the forum it had open (MD-05). */
+    /** The inbox, while it is on screen. */
+    val inbox: ForumSession? get() = (mutableLaunch.value as? Launch.Inbox)?.session
+
+    /** What the app keeps, as it changes: the forums held, the mode (MD-02). */
+    val state: Flow<AppState> get() = store.state
+
+    /** Reads the app's state and opens the forum, or the inbox, it had open (MD-05). */
     suspend fun restore() =
         lock.withLock {
             val state = store.current()
-            open(state.forum(state.active) ?: state.forums.firstOrNull())
+            val inbox = state.inbox
+            when {
+                state.mode == AppMode.IdejoId && inbox != null -> {
+                    state.forum(state.active)?.let { open(it) } ?: openInbox(inbox)
+                }
+
+                else -> {
+                    open(state.forum(state.active) ?: state.forums.firstOrNull())
+                }
+            }
+        }
+
+    /**
+     * SI-06: the member signed in to the group's inbox ([found], with [grant]): idejo ID
+     * mode, the inbox on screen. Forums the app held stay, each with its own token.
+     */
+    suspend fun signedInToInbox(
+        found: DiscoveryResult.Found,
+        grant: TokenGrant,
+    ) = lock.withLock {
+        val origin = found.address.toString()
+        val record = keep(store.current().inbox?.takeIf { it.origin == origin }, found, grant)
+        store.update { it.copy(mode = AppMode.IdejoId, inbox = record, active = null) }
+        openInbox(record)
+    }
+
+    /**
+     * SI-06: a forum of the group connected with [grant] while the inbox stays on screen; a
+     * forum held already gets the new token.
+     */
+    suspend fun connect(
+        found: DiscoveryResult.Found,
+        grant: TokenGrant,
+    ) = lock.withLock {
+        val origin = found.address.toString()
+        val record = keep(store.current().forum(origin), found, grant)
+        store.update { it.with(record) }
+    }
+
+    /** idejo ID mode: the forum at [origin], held by the app, opened (IB-02). */
+    suspend fun enter(origin: String) =
+        lock.withLock {
+            val record = store.update { it.copy(active = origin) }.forum(origin) ?: return@withLock
+            open(record)
+        }
+
+    /** Whether the app holds a token for the forum at [origin] (SI-06). */
+    suspend fun connected(origin: String): Boolean =
+        store.current().forum(origin)?.sealedToken != null
+
+    /** idejo ID mode: back to the inbox from a forum (IB-08). */
+    suspend fun openInbox() =
+        lock.withLock {
+            val inbox = store.update { it.copy(active = null) }.inbox ?: return@withLock
+            openInbox(inbox)
         }
 
     /**
@@ -95,20 +163,21 @@ class SessionManager(
     ) = lock.withLock {
         val origin = found.address.toString()
         val state = store.current()
-        state.forums.filter { it.origin != origin }.forEach {
-            revoke(it)
-            mutableSignedOut.tryEmit(it.origin)
+        val single = state.mode == AppMode.Single
+        if (single) {
+            state.forums.filter { it.origin != origin }.forEach {
+                revoke(it)
+                mutableSignedOut.tryEmit(it.origin)
+            }
         }
-        val kept = state.forum(origin)
-        val record =
-            (kept ?: ForumRecord(origin, found.discovery)).copy(
-                discovery = found.discovery,
-                sealedToken = grant?.let { vault.seal(it.accessToken) },
-                tokenId = grant?.tokenId,
-                userId = grant?.user?.id,
-                signedOut = false,
-            )
-        store.update { it.copy(forums = listOf(record), active = origin) }
+        val record = keep(state.forum(origin), found, grant)
+        store.update {
+            if (single) {
+                it.copy(forums = listOf(record), active = origin)
+            } else {
+                it.with(record).copy(active = origin)
+            }
+        }
         open(record)
     }
 
@@ -126,7 +195,8 @@ class SessionManager(
                     signedOut = false,
                 )
             }
-        open(state.forum(origin))
+        val inbox = state.inbox?.takeIf { it.origin == origin }
+        if (inbox != null) openInbox(inbox) else open(state.forum(origin))
     }
 
     /**
@@ -147,14 +217,22 @@ class SessionManager(
             mutableSignedOut.tryEmit(origin)
         }
 
-    /** Signs out and removes the forum: back to the welcome screen (single-forum mode). */
+    /**
+     * Signs out and removes the forum: back to the welcome screen in single-forum mode, to
+     * the inbox in idejo ID mode.
+     */
     suspend fun remove(origin: String) =
         lock.withLock {
             store.current().forum(origin)?.let { revoke(it) }
-            store.update { state ->
-                state.copy(forums = state.forums.filterNot { it.origin == origin }, active = null)
-            }
-            open(null)
+            val state =
+                store.update { state ->
+                    state.copy(
+                        forums = state.forums.filterNot { it.origin == origin },
+                        active = null,
+                    )
+                }
+            val inbox = state.inbox
+            if (state.mode == AppMode.IdejoId && inbox != null) openInbox(inbox) else open(null)
             mutableSignedOut.tryEmit(origin)
         }
 
@@ -167,9 +245,23 @@ class SessionManager(
         transform: (ForumRecord) -> ForumRecord,
     ) {
         origin ?: return
-        val record = store.updateForum(origin, transform).forum(origin) ?: return
-        active?.takeIf { it.origin == origin }?.updated(record)
+        val record = store.updateForum(origin, transform).record(origin) ?: return
+        session?.takeIf { it.origin == origin }?.updated(record)
     }
+
+    /** [kept] (or a new record) with [found]'s discovery and [grant]'s token, or none. */
+    private fun keep(
+        kept: ForumRecord?,
+        found: DiscoveryResult.Found,
+        grant: TokenGrant?,
+    ): ForumRecord =
+        (kept ?: ForumRecord(found.address.toString(), found.discovery)).copy(
+            discovery = found.discovery,
+            sealedToken = grant?.let { vault.seal(it.accessToken) },
+            tokenId = grant?.tokenId,
+            userId = grant?.user?.id,
+            signedOut = false,
+        )
 
     private suspend fun revoke(record: ForumRecord) {
         val token = vault.open(record.sealedToken) ?: return
@@ -184,6 +276,16 @@ class SessionManager(
             mutableLaunch.value = Launch.Welcome
             return
         }
+        mutableLaunch.value = Launch.Forum(started(record))
+    }
+
+    private fun openInbox(record: ForumRecord) {
+        session?.close()
+        session = null
+        mutableLaunch.value = Launch.Inbox(started(record))
+    }
+
+    private fun started(record: ForumRecord): ForumSession {
         val token = vault.open(record.sealedToken)
         val opened =
             ForumSession(
@@ -196,7 +298,7 @@ class SessionManager(
             )
         session = opened
         opened.start()
-        mutableLaunch.value = Launch.Forum(opened)
+        return opened
     }
 
     /** SI-09: the token is dropped; the forum shows "You were signed out" until signed in. */
@@ -205,14 +307,14 @@ class SessionManager(
             store.updateForum(
                 session.origin,
             ) { it.copy(sealedToken = null, tokenId = null, signedOut = true) }
-        record.forum(session.origin)?.let(session::updated)
+        record.record(session.origin)?.let(session::updated)
         mutableSignedOut.tryEmit(session.origin)
     }
 
     private suspend fun keepTheme(server: Server) {
-        val current = active ?: return
+        val current = session ?: return
         if (current.record.value.theme == server.theme) return
-        scope.launch { updateForum { it.copy(theme = server.theme) } }
+        scope.launch { updateForum(current.origin) { it.copy(theme = server.theme) } }
     }
 }
 

@@ -39,7 +39,18 @@ class OnboardingScreenshotTest {
         )
 
     @Test
-    fun `MD-01 welcome`() = snapshots("Welcome") { WelcomeScreen(onEnterAddress = {}) }
+    fun `MD-01 welcome`() =
+        snapshots("Welcome") { WelcomeScreen(onIdejoId = {}, onEnterAddress = {}) }
+
+    @Test
+    fun `SI-06 sign in with idejo ID`() =
+        snapshots("IdejoId") { IdejoIdScreen(AddForumState.Typing(), SignInState.Idle, {}, {}) }
+
+    @Test
+    fun `SI-06 waiting for the inbox's sign-in page`() =
+        snapshots("IdejoIdWaiting") {
+            IdejoIdScreen(AddForumState.Typing(), SignInState.Waiting("idejo"), {}, {})
+        }
 
     @Test
     fun `SI-01 address field`() = snapshots("AddForum") { Add(AddForumState.Typing()) }
