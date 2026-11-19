@@ -75,8 +75,8 @@ fun ForumApp(
     val entry by navigation.currentBackStackEntryAsState()
     val signIn = rememberSignInAgain(access)
     LaunchedEffect(session) { session.refreshServer() }
-    val context = LocalContext.current
-    val link: (String) -> Unit = { context.openLink(session.origin, it) }
+    // DL-03: the forum's own links open here, other forums' there, the rest in a Custom Tab.
+    val link = rememberLinkOpener(session, navigation)
     val onTop = rememberLastPlace(session.origin, navigation)
     ForumFrame(
         // A dialog (a user card) keeps the page under it in the breadcrumbs.

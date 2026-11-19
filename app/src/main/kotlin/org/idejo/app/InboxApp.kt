@@ -7,7 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -113,15 +112,15 @@ private fun NavGraphBuilder.chatPage(
     navigation: NavHostController,
     onTop: (Place.Topic) -> Unit,
 ) = composable<Place.Topic> { entry ->
-    val context = LocalContext.current
     val here = entry.toRoute<Place.Topic>()
     val back = { navigation.go(Place.Home) }
+    val link = rememberLinkOpener(session, navigation, inbox = true)
     ChatFrameRoute(here.id, onBack = back) {
         TopicRoute(
             onUser = { navigation.navigate(UserCardDialog(it)) },
             // Conversations have no tags; links of other kinds open as links.
             onTag = {},
-            onLink = { context.openLink(session.origin, it) },
+            onLink = link,
             onInlineLink = { mention ->
                 val id = mention.id
                 if (mention.type == "user" && id != null) navigation.navigate(UserCardDialog(id))
