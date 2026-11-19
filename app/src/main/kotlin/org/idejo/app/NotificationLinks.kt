@@ -21,15 +21,13 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.LinkTarget
-import org.idejo.app.core.data.PendingLink
 import org.idejo.app.core.data.PendingLinks
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.linkTarget
-import org.idejo.app.core.data.originOf
+import org.idejo.app.core.data.openAt
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.feature.shell.Place
 import org.idejo.app.feature.shell.UserCardDialog
@@ -47,13 +45,7 @@ class PendingLinksViewModel
          * DL-03: [url] is on another forum held, or the inbox: it opens there, the app
          * switching to it. False for an address on none of them.
          */
-        suspend fun elsewhere(url: String): Boolean {
-            val state = sessions.state.first()
-            val origin = state.originOf(url) ?: return false
-            links.offer(PendingLink(origin, url))
-            if (state.inbox?.origin == origin) sessions.openInbox() else sessions.enter(origin)
-            return true
-        }
+        suspend fun elsewhere(url: String): Boolean = sessions.openAt(url, links)
 
         /** Back from a topic opened from the inbox's Topics (IB-08). */
         fun backToInbox() {

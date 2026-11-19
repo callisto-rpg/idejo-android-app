@@ -31,6 +31,7 @@ import org.idejo.app.core.data.PendingLink
 import org.idejo.app.core.data.PendingLinks
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.ThemeMode
+import org.idejo.app.core.data.openAt
 import org.idejo.app.core.designsystem.theme.DisplayChoices
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
@@ -113,6 +114,13 @@ private fun MainActivity.receive(intent: Intent?) {
     val url = intent.dataString
     if (intent.action == Intent.ACTION_VIEW && forum != null && url != null) {
         pendingLinks.offer(PendingLink(forum, url))
+        return
+    }
+    // DL-01: a verified App Link, opened on its forum when the app holds it, else in a tab.
+    if (intent.action == Intent.ACTION_VIEW && url != null && url.startsWith("https://")) {
+        lifecycleScope.launch {
+            if (!sessions.openAt(url, pendingLinks)) openLink(url, url)
+        }
         return
     }
     val uris = sharedUris(intent)
