@@ -13,6 +13,8 @@ import org.idejo.app.core.api.DiscoveryClient
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
 import org.idejo.app.core.api.IdejoHttp
+import org.idejo.app.core.model.Category
+import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.testing.FakeIdejo
 import org.idejo.app.core.testing.FakePeople
@@ -96,11 +98,51 @@ class ForumLinksTest {
     }
 
     @Test
-    fun `NT-04 another forum's address, or one the app has no page for, opens the home page`() {
+    fun `NT-04 DL-02 another forum's address, or one the app has no page for, is external`() {
         val elsewhere = runBlocking { linkTarget(session, "https://evil.example.com/t/t_1") }
-        assertEquals(LinkTarget.Home, elsewhere)
-        assertEquals(LinkTarget.Home, target("/admin"))
-        assertEquals(LinkTarget.Home, target("/m/m_missing?unread"))
+        assertEquals(LinkTarget.External, elsewhere)
+        assertEquals(LinkTarget.External, target("/admin"))
+        assertEquals(LinkTarget.External, target("/m/m_missing?unread"))
+        assertEquals(LinkTarget.External, target("/chat"))
+    }
+
+    @Test
+    fun `DL-02 the home page, a category by its slug, a topic under it, a user`() {
+        fake.addCategory(Category("c_herbs", "Herbs", "herbs"))
+        assertEquals(LinkTarget.Home, target("/"))
+        assertEquals(LinkTarget.Category("c_herbs"), target("/c/herbs"))
+        assertEquals(LinkTarget.External, target("/c/nowhere"))
+        assertEquals(LinkTarget.Topic("t_1"), target("/c/herbs/t/t_1-basil"))
+        val uuid = "0b4f6a2e-8c1d-4e5f-9a7b-3c2d1e0f9a8b"
+        assertEquals(LinkTarget.Topic(uuid), target("/c/herbs/t/$uuid-basil-in-pots"))
+        assertEquals(LinkTarget.User("u_mina"), target("/u/u_mina"))
+        assertEquals(LinkTarget.External, target("/u/u_mina/ignore"))
+    }
+
+    @Test
+    fun `DL-02 on the inbox, chat opens its chats`() {
+        val chats = runBlocking { linkTarget(session, session.origin + "chat/new", inbox = true) }
+        assertEquals(LinkTarget.Home, chats)
+    }
+
+    @Test
+    fun `DL-03 a link on a forum held, or the inbox, names it, any other none`() {
+        val state =
+            AppState(
+                forums =
+                    listOf(
+                        ForumRecord(
+                            "https://garden.example.org/",
+                            Discovery("Garden club", "https://garden.example.org/"),
+                        ),
+                    ),
+            )
+        assertEquals(
+            "https://garden.example.org/",
+            state.originOf("https://garden.example.org/m/1"),
+        )
+        assertEquals(null, state.originOf("https://garden.example.org.evil.com/m/1"))
+        assertEquals(null, state.originOf("https://bees.example.org/"))
     }
 
     @Test

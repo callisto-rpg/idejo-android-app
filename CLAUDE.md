@@ -471,7 +471,11 @@ reactions, **Vote**, and the sidebar's follows, Unfollow & mute and Mark unread;
 network, `NetworkWatch`, makes the open forum offline when lost and asks it again when back); OF-04:
 an Enter or commit the forum does not answer waits as **Will send when you're back online**
 (`ComposerState.waiting`), and when `offline` clears the composer is read again and the text goes
-once: into the open message if still open, else its unsent part as a new message).
+once: into the open message if still open, else its unsent part as a new message); DL-02: `linkTarget` reads `/`, `/c/{slug}`,
+`/c/{slug}/t/{id}-{slug}`, `/t/{id}`, `/m/{id}`, `/u/{id}`, `/p…`, `/unread`, and `/chat…` on the
+inbox, anything else `LinkTarget.External`; DL-03: `rememberLinkOpener` opens a link on the forum
+here, on another forum held or the inbox there (`AppState.originOf`, a `PendingLink`), the rest in
+a Custom Tab with the forum's primary colour).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);
