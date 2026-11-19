@@ -59,6 +59,8 @@ sealed interface Crumb {
         val logo: (@Composable () -> Unit)? = null,
         /** A forum joined since last seen waits to be connected (SI-07). */
         val dot: Boolean = false,
+        /** News in the member's other forums (SH-03), as the web's community dot. */
+        val news: LogoNews? = null,
     ) : Crumb
 
     /** A category's tile. */
@@ -169,7 +171,13 @@ private fun Separator() {
 @Composable
 private fun ForumCrumb(crumb: Crumb.Forum) {
     val menu = stringResource(R.string.top_bar_forum_menu, crumb.name)
-    val label = if (crumb.dot) stringResource(R.string.top_bar_new_forum, menu) else menu
+    val label =
+        when {
+            crumb.news == LogoNews.Mention -> stringResource(R.string.top_bar_news_mention, menu)
+            crumb.dot -> stringResource(R.string.top_bar_new_forum, menu)
+            crumb.news == LogoNews.NewMessages -> stringResource(R.string.top_bar_news, menu)
+            else -> menu
+        }
     Box(
         Modifier
             .minimumInteractiveComponentSize()
@@ -179,14 +187,25 @@ private fun ForumCrumb(crumb: Crumb.Forum) {
         contentAlignment = Alignment.Center,
     ) {
         ForumLogo(crumb.name, image = crumb.logo)
-        if (crumb.dot) {
+        // One dot: a mention first, then a forum to connect, then new messages.
+        val colour =
+            when {
+                crumb.news == LogoNews.Mention -> IdejoTheme.colors.dot(DotKind.Mention)
+                crumb.dot -> MaterialTheme.colorScheme.tertiary
+                crumb.news == LogoNews.NewMessages -> Color.White
+                else -> null
+            }
+        if (colour != null) {
             Box(
                 Modifier
                     .align(Alignment.TopEnd)
                     .size(12.dp)
                     .background(MaterialTheme.colorScheme.background, CircleShape)
-                    .padding(2.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                    .padding(1.dp)
+                    // White shows on a light background through its outline.
+                    .background(MaterialTheme.colorScheme.outline, CircleShape)
+                    .padding(1.dp)
+                    .background(colour, CircleShape),
             )
         }
     }
@@ -263,3 +282,9 @@ private fun UnreadButton(unread: Unread) {
         )
     }
 }
+
+/**
+ * The logo's dot for the member's other forums (SH-03), as the web's community dot (idejo
+ * 0.3.10): white for new messages in their followed topics, red when one mentions them.
+ */
+enum class LogoNews { NewMessages, Mention }

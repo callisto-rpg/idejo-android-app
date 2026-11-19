@@ -26,6 +26,7 @@ import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.data.WarningsState
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.Crumb
+import org.idejo.app.core.designsystem.component.LogoNews
 import org.idejo.app.core.designsystem.component.TopBar
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
@@ -98,6 +99,23 @@ class ShellScreenshotTest {
                 actions = RecordedActions(mutableListOf()),
             )
         }
+
+    @Test
+    fun `SH-03 the logo's dot for news in the other forums`() {
+        snapshots("TopBarNews") {
+            TopBar(
+                listOf(
+                    Crumb.Forum("Garden club", {}, news = LogoNews.NewMessages),
+                    Crumb.Page("Home"),
+                ),
+            )
+        }
+        snapshots("TopBarNewsMention") {
+            TopBar(
+                listOf(Crumb.Forum("Garden club", {}, news = LogoNews.Mention), Crumb.Page("Home")),
+            )
+        }
+    }
 
     @Test
     fun `SI-07 the logo's dot and Your forums in idejo ID mode`() {

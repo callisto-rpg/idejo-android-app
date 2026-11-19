@@ -9,10 +9,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -43,6 +46,7 @@ import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.data.Warnings
 import org.idejo.app.core.data.WarningsState
+import org.idejo.app.core.designsystem.component.LogoNews
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Topic
 import javax.inject.Inject
@@ -71,6 +75,8 @@ data class ShellState(
     val newForums: Boolean = false,
     /** idejo ID mode's part of the logo menu (SH-12 to SH-14). */
     val group: GroupMenu = GroupMenu(),
+    /** News in the member's other forums: the logo's dot (SH-03). */
+    val news: LogoNews? = null,
 ) {
     val name: String get() = record.name
 
@@ -118,6 +124,23 @@ class ShellViewModel
                     val session = (launch as? Launch.Forum)?.session
                     if (session == null) flowOf(null) else follow(session)
                 }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+        init {
+            // SH-03: while a forum is open in idejo ID mode, the others are read again, as the
+            // web's community dot asks the group's service.
+            viewModelScope.launch {
+                sessions.launch
+                    .combine(sessions.state.map { it.mode == AppMode.IdejoId }) { launch, idejoId ->
+                        launch is Launch.Forum && idejoId
+                    }.distinctUntilChanged()
+                    .collectLatest { reading ->
+                        while (reading) {
+                            topics.refresh()
+                            delay(NEWS_EVERY)
+                        }
+                    }
+            }
+        }
 
         /** The warnings waiting for the member (TV-11): the card shows while any do. */
         val warnings: StateFlow<WarningsState> =
@@ -182,6 +205,10 @@ class ShellViewModel
                         extra.copy(forums = yourForums(app.forums, joined, read, session.origin))
                     },
                 ) { shell, menu -> shell.copy(group = menu) }
+                    .combine(topics.state) { shell, read ->
+                        val news = logoNews(read.levels, session.origin)
+                        shell.copy(news = news.takeIf { shell.idejoId })
+                    }
             }
 
         /** The page shown changed: the topic open is read for the breadcrumbs. */

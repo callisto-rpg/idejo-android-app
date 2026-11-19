@@ -164,7 +164,14 @@ internal fun crumbs(
     openLogoMenu: () -> Unit,
     showWhole: (String) -> Unit,
 ): List<Crumb> {
-    val forum = Crumb.Forum(shell.name, onClick = openLogoMenu, logo = logo, dot = shell.newForums)
+    val forum =
+        Crumb.Forum(
+            shell.name,
+            onClick = openLogoMenu,
+            logo = logo,
+            dot = shell.newForums,
+            news = shell.news,
+        )
     return when (place) {
         Place.Home -> {
             listOf(forum)
