@@ -4,6 +4,7 @@
 package org.idejo.app.feature.settings
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -30,15 +32,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import org.idejo.app.core.data.AppMode
+import org.idejo.app.core.data.GroupForums
+import org.idejo.app.core.data.InboxShortcut
+import org.idejo.app.core.data.InboxShortcuts
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Discovery
@@ -137,6 +151,11 @@ data class ProfileAndAccountUiState(
     val sections: List<SettingsSection> = emptyList(),
     /** The section shown beside the list on wide windows (SH-60); null: the first. */
     val selected: String? = null,
+    /**
+     * A linked member's forum in idejo ID mode (ST-07), by name: these settings apply only
+     * here, and the inbox's are the settings for all forums.
+     */
+    val onlyHere: String? = null,
 )
 
 /** What the member does on the overview. */
@@ -144,24 +163,49 @@ sealed interface ProfileAndAccountEvent {
     data class Open(
         val key: String,
     ) : ProfileAndAccountEvent
+
+    /** **Settings for all forums** (ST-07): the inbox's Profile and account. */
+    data object AllForums : ProfileAndAccountEvent
 }
 
-/** The sections the open forum offers ([offeredBy]). */
+/**
+ * The sections the open forum offers ([offeredBy]); for a linked member's forum in idejo ID
+ * mode, its name for ST-07's note.
+ */
 @HiltViewModel
 class ProfileAndAccountViewModel
     @Inject
     constructor(
-        sessions: SessionManager,
+        private val sessions: SessionManager,
+        group: GroupForums,
+        private val shortcuts: InboxShortcuts,
     ) : ViewModel() {
-        private val discovery =
-            sessions.active
-                ?.record
-                ?.value
-                ?.discovery
+        private val session = sessions.active
+        private val discovery = session?.record?.value?.discovery
         val sections: StateFlow<List<SettingsSection>> =
             MutableStateFlow(
                 SETTINGS_SECTIONS.filter { it.offeredBy(discovery) },
             )
+
+        /**
+         * ST-07: the forum's name when the member came here with their idejo ID, the group's
+         * inbox listing it among their forums (`GET /me/communities`); null on the inbox.
+         */
+        val onlyHere: StateFlow<String?> =
+            combine(sessions.state, group.joined) { app, joined ->
+                val origin = session?.origin
+                session?.name?.takeIf {
+                    app.mode == AppMode.IdejoId &&
+                        app.inbox?.origin != origin &&
+                        joined.any { it.url == origin }
+                }
+            }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+        /** **Settings for all forums** (ST-07): the inbox opens at its Profile and account. */
+        fun allForums() {
+            shortcuts.offer(InboxShortcut.Settings)
+            viewModelScope.launch { sessions.openInbox() }
+        }
     }
 
 /**
@@ -176,9 +220,10 @@ fun ProfileAndAccountRoute(
     viewModel: ProfileAndAccountViewModel = hiltViewModel(),
 ) {
     val sections by viewModel.sections.collectAsStateWithLifecycle()
+    val onlyHere by viewModel.onlyHere.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf(section) }
     val wide = wideWindow()
-    val state = ProfileAndAccountUiState(sections, selected)
+    val state = ProfileAndAccountUiState(sections, selected, onlyHere)
     val shown = sections.firstOrNull { it.key == (selected ?: sections.firstOrNull()?.key) }
     when {
         wide -> {
@@ -186,7 +231,10 @@ fun ProfileAndAccountRoute(
                 ProfileAndAccountScreen(
                     state.copy(selected = shown?.key),
                     onEvent = { event ->
-                        if (event is ProfileAndAccountEvent.Open) selected = event.key
+                        when (event) {
+                            is ProfileAndAccountEvent.Open -> selected = event.key
+                            ProfileAndAccountEvent.AllForums -> viewModel.allForums()
+                        }
                     },
                     Modifier.width(LIST_WIDTH).fillMaxHeight(),
                 )
@@ -199,7 +247,10 @@ fun ProfileAndAccountRoute(
             ProfileAndAccountScreen(
                 state,
                 onEvent = { event ->
-                    if (event is ProfileAndAccountEvent.Open) onOpenSection(event.key)
+                    when (event) {
+                        is ProfileAndAccountEvent.Open -> onOpenSection(event.key)
+                        ProfileAndAccountEvent.AllForums -> viewModel.allForums()
+                    }
                 },
                 modifier,
             )
@@ -218,6 +269,7 @@ fun ProfileAndAccountScreen(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+        state.onlyHere?.let { OnlyHere(it) { onEvent(ProfileAndAccountEvent.AllForums) } }
         var group: Int? = null
         state.sections.forEach { section ->
             if (section.group != group) {
@@ -229,6 +281,27 @@ fun ProfileAndAccountScreen(
                 selected = section.key == state.selected,
                 onClick = { onEvent(ProfileAndAccountEvent.Open(section.key)) },
             )
+        }
+    }
+}
+
+/** ST-07, as the web's note: these settings are this forum's; the inbox's are everyone's. */
+@Composable
+private fun OnlyHere(
+    forum: String,
+    onAllForums: () -> Unit,
+) {
+    Column(
+        Modifier.padding(top = 16.dp).semantics { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            stringResource(R.string.settings_only_here, forum),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = onAllForums) {
+            Text(stringResource(R.string.settings_all_forums))
         }
     }
 }

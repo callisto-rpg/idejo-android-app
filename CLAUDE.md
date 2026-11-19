@@ -426,6 +426,17 @@ Docker image) are added with them.
   SH-15's **Mark all read** (Could) waits: idejo's API has no call to mark a forum read.
   Removing another forum than the one open keeps it open. Single-forum mode's **Add a
   forum** keeps its note and offers **Sign in with idejo ID**, which keeps the forum.
+- 2026-11-19 — Mode (MD-04): from one forum, **idejo ID** is its sign-in, which keeps the
+  forum and its token; leaving idejo ID mode keeps one forum, chosen in the confirmation
+  that names the others and the inbox, whose tokens are revoked and records forgotten (no
+  per-forum cache exists before M5's Room). The last place (MD-05) is each forum's page,
+  a topic at the message on top of the screen, and the inbox's tab, restored once per
+  launch for the session restored, never over a tapped notification.
+- 2026-11-19 — Linked members (ST-07): idejo's `GET /me` does not say whether the member came
+  with their idejo ID, so a forum counts as linked when the inbox's `GET /me/communities`
+  lists it. Its Profile and account says the settings apply only there, with **Settings for
+  all forums**, the inbox's own Profile and account. **Save for all forums** waits for the
+  inbox's API: the web saves through the group's service, which API v1 does not offer.
 
 ## Milestones (spec §26)
 
@@ -459,7 +470,11 @@ mode's user card offers idejo ID mode under a chat service's **Private Message**
 `InboxTopicsState.levels`), **All my topics** and **Private Conversations** (SH-13),
 **Add a forum** by address or **Find more forums** (SH-14: `Place.AddForum`), and a
 forum's long-press with **Remove from app** and **Open in browser** (SH-15); the inbox
-opens where the menu asked through `InboxShortcuts`.
+opens where the menu asked through `InboxShortcuts`; App settings' **Mode** (MD-04:
+`SessionManager.leaveIdejoId`); the last place opened restored at launch (MD-05:
+`LastPlaces`, `routeOf`/`placeOf` in feature/shell); linked members' note in a forum's
+Profile and account with **Settings for all forums**, the inbox's own Profile and account
+(ST-07: `InboxPageRoute`).
 M3 closed on 2026-11-19 (steward): Profile and account with Profile
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
@@ -470,8 +485,7 @@ NT-06, NT-09: `PushRegistrar` in core/data, the connector's `IdejoPushService` a
 `PushNotifier` in feature/notifications, a tapped notification through `PendingLinks` and
 `linkTarget`); the notifications bar (NT-07: the shell's `PushBar`); App settings' push
 service, display and storage (ST-20 to ST-22, `AppSettingsViewModel`). M3's rest waits for
-later milestones: ST-07 (linked members) and ST-20's Mode for M4's idejo ID mode, ST-20's
-"open links in the app" for M5's App Links (DL-01). M2
+later milestones: ST-20's "open links in the app" for M5's App Links (DL-01). M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.

@@ -91,6 +91,8 @@ data class TopicActions(
     /** A jump to a message the window does not hold (SH-04). */
     val onJump: (String) -> Unit = {},
     val onSeen: (String) -> Unit = {},
+    /** The first message on screen, as the member scrolls: the place kept (MD-05). */
+    val onTop: (String) -> Unit = {},
     val onUnreadShown: () -> Unit = {},
     val onFollow: (Boolean) -> Unit = {},
     val onMessage: (String) -> Unit = {},
@@ -117,6 +119,8 @@ fun TopicRoute(
     onTopic: (String, String?) -> Unit,
     writing: TopicWriting,
     viewModel: TopicViewModel = hiltViewModel(),
+    /** The first message on screen, kept as the place to come back to (MD-05). */
+    onTop: (String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -135,6 +139,7 @@ fun TopicRoute(
             onFirstUnread = { viewModel.jump(null) },
             onJump = { viewModel.jump(it) },
             onSeen = { viewModel.seen(it) },
+            onTop = onTop,
             onUnreadShown = { viewModel.unreadShown() },
             onFollow = { viewModel.follow(it) },
             onMessage = { id ->
@@ -327,6 +332,7 @@ private fun Following(
                 if ("earlier" in keys) act.onEarlier()
                 if ("later" in keys) act.onLater()
                 keys.lastOrNull { k -> current.messages.any { it.id == k } }?.let(act.onSeen)
+                keys.firstOrNull { k -> current.messages.any { it.id == k } }?.let(act.onTop)
             }
     }
     LaunchedEffect(topic.unread?.messageId) {

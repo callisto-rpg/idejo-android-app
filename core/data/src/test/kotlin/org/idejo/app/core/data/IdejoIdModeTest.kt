@@ -9,6 +9,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -88,6 +90,13 @@ class IdejoIdModeTest {
         }
 
     private val launch get() = sessions.launch.value
+
+    private fun FakeIdejo.revokeAsked() =
+        requests.any {
+            it.url.encodedPath ==
+                "/api/v1/oauth/revoke"
+        }
+
     private val held get() = runBlocking { sessions.state.first() }
 
     @Test
@@ -168,6 +177,39 @@ class IdejoIdModeTest {
             assertEquals(open, (launch as Launch.Forum).session)
             assertEquals(listOf("Garden club"), held.forums.map { it.name })
             assertEquals(garden.address.toString(), held.active)
+        }
+
+    @Test
+    fun `MD-04 leaving idejo ID mode keeps one forum, revokes the other tokens`() =
+        runBlocking {
+            signInToInbox()
+            connect(garden)
+            connect(bees)
+            val left = async { withTimeout(5.seconds) { sessions.signedOut.take(2).toList() } }
+
+            sessions.leaveIdejoId(garden.address.toString())
+
+            assertEquals(AppMode.Single, held.mode)
+            assertEquals(null, held.inbox)
+            assertEquals(listOf("Garden club"), held.forums.map { it.name })
+            assertTrue(sessions.connected(garden.address.toString()))
+            assertEquals("Garden club", (launch as Launch.Forum).session.name)
+            assertEquals(
+                setOf(bees.address.toString(), inbox.address.toString()),
+                left.await().toSet(),
+            )
+            assertTrue(bees.revokeAsked())
+            assertTrue(inbox.revokeAsked())
+            assertFalse(garden.revokeAsked())
+        }
+
+    @Test
+    fun `MD-04 leaving idejo ID mode without a forum opens the welcome screen`() =
+        runBlocking {
+            signInToInbox()
+            sessions.leaveIdejoId(null)
+            assertEquals(Launch.Welcome, launch)
+            assertEquals(AppMode.Single, held.mode)
         }
 
     @Test

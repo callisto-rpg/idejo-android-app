@@ -52,6 +52,8 @@ data class Licence(
 fun AppSettingsRoute(
     modifier: Modifier = Modifier,
     viewModel: AppSettingsViewModel = hiltViewModel(),
+    /** **Mode** → idejo ID from single-forum mode: its sign-in (MD-04). */
+    onIdejoId: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -72,6 +74,7 @@ fun AppSettingsRoute(
         state = state,
         distributorNames = names,
         onEvent = viewModel::onEvent,
+        onIdejoId = onIdejoId,
     )
 }
 
@@ -85,9 +88,10 @@ fun AppSettingsScreen(
     state: AppSettingsUiState? = null,
     distributorNames: Map<String, String> = emptyMap(),
     onEvent: (AppSettingsEvent) -> Unit = {},
+    onIdejoId: () -> Unit = {},
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp)) {
-        state?.let { deviceSections(it, distributorNames, onEvent) }
+        state?.let { deviceSections(it, distributorNames, onEvent, onIdejoId) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(

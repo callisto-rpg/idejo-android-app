@@ -16,8 +16,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.ForumTopic
 import org.idejo.app.core.data.GroupForums
-import org.idejo.app.core.data.InboxShortcut
-import org.idejo.app.core.data.InboxShortcuts
 import org.idejo.app.core.data.InboxTopicChoices
 import org.idejo.app.core.data.InboxTopics
 import org.idejo.app.core.data.InboxTopicsState
@@ -78,21 +76,8 @@ class InboxViewModel
         private val choices: AppChoices,
         private val links: PendingLinks,
         group: GroupForums,
-        shortcuts: InboxShortcuts,
     ) : ViewModel() {
         private val inbox = sessions.inbox
-
-        /** Where the logo menu sent the member (SH-13, SH-14), taken once. */
-        val opening: InboxShortcut? = shortcuts.take { it !is InboxShortcut.Connect }
-
-        /** The tab shown first: **Forums**, unless the logo menu asked for another. */
-        val firstTab: InboxTab
-            get() =
-                when (opening) {
-                    InboxShortcut.Topics -> InboxTab.Topics
-                    InboxShortcut.Chats -> InboxTab.Chats
-                    else -> InboxTab.Forums
-                }
 
         val state: StateFlow<InboxState> =
             combine(

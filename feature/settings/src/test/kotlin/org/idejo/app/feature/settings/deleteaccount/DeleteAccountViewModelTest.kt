@@ -3,6 +3,7 @@
 
 package org.idejo.app.feature.settings.deleteaccount
 
+import org.idejo.app.core.data.InboxShortcuts
 import org.idejo.app.feature.settings.ProfileAndAccountViewModel
 import org.idejo.app.feature.settings.SignedInForum
 import org.junit.Assert.assertEquals
@@ -33,14 +34,28 @@ class DeleteAccountViewModelTest {
         forum.fake.accountDeletion = false
         forum.signIn()
         assertNull(DeleteAccountViewModel(forum.sessions).state.value.deletionUrl)
-        val keys = ProfileAndAccountViewModel(forum.sessions).sections.value.map { it.key }
+        val keys =
+            ProfileAndAccountViewModel(
+                forum.sessions,
+                forum.group,
+                InboxShortcuts(),
+            ).sections.value.map {
+                it.key
+            }
         assertFalse("delete-account" in keys)
     }
 
     @Test
     fun `ST-06 a forum with one lists the section under Account`() {
         forum.signIn()
-        val keys = ProfileAndAccountViewModel(forum.sessions).sections.value.map { it.key }
+        val keys =
+            ProfileAndAccountViewModel(
+                forum.sessions,
+                forum.group,
+                InboxShortcuts(),
+            ).sections.value.map {
+                it.key
+            }
         assertTrue("delete-account" in keys)
     }
 

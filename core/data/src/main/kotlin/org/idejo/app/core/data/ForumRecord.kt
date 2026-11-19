@@ -72,6 +72,8 @@ data class ForumRecord(
     val linksRolled: Boolean = false,
     /** This device's push registration with the forum (NT-02); null without one. */
     val push: PushRecord? = null,
+    /** The page last open here (MD-05), as the app's route writes it; null for home. */
+    val lastPlace: String? = null,
 ) {
     val name: String get() = discovery.name
 }
@@ -141,6 +143,8 @@ data class AppState(
     val haptics: Boolean = true,
     /** Reduced motion (ST-22) even when Android's animations are on. */
     val reduceMotion: Boolean = false,
+    /** The inbox's tab last shown (MD-05), by name. */
+    val inboxTab: String? = null,
 ) {
     fun forum(origin: String?): ForumRecord? = forums.firstOrNull { it.origin == origin }
 
@@ -148,6 +152,11 @@ data class AppState(
     fun record(origin: String?): ForumRecord? =
         forum(origin) ?: inbox?.takeIf { it.origin == origin }
 
+    /** [record] kept: in its place when held already (SH-12's order), else last. */
     fun with(record: ForumRecord): AppState =
-        copy(forums = forums.filterNot { it.origin == record.origin } + record)
+        if (forums.any { it.origin == record.origin }) {
+            copy(forums = forums.map { if (it.origin == record.origin) record else it })
+        } else {
+            copy(forums = forums + record)
+        }
 }

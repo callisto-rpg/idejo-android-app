@@ -19,7 +19,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -55,8 +59,17 @@ fun InboxScreen(
     chats: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     initialTab: InboxTab = InboxTab.Forums,
+    /** The tab left at the last launch (MD-05), shown once known. */
+    restoredTab: InboxTab? = null,
+    /** The tab shown, as it changes. */
+    onTab: (InboxTab) -> Unit = {},
 ) {
     val pager = rememberPagerState(initialPage = initialTab.ordinal) { InboxTab.entries.size }
+    LaunchedEffect(restoredTab) { restoredTab?.let { pager.scrollToPage(it.ordinal) } }
+    val shown by rememberUpdatedState(onTab)
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.settledPage }.collect { shown(InboxTab.entries[it]) }
+    }
     val scope = rememberCoroutineScope()
     val tab = InboxTab.entries[pager.currentPage]
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

@@ -4,6 +4,8 @@
 package org.idejo.app.feature.shell
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 
 /**
  * Where the member is in a forum: what the breadcrumbs show (SH-02) and what the sidebar
@@ -122,3 +124,37 @@ data class InlineCardDialog(
     val slug: String? = null,
     val name: String? = null,
 )
+
+private val json = Json { ignoreUnknownKeys = true }
+
+/**
+ * [place] as the app keeps it for the next launch (MD-05), without what it carried once (a
+ * forward, shared pictures); null for home.
+ */
+fun routeOf(place: Place): String? =
+    when (place) {
+        Place.Home -> {
+            null
+        }
+
+        is Place.Topic -> {
+            json.encodeToString(
+                Place.serializer(),
+                place.copy(forward = null, share = false),
+            )
+        }
+
+        else -> {
+            json.encodeToString(Place.serializer(), place)
+        }
+    }
+
+/** A kept route as a place; null for one this version cannot read. */
+fun placeOf(route: String): Place? =
+    try {
+        json.decodeFromString(Place.serializer(), route)
+    } catch (_: SerializationException) {
+        null
+    } catch (_: IllegalArgumentException) {
+        null
+    }

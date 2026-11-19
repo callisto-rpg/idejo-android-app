@@ -51,7 +51,6 @@ import org.idejo.app.feature.inbox.ConversationsRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
 import org.idejo.app.feature.onboarding.rememberSignInAgain
-import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
 import org.idejo.app.feature.shell.ForwardDialog
 import org.idejo.app.feature.shell.InlineCardDialog
@@ -78,6 +77,7 @@ fun ForumApp(
     LaunchedEffect(session) { session.refreshServer() }
     val context = LocalContext.current
     val link: (String) -> Unit = { context.openLink(session.origin, it) }
+    val onTop = rememberLastPlace(session.origin, navigation)
     ForumFrame(
         // A dialog (a user card) keeps the page under it in the breadcrumbs.
         place = entry?.place() ?: navigation.previousBackStackEntry?.place() ?: Place.Home,
@@ -100,7 +100,7 @@ fun ForumApp(
             composable<Place.Category> {
                 Page(session, signIn) { CategoryRoute(onTopic = topic, onTag = tag) }
             }
-            topicPage(navigation, link) { content -> Page(session, signIn, content) }
+            topicPage(navigation, link, onTop) { content -> Page(session, signIn, content) }
             composable<Place.Unread> {
                 Page(session, signIn) { UnreadRoute(onTopic = topic, onTag = tag) }
             }
@@ -117,7 +117,6 @@ fun ForumApp(
             }
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
-            composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
             addForumPages(navigation)
             profileAndAccountPage(navigation) { content -> Page(session, signIn, content) }
             conversationsPage(navigation) { content -> Page(session, signIn, content) }
@@ -197,8 +196,10 @@ private fun NavGraphBuilder.inlineCard(navigation: NavHostController) =
 private fun NavGraphBuilder.topicPage(
     navigation: NavHostController,
     link: (String) -> Unit,
+    onTop: (Place.Topic) -> Unit,
     page: @Composable (@Composable () -> Unit) -> Unit,
-) = composable<Place.Topic> {
+) = composable<Place.Topic> { entry ->
+    val here = entry.toRoute<Place.Topic>()
     page {
         TopicRoute(
             onUser = { navigation.navigate(UserCardDialog(it)) },
@@ -221,6 +222,7 @@ private fun NavGraphBuilder.topicPage(
                 }
             },
             onTopic = { id, messageId -> navigation.go(Place.Topic(id, messageId)) },
+            onTop = { onTop(here.copy(messageId = it)) },
             writing =
                 rememberTopicWriting(
                     onForward = { id, topicId -> navigation.navigate(ForwardDialog(id, topicId)) },
@@ -269,7 +271,7 @@ internal fun NavHostController.go(place: Place) {
     }
 }
 
-private fun NavBackStackEntry.place(): Place? =
+internal fun NavBackStackEntry.place(): Place? =
     when {
         destination.hasRoute<Place.Category>() -> toRoute<Place.Category>()
         destination.hasRoute<Place.Topic>() -> toRoute<Place.Topic>()

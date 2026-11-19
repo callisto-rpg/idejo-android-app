@@ -16,6 +16,9 @@ sealed interface InboxShortcut {
     /** **Find more forums** (SI-08): the group's directory. */
     data object FindForums : InboxShortcut
 
+    /** **Settings for all forums** (ST-07): the inbox's Profile and account. */
+    data object Settings : InboxShortcut
+
     /** **Connect** beside a forum of the group: its sign-in, from the inbox's **Forums**. */
     data class Connect(
         val url: String,

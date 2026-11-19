@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.idejo.app.core.api.DirectoryClient
 import org.idejo.app.core.api.DiscoveryClient
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
@@ -24,11 +25,15 @@ import org.idejo.app.core.api.IdejoHttp
 import org.idejo.app.core.data.AesGcmBox
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.ForumStore
+import org.idejo.app.core.data.GroupForums
 import org.idejo.app.core.data.SessionManager
+import org.idejo.app.core.data.SignInCoordinator
 import org.idejo.app.core.data.TokenVault
+import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.TokenGrant
 import org.idejo.app.core.testing.FakeIdejo
 import org.idejo.app.core.testing.FakePeople
+import org.idejo.app.core.testing.FakeSettings
 import org.junit.rules.ExternalResource
 import java.nio.file.Files
 import javax.crypto.KeyGenerator
@@ -56,11 +61,27 @@ class SignedInForum : ExternalResource() {
         ) { ForumAddress.forLocalTesting(it.toHttpUrl()) }
     }
 
+    private val inboxStarted = lazy { FakeIdejo(settings = FakeSettings(name = "idejo")) }
+
+    /** idejo ID mode's inbox, started when first used. */
+    val inbox: FakeIdejo by inboxStarted
+
+    val group: GroupForums by lazy {
+        GroupForums(
+            sessions,
+            SignInCoordinator(sessions, http),
+            DiscoveryClient(http),
+            DirectoryClient(http),
+            "Pixel 8",
+        ) { ForumAddress.forLocalTesting(it.toHttpUrl()) }
+    }
+
     override fun before() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     override fun after() {
         sessions.active?.socket?.disconnect()
         fake.close()
+        if (inboxStarted.isInitialized()) inbox.close()
         scope.cancel()
         folder.deleteRecursively()
         Dispatchers.resetMain()
@@ -70,6 +91,23 @@ class SignedInForum : ExternalResource() {
         runBlocking {
             val found = DiscoveryClient(http).discover(fake.address) as DiscoveryResult.Found
             sessions.add(found, TokenGrant(fake.tokenFor(ada), tokenId = "tok_1", user = ada))
+            requireNotNull(sessions.active)
+        }
+
+    /**
+     * idejo ID mode: Ada signed in to [inbox], which lists [fake] among her forums, and [fake]
+     * connected and open.
+     */
+    fun linked(): ForumSession =
+        runBlocking {
+            val discovery = DiscoveryClient(http)
+            val inboxFound = discovery.discover(inbox.address) as DiscoveryResult.Found
+            sessions.signedInToInbox(inboxFound, TokenGrant(inbox.tokenFor(ada), user = ada))
+            val found = discovery.discover(fake.address) as DiscoveryResult.Found
+            sessions.connect(found, TokenGrant(fake.tokenFor(ada), user = ada))
+            inbox.communities = listOf(Community("Garden club", fake.address.toString()))
+            group.refresh()
+            sessions.enter(fake.address.toString())
             requireNotNull(sessions.active)
         }
 
