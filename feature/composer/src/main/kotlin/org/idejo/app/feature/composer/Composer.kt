@@ -203,6 +203,13 @@ class ApiComposerBackend(
     }
 }
 
+/** One place's draft on the device (OF-03): read once, written on every change. */
+interface DraftSlot {
+    fun read(): String?
+
+    fun write(text: String)
+}
+
 /**
  * The composer of one topic: [ComposerMachine]'s state, and its effects run against
  * [backend] in [scope]. The screen sends what the member did and draws [state].
@@ -212,18 +219,39 @@ class Composer(
     private val backend: ComposerBackend,
     private val scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Where this topic's unsent text is kept on the device (OF-03); none in tests. */
+    private val draft: DraftSlot? = null,
     /** The GIF provider's adapter, by its id (CO-15). */
     private val gifSearch: (String?) -> GifSearch? = { null },
 ) {
     private val mutableState = MutableStateFlow(ComposerState())
     val state: StateFlow<ComposerState> = mutableState.asStateFlow()
+    private var restored = draft == null
 
-    /** Reads the server's composer, and the open message when there is one (invariant 5). */
+    /**
+     * Reads the server's composer, and the open message when there is one (invariant 5).
+     * The first time, the draft kept on the device goes back after it, even when the server
+     * did not answer (OF-03), and from then on every change is kept.
+     */
     fun refresh() {
         scope.launch {
-            val composer = backend.composer().getOrNull() ?: return@launch
-            val open = composer.openMessageId?.let { backend.message(it).getOrNull() }
-            dispatch(ComposerEvent.Server(composer, open, clock()))
+            val composer = backend.composer().getOrNull()
+            if (composer != null) {
+                val open = composer.openMessageId?.let { backend.message(it).getOrNull() }
+                dispatch(ComposerEvent.Server(composer, open, clock()))
+            }
+            restore()
+        }
+    }
+
+    private fun restore() {
+        val slot = draft ?: return
+        if (restored) return
+        restored = true
+        slot.read()?.let { dispatch(ComposerEvent.Restored(it)) }
+        scope.launch {
+            // Each state the box shows, written before the next frame (NF-07).
+            state.collect { state -> draftOf(state)?.let(slot::write) }
         }
     }
 

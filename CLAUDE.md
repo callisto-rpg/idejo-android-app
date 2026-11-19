@@ -455,6 +455,11 @@ Docker image) are added with them.
 
 Current milestone: **M5 — 1.0, web parity**: offline (OF), links (DL), the accessibility
 audit (AX), the app's NF targets and the store listings; release on Play, F-Droid and GitHub.
+Done so far: drafts (OF-03, NF-07: `Drafts` in core/data, one file per forum and place,
+written on its own thread at each change and renamed into place; the composer keeps the
+text after what the server holds and puts it back after the open message without sending
+`typing`, the new-topic form its title and body; a forum the app lets go of,
+`SessionManager.forgotten`, loses its drafts).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);
