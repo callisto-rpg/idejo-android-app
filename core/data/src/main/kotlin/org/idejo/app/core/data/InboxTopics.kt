@@ -87,6 +87,34 @@ class InboxTopics(
             )
     }
 
+    /** Reads the forum at [origin] again, the others' rows kept (IB-05). */
+    suspend fun refresh(origin: String) {
+        val forum =
+            sessions.state
+                .first()
+                .forum(origin)
+                ?.takeIf { it.sealedToken != null } ?: return
+        val found = withTimeoutOrNull(patience) { read(forum) } ?: return
+        mutableState.update { state ->
+            state.copy(
+                topics =
+                    (
+                        state.topics.filterNot { it.origin == origin } +
+                            found.topics.map {
+                                ForumTopic(
+                                    forum.origin,
+                                    forum.name,
+                                    logoOf(forum),
+                                    it,
+                                )
+                            }
+                    ).sortedByDescending { it.topic.lastActivityAt ?: it.topic.createdAt },
+                unread = state.unread + (origin to found.unread),
+                unreachable = state.unreachable - forum.name,
+            )
+        }
+    }
+
     private class Found(
         val unread: Int,
         val topics: List<Topic>,

@@ -104,8 +104,9 @@ object DataModule {
     @Singleton
     fun foreground(
         sessions: SessionManager,
+        topics: InboxTopics,
         @AppScope scope: CoroutineScope,
-    ): ForegroundSockets = ForegroundSockets(sessions, scope)
+    ): ForegroundSockets = ForegroundSockets(sessions, scope, InboxSockets(sessions, topics, scope))
 
     /** The address a tapped notification opens (NT-04). */
     @Provides

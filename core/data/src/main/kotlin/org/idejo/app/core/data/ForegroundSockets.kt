@@ -21,6 +21,8 @@ import kotlin.time.Duration.Companion.seconds
 class ForegroundSockets(
     private val sessions: SessionManager,
     private val scope: CoroutineScope,
+    /** idejo ID mode: every connected forum's, while the inbox is on screen (IB-05). */
+    private val inbox: InboxSockets? = null,
 ) : DefaultLifecycleObserver {
     @Volatile private var foreground = false
 
@@ -32,7 +34,8 @@ class ForegroundSockets(
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         scope.launch {
             sessions.launch.collectLatest { launch ->
-                if (foreground && launch is Launch.Forum) launch.session.connectIfSignedIn()
+                if (foreground) sessions.active?.connectIfSignedIn()
+                if (foreground && launch is Launch.Inbox) inbox?.open() else inbox?.close()
             }
         }
     }
@@ -41,6 +44,7 @@ class ForegroundSockets(
         foreground = true
         closing?.cancel()
         sessions.active?.connectIfSignedIn()
+        if (sessions.launch.value is Launch.Inbox) scope.launch { inbox?.open() }
     }
 
     override fun onStop(owner: LifecycleOwner) {
@@ -49,6 +53,7 @@ class ForegroundSockets(
             scope.launch {
                 delay(BACKGROUND_GRACE)
                 sessions.active?.socket?.disconnect()
+                inbox?.close()
             }
     }
 
