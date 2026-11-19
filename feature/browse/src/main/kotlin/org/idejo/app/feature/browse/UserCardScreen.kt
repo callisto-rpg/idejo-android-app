@@ -51,6 +51,8 @@ fun UserCardRoute(
     onConversation: (String) -> Unit,
     viewModel: UserCardViewModel = hiltViewModel(),
     onLink: (String) -> Unit = {},
+    /** **Sign in with idejo ID** (PC-02), from single-forum mode. */
+    onIdejoId: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val opened by rememberUpdatedState(onConversation)
@@ -68,6 +70,7 @@ fun UserCardRoute(
         onRetry = viewModel::load,
         onClose = onClose,
         onMessage = viewModel::message,
+        onIdejoId = onIdejoId,
     )
 }
 
@@ -86,6 +89,7 @@ fun UserCardScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     onMessage: () -> Unit = {},
+    onIdejoId: () -> Unit = {},
 ) {
     Surface(
         modifier.fillMaxWidth().padding(16.dp),
@@ -95,7 +99,7 @@ fun UserCardScreen(
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val card = state.card
             when {
-                card != null -> Card(card, state, onIgnore, onMessage)
+                card != null -> Card(card, state, onIgnore, onMessage, onIdejoId)
                 state.loading -> MoreSpinner()
                 else -> state.problem?.let { ProblemRow(it, onRetry) }
             }
@@ -113,6 +117,7 @@ private fun Card(
     state: UserCardUi,
     onIgnore: (Boolean) -> Unit,
     onMessage: () -> Unit,
+    onIdejoId: () -> Unit,
 ) = Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
     Head(card, state.origin)
     if (card.roles.isNotEmpty()) Roles(card)
@@ -129,10 +134,23 @@ private fun Card(
             }
         }
     }
+    if (state.offersIdejoId) OfferIdejoId(onIdejoId)
     state.problem?.let { problem ->
         ProblemRow(problem, onRetry = { onIgnore(card.ignoredByMe != true) })
     }
 }
+
+/** PC-02: the chat opens on the web; in idejo ID mode it would be the inbox's. */
+@Composable
+private fun OfferIdejoId(onIdejoId: () -> Unit) =
+    Column {
+        Text(
+            stringResource(R.string.user_chat_outside),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = onIdejoId) { Text(stringResource(R.string.user_chat_idejo_id)) }
+    }
 
 /** Picture, name and user tag, @username. */
 @Composable

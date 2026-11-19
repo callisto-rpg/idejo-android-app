@@ -10,10 +10,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.api.ApiResult
+import org.idejo.app.core.data.AppMode
 import org.idejo.app.core.data.InboxChats
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.model.UserCard
@@ -35,10 +37,18 @@ data class UserCardUi(
     val chat: String? = null,
     /** Single-forum mode with a chat service: the web's link, for a Custom Tab (PC-02). */
     val outside: String? = null,
+    /** Single-forum mode (MD-03): with a chat service, the card offers idejo ID mode. */
+    val single: Boolean = false,
 ) {
     /** **Private Message** shows as on the web: by the idejo ID with a chat service. */
     val mayMessage: Boolean
         get() = card != null && if (chat != null) card.idejoId != null else card.mayMessage
+
+    /**
+     * PC-02: in single-forum mode, under a chat service's **Private Message**, the line
+     * offering idejo ID mode, where those chats are the inbox's.
+     */
+    val offersIdejoId: Boolean get() = single && chat != null && mayMessage
 }
 
 /** A user card (BR-09): `GET /users/{id}`, and **Ignore** or **Stop ignoring** (AC-06). */
@@ -47,7 +57,7 @@ class UserCardViewModel
     @Inject
     constructor(
         savedState: SavedStateHandle,
-        sessions: SessionManager,
+        private val sessions: SessionManager,
         private val chats: InboxChats,
     ) : ViewModel() {
         private val id: String = checkNotNull(savedState["id"])
@@ -69,6 +79,10 @@ class UserCardViewModel
 
         init {
             load()
+            viewModelScope.launch {
+                val single = sessions.state.first().mode == AppMode.Single
+                mutableState.update { it.copy(single = single) }
+            }
         }
 
         fun load() {

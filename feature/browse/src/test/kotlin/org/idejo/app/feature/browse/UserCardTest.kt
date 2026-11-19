@@ -71,4 +71,29 @@ class UserCardTest {
         rule.onNodeWithText("Private Message").assertExists()
         assertEquals("$chat/new?with=leo-sub", chatLink(chat, "leo-sub"))
     }
+
+    @Test
+    fun `PC-02 single-forum mode, a line offers idejo ID mode`() {
+        var offered = 0
+        var single by mutableStateOf(true)
+        rule.setContent {
+            UserCardScreen(
+                UserCardUi(
+                    leo.copy(idejoId = "leo-sub"),
+                    loading = false,
+                    chat = "https://my.example.org/chat",
+                    single = single,
+                ),
+                {},
+                {},
+                {},
+                onIdejoId = { offered++ },
+            )
+        }
+        rule.onNodeWithText("Sign in with idejo ID").performClick()
+        assertEquals(1, offered)
+        // In idejo ID mode the chat is the inbox's already.
+        single = false
+        rule.onNodeWithText("Sign in with idejo ID").assertDoesNotExist()
+    }
 }

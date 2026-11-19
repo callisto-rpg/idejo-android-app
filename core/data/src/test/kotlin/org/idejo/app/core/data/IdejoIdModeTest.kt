@@ -164,6 +164,20 @@ class IdejoIdModeTest {
             assertEquals(listOf("Bee keepers"), held.forums.map { it.name })
         }
 
+    @Test
+    fun `PC-02 MD-03 from single-forum mode, idejo ID keeps the forum and its token`() =
+        runBlocking {
+            val page = requireNotNull(coordinator.start(found(garden), "Pixel 8"))
+            coordinator.complete(requireNotNull(garden.authorize(page, FakePeople.Ada)))
+            assertEquals(AppMode.Single, held.mode)
+
+            signInToInbox()
+            assertEquals(AppMode.IdejoId, held.mode)
+            assertTrue(launch is Launch.Inbox)
+            assertEquals(listOf("Garden club"), held.forums.map { it.name })
+            assertTrue(sessions.connected(garden.address.toString()))
+        }
+
     private val group by lazy {
         GroupForums(
             sessions,

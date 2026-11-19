@@ -61,6 +61,13 @@ sealed interface Place {
     data object AppSettings : Place
 
     /**
+     * **Sign in with idejo ID** from a forum (MD-03, PC-02): the app then keeps the group's
+     * inbox beside this forum (idejo ID mode, MD-02).
+     */
+    @Serializable
+    data object IdejoId : Place
+
+    /**
      * **Profile and account** (ST), for the forum open: the overview, or with [section] the
      * key of one of its sections (`SETTINGS_SECTIONS` in feature/settings).
      */

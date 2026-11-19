@@ -53,6 +53,7 @@ internal fun Place.label(): Int =
         Place.Rules -> R.string.place_rules
         Place.Help -> R.string.place_help
         Place.AppSettings -> R.string.place_app_settings
+        Place.IdejoId -> R.string.place_idejo_id
         is Place.ProfileAndAccount -> R.string.place_profile_and_account
         Place.Conversations -> R.string.place_conversations
         is Place.NewTopic -> R.string.place_new_topic

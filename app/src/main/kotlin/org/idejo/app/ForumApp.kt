@@ -50,6 +50,7 @@ import org.idejo.app.feature.composer.ShareViewModel
 import org.idejo.app.feature.inbox.ConversationsRoute
 import org.idejo.app.feature.onboarding.AccessNotice
 import org.idejo.app.feature.onboarding.AccessViewModel
+import org.idejo.app.feature.onboarding.IdejoIdRoute
 import org.idejo.app.feature.onboarding.rememberSignInAgain
 import org.idejo.app.feature.settings.AppSettingsRoute
 import org.idejo.app.feature.shell.ForumFrame
@@ -118,6 +119,7 @@ fun ForumApp(
             composable<Place.Rules> { Page(session, signIn) { RulesRoute(onLink = link) } }
             composable<Place.Help> { Page(session, signIn) { HelpRoute() } }
             composable<Place.AppSettings> { AppSettingsRoute(Modifier.fillMaxSize()) }
+            composable<Place.IdejoId> { IdejoIdRoute(onBack = { navigation.popBackStack() }) }
             profileAndAccountPage(navigation) { content -> Page(session, signIn, content) }
             conversationsPage(navigation) { content -> Page(session, signIn, content) }
             newTopicPage(navigation) { content -> Page(session, signIn, content) }
@@ -148,6 +150,10 @@ private fun NavGraphBuilder.cards(navigation: NavHostController) {
             },
             // The chat service's link outside idejo ID mode (PC-02): absolute, https.
             onLink = { context.openLink(it, it) },
+            onIdejoId = {
+                navigation.popBackStack()
+                navigation.go(Place.IdejoId)
+            },
         )
     }
     inlineCard(navigation)
@@ -283,6 +289,7 @@ private val SIMPLE =
         Place.Help,
         Place.AppSettings,
         Place.Conversations,
+        Place.IdejoId,
     )
 
 /**

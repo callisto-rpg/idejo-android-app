@@ -40,8 +40,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.idejo.app.core.data.SignInState
 import org.idejo.app.core.designsystem.component.ForumLogo
 
+/**
+ * **Sign in with idejo ID** (SI-06): from the welcome screen, or from a forum in
+ * single-forum mode (MD-03, PC-02), whose forum the app keeps beside the inbox.
+ */
 @Composable
-internal fun IdejoIdRoute(
+fun IdejoIdRoute(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: IdejoIdViewModel = hiltViewModel(),
