@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -24,6 +25,8 @@ import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.data.WarningsState
 import org.idejo.app.core.designsystem.component.Avatar
+import org.idejo.app.core.designsystem.component.Crumb
+import org.idejo.app.core.designsystem.component.TopBar
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Category
@@ -41,6 +44,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.Instant
 
 /** The forum's frame in the Garden sample's colours, light and dark (SH-10 to SH-38). */
+@OptIn(ExperimentalMaterial3Api::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w390dp-h844dp-xhdpi")
@@ -87,6 +91,24 @@ class ShellScreenshotTest {
         snapshots("LogoMenu") {
             LogoMenu("Garden club", "garden.example.org", {}, {}, {})
         }
+
+    @Test
+    fun `SI-07 the logo's dot and Your forums in idejo ID mode`() {
+        snapshots("TopBarNewForum") {
+            TopBar(listOf(Crumb.Forum("Garden club", {}, dot = true), Crumb.Page("Home")))
+        }
+        snapshots("LogoMenuIdejoId") {
+            LogoMenu(
+                "Garden club",
+                "garden.example.org",
+                {},
+                {},
+                {},
+                onForums = {},
+                newForums = true,
+            )
+        }
+    }
 
     @Test
     fun `SH-20 SH-21 SH-22 SH-23 SH-24 the user menu of an administrator`() =

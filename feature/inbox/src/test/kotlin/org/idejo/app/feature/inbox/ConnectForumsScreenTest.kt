@@ -73,6 +73,41 @@ class ConnectForumsScreenTest {
     }
 
     @Test
+    fun `SI-07 a forum joined since last seen shows a Connect card`() {
+        val events = mutableListOf<ConnectForumsEvent>()
+        rule.setContent {
+            ConnectForumsScreen(
+                state.copy(fresh = setOf(choir.url)),
+                { events += it },
+            )
+        }
+        rule.onNodeWithText("You joined Village choir").assertExists()
+        rule.onNodeWithText("Connect it to read it here.").assertExists()
+        rule.onAllNodesWithText("Connect")[0].performClick()
+        assertEquals(listOf<ConnectForumsEvent>(ConnectForumsEvent.Connect(choir)), events)
+    }
+
+    @Test
+    fun `SI-07 a new forum once connected has no card`() {
+        rule.setContent {
+            ConnectForumsScreen(
+                state.copy(
+                    forums = listOf(garden, choir.copy(connected = true)),
+                    fresh = setOf(choir.url),
+                ),
+                {},
+            )
+        }
+        rule.onNodeWithText("You joined Village choir").assertDoesNotExist()
+    }
+
+    @Test
+    fun `SI-07 screenshot`() =
+        snapshots("ConnectForumsJoined") {
+            ConnectForumsScreen(state.copy(fresh = setOf(choir.url)), {})
+        }
+
+    @Test
     fun `SI-06 screenshots`() {
         snapshots("ConnectForums") { ConnectForumsScreen(state, {}) }
         snapshots("ConnectForumsConnecting") {

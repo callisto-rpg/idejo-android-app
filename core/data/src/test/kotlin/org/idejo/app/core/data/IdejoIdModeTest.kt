@@ -29,6 +29,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import javax.crypto.KeyGenerator
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /** idejo ID mode (MD-02): the inbox signed in, the group's forums connected (SI-06). */
@@ -179,7 +180,7 @@ class IdejoIdModeTest {
             )
     }
 
-    private fun joined() = runBlocking { (group.joined() as ApiResult.Success).value }
+    private fun joined() = runBlocking { (group.refresh() as ApiResult.Success).value }
 
     @Test
     fun `SI-06 the inbox lists the forums joined, none connected yet`() {
@@ -191,8 +192,9 @@ class IdejoIdModeTest {
                     "Garden club",
                     garden.address.toString(),
                     garden.address.resolve("/logo")?.toString(),
+                    new = true,
                 ),
-                GroupForum("Bee keepers", bees.address.toString()),
+                GroupForum("Bee keepers", bees.address.toString(), new = true),
             ),
             joined(),
         )
@@ -234,5 +236,82 @@ class IdejoIdModeTest {
             assertFalse(done)
             assertEquals(listOf(false, false), joined().map { it.connected })
             assertEquals(SignInState.Idle, coordinator.state.value)
+        }
+
+    @Test
+    fun `SI-07 a forum joined since last seen is new until seen, also after a launch`() =
+        runBlocking {
+            joinedBoth()
+            signInToInbox()
+            group.refresh()
+            group.seen()
+            assertFalse(group.anyNew.first())
+
+            val choir = FakeIdejo(settings = FakeSettings(name = "Village choir"))
+            try {
+                inbox.communities += Community("Village choir", choir.address.toString())
+                group.refresh()
+                assertEquals(
+                    listOf("Village choir"),
+                    group.joined.value
+                        .filter { it.new }
+                        .map { it.name },
+                )
+                assertTrue(group.anyNew.first())
+
+                // Next launch, still new: what was seen is kept on the device.
+                val later =
+                    GroupForums(manager(), coordinator, DiscoveryClient(http), "Pixel 8") {
+                        ForumAddress.forLocalTesting(it.toHttpUrl())
+                    }
+                later.refresh()
+                assertEquals(
+                    listOf("Village choir"),
+                    later.joined.value
+                        .filter { it.new }
+                        .map { it.name },
+                )
+
+                group.seen()
+                assertFalse(group.anyNew.first())
+            } finally {
+                choir.close()
+            }
+        }
+
+    @Test
+    fun `SI-07 the list is read at launch and again on schedule`() =
+        runBlocking<Unit> {
+            joinedBoth()
+            signInToInbox()
+            val job = group.start(scope, every = 200.milliseconds)
+            try {
+                withTimeout(5.seconds) { group.joined.first { it.size == 2 } }
+                inbox.communities = inbox.communities.take(1)
+                withTimeout(5.seconds) { group.joined.first { it.size == 1 } }
+            } finally {
+                job.cancel()
+            }
+        }
+
+    @Test
+    fun `SI-07 a forum connected does not count as new`() =
+        runBlocking {
+            joinedBoth()
+            signInToInbox()
+            group.refresh()
+            connect(garden)
+            group.refresh()
+            assertEquals(listOf(true, false), group.joined.value.map { it.connected })
+            val waiting = group.joined.value.filter { it.new && !it.connected }
+            assertEquals(listOf("Bee keepers"), waiting.map { it.name })
+        }
+
+    @Test
+    fun `SI-07 outside idejo ID mode there is nothing to read`() =
+        runBlocking {
+            sessions.add(found(garden))
+            assertTrue(group.refresh() is ApiResult.Failure)
+            assertTrue(group.joined.value.isEmpty())
         }
 }

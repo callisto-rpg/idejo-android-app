@@ -168,6 +168,8 @@ fun ForumFrame(
                 onShare = { context.shareText(shell.record.origin) },
                 onClose = { overlay = Overlay.None },
                 logo = logo,
+                onForums = if (shell.idejoId) viewModel::openInbox else null,
+                newForums = shell.newForums,
             )
         }
 

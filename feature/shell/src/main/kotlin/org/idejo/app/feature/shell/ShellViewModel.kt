@@ -15,17 +15,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.AppChoices
+import org.idejo.app.core.data.AppMode
 import org.idejo.app.core.data.ConversationsState
 import org.idejo.app.core.data.ForumConversations
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.ForumSidebar
+import org.idejo.app.core.data.GroupForums
 import org.idejo.app.core.data.Launch
 import org.idejo.app.core.data.LiveBubble
 import org.idejo.app.core.data.LiveBubbles
@@ -58,6 +61,10 @@ data class ShellState(
     val pushOn: Boolean = false,
     /** **Dismiss** was said to the notifications bar in the last 14 days (NT-07). */
     val pushBarQuiet: Boolean = false,
+    /** idejo ID mode (MD-02): the logo menu leads to the group's forums. */
+    val idejoId: Boolean = false,
+    /** A forum joined since last seen waits to be connected: the logo's dot (SI-07). */
+    val newForums: Boolean = false,
 ) {
     val name: String get() = record.name
 
@@ -85,6 +92,7 @@ class ShellViewModel
     constructor(
         private val sessions: SessionManager,
         private val choices: AppChoices,
+        private val group: GroupForums,
     ) : ViewModel() {
         private val openTopic = MutableStateFlow<Topic?>(null)
         private val warned = MutableStateFlow<Warnings?>(null)
@@ -149,6 +157,10 @@ class ShellViewModel
                     shell.copy(pushOn = server?.settings?.push == true)
                 }.combine(choices.pushBarQuiet()) { shell, quiet ->
                     shell.copy(pushBarQuiet = quiet)
+                }.combine(sessions.state.map { it.mode == AppMode.IdejoId }) { shell, idejoId ->
+                    shell.copy(idejoId = idejoId)
+                }.combine(group.anyNew) { shell, new ->
+                    shell.copy(newForums = new)
                 }
             }
 
@@ -178,6 +190,11 @@ class ShellViewModel
         fun refresh() {
             sidebar?.refresh()
             conversations?.refresh()
+        }
+
+        /** idejo ID mode: **Your forums**, the inbox (MD-02, SI-07). */
+        fun openInbox() {
+            viewModelScope.launch { sessions.openInbox() }
         }
 
         /** A bubble swiped away, closed with ×, or its time over (NT-01). */

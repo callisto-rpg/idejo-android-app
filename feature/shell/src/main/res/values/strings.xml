@@ -52,6 +52,8 @@ SPDX-License-Identifier: Apache-2.0
     <string name="logo_menu_home">Home</string>
     <string name="logo_menu_share">Share link</string>
     <string name="logo_menu_add_forum">Add a forum</string>
+    <string name="logo_menu_your_forums">Your forums</string>
+    <string name="logo_menu_new_forum">A forum you joined is waiting to be connected</string>
     <string name="logo_menu_single_forum">The app is %1$s’s app and holds no other forum. To read another forum here, remove this one under Accounts, in the menu under your name, then enter the other forum’s address.</string>
 
     <!-- User menu (SH-20 to SH-25). -->

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -89,6 +90,15 @@ fun ConnectForumsScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             item { Heading(state, onEvent) }
+            items(state.cards, key = { "card " + it.url }) { forum ->
+                JoinedCard(
+                    forum,
+                    connecting = state.connecting == forum.url,
+                    enabled = state.connecting == null,
+                    onConnect = { onEvent(ConnectForumsEvent.Connect(forum)) },
+                    modifier = Modifier.widthIn(max = 560.dp).padding(bottom = 16.dp),
+                )
+            }
             items(state.forums, key = { it.url }) { forum ->
                 ForumRow(
                     forum,
@@ -195,6 +205,56 @@ private fun ForumRow(
                     onClick = { onEvent(ConnectForumsEvent.Connect(forum)) },
                     enabled = !busy,
                 ) {
+                    Text(stringResource(R.string.connect_one))
+                }
+            }
+        }
+    }
+}
+
+/** SI-07: a forum joined since last seen, waiting to be connected. */
+@Composable
+private fun JoinedCard(
+    forum: GroupForum,
+    connecting: Boolean,
+    enabled: Boolean,
+    onConnect: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ElevatedCard(modifier.fillMaxWidth()) {
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            ForumLogo(
+                name = forum.name,
+                size = 44.dp,
+                image =
+                    forum.logoUrl?.let {
+                        {
+                            AsyncImage(
+                                model = it,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.connect_joined, forum.name),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    stringResource(R.string.connect_joined_text),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (connecting) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Button(onClick = onConnect, enabled = enabled) {
                     Text(stringResource(R.string.connect_one))
                 }
             }

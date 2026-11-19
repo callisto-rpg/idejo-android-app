@@ -20,6 +20,7 @@ import okio.Path.Companion.toOkioPath
 import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.AppScope
 import org.idejo.app.core.data.ForegroundSockets
+import org.idejo.app.core.data.GroupForums
 import org.idejo.app.core.data.PushRegistrar
 import org.idejo.app.core.data.SessionManager
 import javax.inject.Inject
@@ -38,6 +39,9 @@ class IdejoApplication :
 
     @Inject lateinit var http: OkHttpClient
 
+    /** idejo ID mode's forums, read at launch and once an hour (SI-07). */
+    @Inject lateinit var groupForums: GroupForums
+
     @Inject lateinit var choices: AppChoices
 
     @Inject @AppScope
@@ -46,7 +50,10 @@ class IdejoApplication :
     override fun onCreate() {
         super.onCreate()
         foreground.install()
-        scope.launch { sessions.restore() }
+        scope.launch {
+            sessions.restore()
+            groupForums.start(scope)
+        }
     }
 
     /**

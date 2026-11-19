@@ -30,8 +30,13 @@ data class ConnectForumsState(
     val failed: Boolean = false,
     /** The forum whose sign-in page is open, while one is. */
     val connecting: String? = null,
+    /** Joined since last seen (SI-07): a Connect card each, for this visit. */
+    val fresh: Set<String> = emptySet(),
 ) {
     val notConnected: List<GroupForum> get() = forums.filterNot { it.connected }
+
+    /** The Connect cards: forums joined since last seen, not connected yet (SI-07). */
+    val cards: List<GroupForum> get() = notConnected.filter { it.url in fresh }
 }
 
 sealed interface ConnectForumsEvent {
@@ -109,15 +114,20 @@ class ConnectForumsViewModel
             viewModelScope.launch { read() }
         }
 
+        /** The list read again; forums new since last seen keep their card for this visit. */
         private suspend fun read() {
-            mutableState.update { it.copy(loading = true, failed = false) }
-            when (val result = group.joined()) {
+            mutableState.update { it.copy(loading = it.forums.isEmpty(), failed = false) }
+            when (val result = group.refresh()) {
                 is ApiResult.Success -> {
-                    mutableState.update { it.copy(forums = result.value, loading = false) }
+                    val fresh = result.value.filter { it.new }.map { it.url }
+                    mutableState.update {
+                        it.copy(forums = result.value, loading = false, fresh = it.fresh + fresh)
+                    }
+                    group.seen()
                 }
 
                 is ApiResult.Failure -> {
-                    mutableState.update { it.copy(loading = false, failed = true) }
+                    mutableState.update { it.copy(loading = false, failed = it.forums.isEmpty()) }
                 }
             }
         }
@@ -129,9 +139,21 @@ class ConnectForumsViewModel
                 viewModelScope.launch {
                     for (forum in forums) {
                         mutableState.update { it.copy(connecting = forum.url) }
-                        group.connect(forum, ::show)
-                        mutableState.update { state ->
-                            state.copy(forums = state.forums.map { it.marked() })
+                        if (group.connect(forum, ::show)) {
+                            mutableState.update { state ->
+                                state.copy(
+                                    forums =
+                                        state.forums.map {
+                                            if (it.url ==
+                                                forum.url
+                                            ) {
+                                                it.copy(connected = true)
+                                            } else {
+                                                it
+                                            }
+                                        },
+                                )
+                            }
                         }
                     }
                     mutableState.update { it.copy(connecting = null) }
@@ -145,7 +167,4 @@ class ConnectForumsViewModel
             mutableTab.value = url
             return shown.await()
         }
-
-        private suspend fun GroupForum.marked(): GroupForum =
-            copy(connected = connected || sessions.connected(url))
     }

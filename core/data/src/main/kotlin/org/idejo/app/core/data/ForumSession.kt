@@ -174,9 +174,9 @@ class ForumSession internal constructor(
         host.signedOut(this)
     }
 
-    private companion object {
+    internal companion object {
         const val DEFAULT_BASE = "/api/v1"
-        const val DEFAULT_SOCKET = "/api/v1/socket"
-        const val EVENTS = 64
+        private const val DEFAULT_SOCKET = "/api/v1/socket"
+        private const val EVENTS = 64
     }
 }

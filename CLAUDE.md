@@ -425,7 +425,10 @@ Docker image) are added with them.
 
 Current milestone: **M4 — idejo ID mode**: the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
-core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB).
+core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);
+the joined forums read again at launch and hourly (SI-07: `GroupForums.start`, with
+`AppState.seenForums`), a Connect card for one joined since, the logo's dot and the logo
+menu's **Your forums** (SH-12's full list comes later).
 M3 closed on 2026-11-19 (steward): Profile and account with Profile
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and

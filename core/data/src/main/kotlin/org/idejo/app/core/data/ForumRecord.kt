@@ -113,6 +113,11 @@ data class AppState(
     val mode: AppMode = AppMode.Single,
     /** idejo ID mode's inbox (`https://my.idejo.org/` by default), signed in as a forum is. */
     val inbox: ForumRecord? = null,
+    /**
+     * The group's forums the member has been shown (SI-07), by origin: one joined since, not
+     * among them, is new (its Connect card, the logo's dot).
+     */
+    val seenForums: Set<String> = emptySet(),
     /** The app's one **Tutorial bubbles** choice (SH-21). */
     val tutorialBubbles: TutorialBubbles = TutorialBubbles.All,
     /** When **Dismiss** was last said to the notifications bar (NT-07), epoch milliseconds. */

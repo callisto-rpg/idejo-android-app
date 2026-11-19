@@ -19,9 +19,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
+import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
+import org.idejo.app.core.api.ForumApi
 import org.idejo.app.core.api.OAuthClient
+import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.TokenGrant
 
@@ -141,6 +144,24 @@ class SessionManager(
             val record = store.update { it.copy(active = origin) }.forum(origin) ?: return@withLock
             open(record)
         }
+
+    /**
+     * The inbox's `GET /me/communities` (SI-07), whichever session is open: with the inbox's
+     * own token, outside its session. Null outside idejo ID mode or signed out of the inbox.
+     */
+    suspend fun inboxCommunities(): ApiResult<List<Community>>? {
+        val inbox = store.current().inbox ?: return null
+        val token = vault.open(inbox.sealedToken) ?: return null
+        val base = inbox.discovery.api?.base ?: ForumSession.DEFAULT_BASE
+        return ForumApi(addressOf(inbox.origin), base, { token }, http).communities()
+    }
+
+    /** The group's forums at [origins] were shown to the member (SI-07). */
+    suspend fun seen(origins: Collection<String>) {
+        if (!store.current().seenForums.containsAll(origins)) {
+            store.update { it.copy(seenForums = it.seenForums + origins) }
+        }
+    }
 
     /** Whether the app holds a token for the forum at [origin] (SI-06). */
     suspend fun connected(origin: String): Boolean =
