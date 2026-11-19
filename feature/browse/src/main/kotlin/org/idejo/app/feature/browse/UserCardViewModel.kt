@@ -87,7 +87,7 @@ class UserCardViewModel
 
         fun load() {
             mutableState.update { it.copy(loading = true, problem = null) }
-            viewModelScope.launch { done(session?.call { user(id) }) }
+            viewModelScope.launch { done(session?.cached("user:$id") { user(id) }) }
         }
 
         fun ignore(ignored: Boolean) {

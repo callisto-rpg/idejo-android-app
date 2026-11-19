@@ -77,6 +77,8 @@ data class ShellState(
     val group: GroupMenu = GroupMenu(),
     /** News in the member's other forums: the logo's dot (SH-03). */
     val news: LogoNews? = null,
+    /** When the saved copy shown was read, while the forum cannot be reached (OF-02). */
+    val savedCopy: Long? = null,
 ) {
     val name: String get() = record.name
 
@@ -208,7 +210,7 @@ class ShellViewModel
                     .combine(topics.state) { shell, read ->
                         val news = logoNews(read.levels, session.origin)
                         shell.copy(news = news.takeIf { shell.idejoId })
-                    }
+                    }.combine(session.savedCopy) { shell, at -> shell.copy(savedCopy = at) }
             }
 
         /** The page shown changed: the topic open is read for the breadcrumbs. */

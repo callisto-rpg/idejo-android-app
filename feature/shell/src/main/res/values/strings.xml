@@ -120,4 +120,5 @@ SPDX-License-Identifier: Apache-2.0
     <string name="push_bar_enable">Enable</string>
     <string name="push_bar_bubble">This can always be\nturned off and on\nin user settings</string>
     <string name="push_bar_dismiss">Dismiss</string>
+    <string name="offline_saved_copy">Offline — showing saved copy from %1$s. What needs the forum waits until it answers.</string>
 </resources>

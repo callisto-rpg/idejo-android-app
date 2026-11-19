@@ -10,12 +10,16 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.serializer
 import okhttp3.OkHttpClient
 import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.ForumAddress
 import org.idejo.app.core.api.ForumApi
+import org.idejo.app.core.api.IdejoJson
 import org.idejo.app.core.model.AccessToken
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.realtime.ForumEvents
@@ -41,6 +45,15 @@ sealed interface Access {
     ) : Access
 }
 
+/** The forum did not answer, or answered with a server error: the saved copy will do. */
+val ApiProblem.unreachable: Boolean
+    get() =
+        this is ApiProblem.Network ||
+            (this is ApiProblem.Server && status >= HTTP_SERVER_ERROR) ||
+            (this is ApiProblem.Malformed && status >= HTTP_SERVER_ERROR)
+
+private const val HTTP_SERVER_ERROR = 500
+
 /** What a session tells the SessionManager, which keeps the forum on disk. */
 internal interface SessionHost {
     /** SI-09, SI-12: the token was refused or revoked. */
@@ -48,6 +61,9 @@ internal interface SessionHost {
 
     /** `GET /server` was read: its theme is kept (TH-06). */
     suspend fun serverRead(server: Server)
+
+    /** The forums' last answers, for offline (OF-01); none in most tests. */
+    val cache: PageCache? get() = null
 }
 
 /**
@@ -135,9 +151,55 @@ class ForumSession internal constructor(
         return result
     }
 
+    private val mutableSavedCopy = MutableStateFlow<Long?>(null)
+
+    /**
+     * When the oldest saved copy on screen was read, while the forum cannot be reached
+     * (OF-02): "Offline — showing saved copy from {time}". Null once the forum answers.
+     */
+    val savedCopy: StateFlow<Long?> = mutableSavedCopy.asStateFlow()
+
+    /**
+     * [request] as [call], its answer kept under [key] (OF-01). When the forum cannot be
+     * reached (no answer, or a server error), the copy kept is the answer, and [savedCopy]
+     * says from when.
+     */
+    suspend fun <T> cached(
+        key: String,
+        serializer: KSerializer<T>,
+        request: suspend ForumApi.() -> ApiResult<T>,
+    ): ApiResult<T> {
+        val result = call(request)
+        val cache = host.cache ?: return result
+        when (result) {
+            is ApiResult.Success -> {
+                mutableSavedCopy.value = null
+                runCatching { IdejoJson.encodeToString(serializer, result.value) }
+                    .onSuccess { cache.put(origin, key, it) }
+            }
+
+            is ApiResult.Failure -> {
+                if (!result.problem.unreachable) return result
+                val page = cache.get(origin, key) ?: return result
+                val value =
+                    runCatching { IdejoJson.decodeFromString(serializer, page.json) }.getOrNull()
+                        ?: return result
+                mutableSavedCopy.update { minOf(it ?: page.savedAt, page.savedAt) }
+                return ApiResult.Success(value)
+            }
+        }
+        return result
+    }
+
+    /** [cached] with the serializer of [T]. */
+    suspend inline fun <reified T> cached(
+        key: String,
+        noinline request: suspend ForumApi.() -> ApiResult<T>,
+    ): ApiResult<T> = cached(key, serializer<T>(), request)
+
     /** Reads `GET /server`, keeping its theme for the next launch (TH-06). */
     suspend fun refreshServer(): ApiResult<Server> =
-        call { server() }.also { result ->
+        cached("server") { server() }.also { result ->
             (result as? ApiResult.Success)?.value?.let {
                 mutableServer.value = it
                 host.serverRead(it)

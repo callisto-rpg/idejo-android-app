@@ -126,11 +126,11 @@ class ForumSidebar(
     private suspend fun load() {
         mutableState.update { it.copy(loading = true) }
         val categories =
-            when (val result = session.call { categories() }) {
+            when (val result = session.cached("categories") { categories() }) {
                 is ApiResult.Failure -> return failed(result.problem)
                 is ApiResult.Success -> result.value
             }
-        val unread = if (signedIn) session.call { unread() } else null
+        val unread = if (signedIn) session.cached("unread") { unread() } else null
         if (unread is ApiResult.Failure) return failed(unread.problem)
         val withNews = (unread as? ApiResult.Success)?.value
         val followed =
@@ -167,7 +167,7 @@ class ForumSidebar(
         var cursor: String? = null
         repeat(FOLLOWED_PAGES) {
             val page =
-                when (val result = session.call { followed(cursor, SIZE) }) {
+                when (val result = session.cached("followed:$cursor") { followed(cursor, SIZE) }) {
                     is ApiResult.Failure -> {
                         val missing = (result.problem as? ApiProblem.Server)?.status == NOT_FOUND
                         return if (missing) null else result
