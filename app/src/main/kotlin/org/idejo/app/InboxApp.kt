@@ -41,11 +41,12 @@ fun InboxApp(
     navigation: NavHostController = rememberNavController(),
 ) {
     LaunchedEffect(session) { session.refreshServer() }
+    val onTop = rememberLastPlace(session.origin, navigation)
     NavHost(navigation, startDestination = Place.Home, modifier) {
         composable<Place.Home> {
             InboxRoute(onConversation = { navigation.go(Place.Topic(it, private = true)) })
         }
-        chatPage(session, navigation)
+        chatPage(session, navigation, onTop)
         dialog<UserCardDialog>(
             dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
@@ -66,10 +67,12 @@ fun InboxApp(
 private fun NavGraphBuilder.chatPage(
     session: ForumSession,
     navigation: NavHostController,
+    onTop: (Place.Topic) -> Unit,
 ) = composable<Place.Topic> { entry ->
     val context = LocalContext.current
+    val here = entry.toRoute<Place.Topic>()
     val back = { navigation.go(Place.Home) }
-    ChatFrameRoute(entry.toRoute<Place.Topic>().id, onBack = back) {
+    ChatFrameRoute(here.id, onBack = back) {
         TopicRoute(
             onUser = { navigation.navigate(UserCardDialog(it)) },
             // Conversations have no tags; links of other kinds open as links.
@@ -85,6 +88,7 @@ private fun NavGraphBuilder.chatPage(
                 ->
                 navigation.go(Place.Topic(id, messageId, private = true))
             },
+            onTop = { onTop(here.copy(messageId = it)) },
             writing =
                 rememberTopicWriting(
                     onForward = { id, topicId -> navigation.navigate(ForwardDialog(id, topicId)) },

@@ -121,6 +121,15 @@ object DataModule {
     @Singleton
     fun inboxShortcuts(): InboxShortcuts = InboxShortcuts()
 
+    /** The last place opened, restored on the next launch (MD-05). */
+    @Provides
+    @Singleton
+    fun lastPlaces(
+        sessions: SessionManager,
+        store: ForumStore,
+        @AppScope scope: CoroutineScope,
+    ): LastPlaces = LastPlaces(sessions, store, scope)
+
     /** The address a tapped notification opens (NT-04). */
     @Provides
     @Singleton

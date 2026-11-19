@@ -16,6 +16,7 @@ import org.idejo.app.feature.inbox.InboxSamples.TENNIS
 import org.idejo.app.feature.inbox.InboxSamples.doubles
 import org.idejo.app.feature.inbox.InboxSamples.state
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,6 +48,27 @@ class InboxScreenTest {
         rule.waitForIdle()
         rule.onNodeWithText("chats page").assertExists()
         rule.onAllNodesWithText("Chats").assertCountEquals(2)
+    }
+
+    @Test
+    fun `MD-05 the tab left last opens again, each tab shown is kept`() {
+        val shown = mutableListOf<InboxTab>()
+        rule.setContent {
+            InboxScreen(
+                state,
+                forums = { Text("forums page") },
+                topics = { Text("topics page") },
+                chats = { Text("chats page") },
+                restoredTab = InboxTab.Chats,
+                onTab = { shown += it },
+            )
+        }
+        rule.waitForIdle()
+        rule.onNodeWithText("chats page").assertExists()
+        rule.onNodeWithText("Topics").performClick()
+        rule.waitForIdle()
+        assertEquals(InboxTab.Topics, shown.last())
+        assertTrue(InboxTab.Chats in shown)
     }
 
     @Test

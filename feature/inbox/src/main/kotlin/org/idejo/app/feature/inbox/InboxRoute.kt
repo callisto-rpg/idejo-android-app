@@ -23,9 +23,10 @@ fun InboxRoute(
     onConversation: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: InboxViewModel = hiltViewModel(),
+    tabs: InboxTabViewModel = hiltViewModel(),
 ) {
     var finding by rememberSaveable {
-        mutableStateOf(viewModel.opening == InboxShortcut.FindForums)
+        mutableStateOf(tabs.opening == InboxShortcut.FindForums)
     }
     if (finding) {
         BackHandler { finding = false }
@@ -33,12 +34,15 @@ fun InboxRoute(
         return
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val restored by tabs.restored.collectAsStateWithLifecycle()
     InboxScreen(
         state,
         forums = { ConnectForumsRoute(onFindMore = { finding = true }) },
         topics = { TopicsTab(state, viewModel::onEvent) },
         chats = { ConversationsRoute(onConversation, titled = false) },
         modifier = modifier,
-        initialTab = viewModel.firstTab,
+        initialTab = tabs.firstTab,
+        restoredTab = restored,
+        onTab = tabs::shown,
     )
 }
