@@ -156,6 +156,21 @@ class IdejoIdModeTest {
         }
 
     @Test
+    fun `SH-15 removing another forum than the one open keeps it open`() =
+        runBlocking {
+            signInToInbox()
+            connect(garden)
+            connect(bees)
+            sessions.enter(garden.address.toString())
+            val open = (launch as Launch.Forum).session
+
+            sessions.remove(bees.address.toString())
+            assertEquals(open, (launch as Launch.Forum).session)
+            assertEquals(listOf("Garden club"), held.forums.map { it.name })
+            assertEquals(garden.address.toString(), held.active)
+        }
+
+    @Test
     fun `MD-03 single-forum mode still keeps one forum`() =
         runBlocking {
             sessions.add(found(garden))

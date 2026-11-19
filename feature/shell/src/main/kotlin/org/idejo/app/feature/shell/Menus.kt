@@ -34,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,65 +63,6 @@ import org.idejo.app.core.designsystem.component.ForumLogo
 import org.idejo.app.core.designsystem.theme.onColorFor
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Role as MemberRole
-
-/**
- * The logo menu (SH-10, SH-11, SH-14): **This forum** with its logo, name and address,
- * **Home** and **Share link**; then **Add a forum**, which in single-forum mode explains
- * that the app holds this forum only (MD-03). In idejo ID mode, **Your forums** leads to the
- * group's forums ([onForums]), with a dot for one joined since last seen (SI-07). The forum
- * list and the inbox's shortcuts come later in M4 (SH-12, SH-13).
- */
-@Composable
-fun LogoMenu(
-    name: String,
-    address: String,
-    onHome: () -> Unit,
-    onShare: () -> Unit,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier,
-    logo: (@Composable () -> Unit)? = null,
-    onForums: (() -> Unit)? = null,
-    newForums: Boolean = false,
-) {
-    MenuPage(onClose, modifier) {
-        Heading(stringResource(R.string.logo_menu_this_forum))
-        Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            ForumLogo(name, size = 64.dp, image = logo)
-            Column(Modifier.weight(1f)) {
-                Text(name, style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    address,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        Item(R.drawable.ic_home, stringResource(R.string.logo_menu_home), onHome)
-        Item(R.drawable.ic_share, stringResource(R.string.logo_menu_share), onShare)
-        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        if (onForums != null) {
-            Item(
-                R.drawable.ic_accounts,
-                stringResource(R.string.logo_menu_your_forums),
-                dot = if (newForums) stringResource(R.string.logo_menu_new_forum) else null,
-                onClick = onForums,
-            )
-        } else {
-            Heading(stringResource(R.string.logo_menu_add_forum))
-            Text(
-                stringResource(R.string.logo_menu_single_forum, name),
-                Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        }
-    }
-}
 
 /** Who the member is, for the user menu's head (SH-20). */
 data class MemberCard(
@@ -382,7 +324,7 @@ private fun <T> Choices(
 }
 
 @Composable
-private fun Heading(text: String) {
+internal fun Heading(text: String) {
     Text(
         text,
         Modifier
@@ -394,12 +336,12 @@ private fun Heading(text: String) {
 }
 
 @Composable
-private fun Item(
+internal fun Item(
     icon: Int,
     label: String,
     onClick: () -> Unit,
-    /** A dot after the label, and what it says to TalkBack. */
-    dot: String? = null,
+    /** A number after the label: conversations with something new (SH-13). */
+    count: Int? = null,
 ) {
     Row(
         Modifier
@@ -411,14 +353,12 @@ private fun Item(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Icon(painterResource(icon), null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(label, style = MaterialTheme.typography.bodyLarge)
-        if (dot != null) {
-            // A forum joined since last seen (SI-07), as on the logo.
-            Box(
-                Modifier
-                    .semantics { contentDescription = dot }
-                    .size(10.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        if (count != null) {
+            Text(
+                count.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }

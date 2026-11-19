@@ -282,18 +282,23 @@ class SessionManager(
 
     /**
      * Signs out and removes the forum: back to the welcome screen in single-forum mode, to
-     * the inbox in idejo ID mode.
+     * the inbox in idejo ID mode. Another forum than the one open (SH-15) goes quietly.
      */
     suspend fun remove(origin: String) =
         lock.withLock {
             store.current().forum(origin)?.let { revoke(it) }
+            val open = session?.origin?.takeIf { it != origin }
             val state =
                 store.update { state ->
                     state.copy(
                         forums = state.forums.filterNot { it.origin == origin },
-                        active = null,
+                        active = state.active.takeIf { open != null },
                     )
                 }
+            if (open != null) {
+                mutableSignedOut.tryEmit(origin)
+                return@withLock
+            }
             val inbox = state.inbox
             if (state.mode == AppMode.IdejoId && inbox != null) openInbox(inbox) else open(null)
             mutableSignedOut.tryEmit(origin)

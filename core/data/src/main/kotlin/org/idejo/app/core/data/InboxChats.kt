@@ -35,4 +35,15 @@ class InboxChats(
         }
         return result
     }
+
+    /**
+     * The inbox's conversations with something new (SH-13), read with its own token from any
+     * forum; null outside idejo ID mode or when the inbox does not answer.
+     */
+    suspend fun withNews(): Int? {
+        val state = sessions.state.first()
+        val inbox = state.inbox?.takeIf { state.mode == AppMode.IdejoId } ?: return null
+        val result = sessions.signedIn(inbox.origin) { conversations() }
+        return (result as? ApiResult.Success)?.value?.count { it.unreadCount > 0 }
+    }
 }

@@ -29,6 +29,10 @@ import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.ForumSession
 import org.idejo.app.core.data.ForumSidebar
 import org.idejo.app.core.data.GroupForums
+import org.idejo.app.core.data.InboxChats
+import org.idejo.app.core.data.InboxShortcut
+import org.idejo.app.core.data.InboxShortcuts
+import org.idejo.app.core.data.InboxTopics
 import org.idejo.app.core.data.Launch
 import org.idejo.app.core.data.LiveBubble
 import org.idejo.app.core.data.LiveBubbles
@@ -65,6 +69,8 @@ data class ShellState(
     val idejoId: Boolean = false,
     /** A forum joined since last seen waits to be connected: the logo's dot (SI-07). */
     val newForums: Boolean = false,
+    /** idejo ID mode's part of the logo menu (SH-12 to SH-14). */
+    val group: GroupMenu = GroupMenu(),
 ) {
     val name: String get() = record.name
 
@@ -93,7 +99,12 @@ class ShellViewModel
         private val sessions: SessionManager,
         private val choices: AppChoices,
         private val group: GroupForums,
+        private val topics: InboxTopics,
+        private val chats: InboxChats,
+        private val shortcuts: InboxShortcuts,
     ) : ViewModel() {
+        /** What the logo menu reads when it opens: the inbox's chats, the directory. */
+        private val menuRead = MutableStateFlow(GroupMenu())
         private val openTopic = MutableStateFlow<Topic?>(null)
         private val warned = MutableStateFlow<Warnings?>(null)
         private val live = MutableStateFlow<LiveBubbles?>(null)
@@ -161,7 +172,16 @@ class ShellViewModel
                     shell.copy(idejoId = idejoId)
                 }.combine(group.anyNew) { shell, new ->
                     shell.copy(newForums = new)
-                }
+                }.combine(
+                    combine(sessions.state, group.joined, topics.state, menuRead) {
+                        app,
+                        joined,
+                        read,
+                        extra,
+                        ->
+                        extra.copy(forums = yourForums(app.forums, joined, read, session.origin))
+                    },
+                ) { shell, menu -> shell.copy(group = menu) }
             }
 
         /** The page shown changed: the topic open is read for the breadcrumbs. */
@@ -192,9 +212,43 @@ class ShellViewModel
             conversations?.refresh()
         }
 
-        /** idejo ID mode: **Your forums**, the inbox (MD-02, SI-07). */
-        fun openInbox() {
+        /**
+         * The logo menu opened in idejo ID mode: every connected forum's news (the dots,
+         * SH-12), the inbox's chats (SH-13) and whether the group has a directory (SH-14).
+         */
+        fun logoMenuOpened() {
+            if (state.value?.idejoId != true) return
+            viewModelScope.launch { topics.refresh() }
+            viewModelScope.launch {
+                val withNews = chats.withNews()
+                menuRead.update { it.copy(chatsWithNews = withNews) }
+            }
+            viewModelScope.launch {
+                val directory = group.hasDirectory()
+                menuRead.update { it.copy(directory = directory) }
+            }
+        }
+
+        /** **Your forums** (SH-12): another forum held, opened; this one stays. */
+        fun enter(forum: YourForum) {
+            if (forum.current) return
+            viewModelScope.launch { sessions.enter(forum.origin) }
+        }
+
+        /** The inbox at [shortcut] (SH-12 to SH-14): Connect, its tabs, the directory. */
+        fun openInbox(shortcut: InboxShortcut) {
+            shortcuts.offer(shortcut)
             viewModelScope.launch { sessions.openInbox() }
+        }
+
+        /** **Remove from app** on a forum of the list (SH-15). */
+        fun removeForum(forum: YourForum) {
+            viewModelScope.launch {
+                sessions.remove(forum.origin)
+                // This forum's frame is gone when it was the one removed.
+                group.refresh()
+                topics.refresh()
+            }
         }
 
         /** A bubble swiped away, closed with ×, or its time over (NT-01). */

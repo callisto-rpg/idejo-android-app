@@ -67,6 +67,10 @@ sealed interface Place {
     @Serializable
     data object IdejoId : Place
 
+    /** **Add a forum** by address (SH-14, SI-01), in idejo ID mode beside the others. */
+    @Serializable
+    data object AddForum : Place
+
     /**
      * **Profile and account** (ST), for the forum open: the overview, or with [section] the
      * key of one of its sections (`SETTINGS_SECTIONS` in feature/settings).

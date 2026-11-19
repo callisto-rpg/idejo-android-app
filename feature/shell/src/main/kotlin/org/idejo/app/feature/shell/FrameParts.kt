@@ -12,6 +12,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImage
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import org.idejo.app.core.data.InboxShortcut
 import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.designsystem.component.Crumb
@@ -54,10 +55,39 @@ internal fun Place.label(): Int =
         Place.Help -> R.string.place_help
         Place.AppSettings -> R.string.place_app_settings
         Place.IdejoId -> R.string.place_idejo_id
+        Place.AddForum -> R.string.logo_menu_add_forum
         is Place.ProfileAndAccount -> R.string.place_profile_and_account
         Place.Conversations -> R.string.place_conversations
         is Place.NewTopic -> R.string.place_new_topic
         Place.Home, is Place.Category, is Place.Topic -> R.string.sidebar_all_categories
+    }
+
+/** The logo menu's forums, shortcuts and Add a forum (SH-12 to SH-15, MD-03). */
+internal fun logoMenuActions(
+    viewModel: ShellViewModel,
+    context: android.content.Context,
+    go: (Place) -> Unit,
+): LogoMenuActions =
+    object : LogoMenuActions {
+        override fun enter(forum: YourForum) =
+            if (forum.current) go(Place.Home) else viewModel.enter(forum)
+
+        override fun connect(forum: YourForum) =
+            viewModel.openInbox(InboxShortcut.Connect(forum.origin))
+
+        override fun remove(forum: YourForum) = viewModel.removeForum(forum)
+
+        override fun openInBrowser(forum: YourForum) = context.openPage(forum.origin)
+
+        override fun topics() = viewModel.openInbox(InboxShortcut.Topics)
+
+        override fun chats() = viewModel.openInbox(InboxShortcut.Chats)
+
+        override fun findForums() = viewModel.openInbox(InboxShortcut.FindForums)
+
+        override fun addByAddress() = go(Place.AddForum)
+
+        override fun idejoId() = go(Place.IdejoId)
     }
 
 internal fun sidebarActions(
