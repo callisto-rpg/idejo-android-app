@@ -151,9 +151,21 @@ class SessionManager(
      */
     suspend fun inboxCommunities(): ApiResult<List<Community>>? {
         val inbox = store.current().inbox ?: return null
-        val token = vault.open(inbox.sealedToken) ?: return null
-        val base = inbox.discovery.api?.base ?: ForumSession.DEFAULT_BASE
-        return ForumApi(addressOf(inbox.origin), base, { token }, http).communities()
+        return signedIn(inbox.origin) { communities() }
+    }
+
+    /**
+     * [request] on the forum or inbox at [origin] with its own token, outside any session:
+     * the inbox reading every connected forum (IB-02, IB-04). Null without a token for it.
+     */
+    suspend fun <T> signedIn(
+        origin: String,
+        request: suspend ForumApi.() -> ApiResult<T>,
+    ): ApiResult<T>? {
+        val record = store.current().record(origin) ?: return null
+        val token = vault.open(record.sealedToken) ?: return null
+        val base = record.discovery.api?.base ?: ForumSession.DEFAULT_BASE
+        return ForumApi(addressOf(record.origin), base, { token }, http).request()
     }
 
     /** The group's forums at [origins] were shown to the member (SI-07). */

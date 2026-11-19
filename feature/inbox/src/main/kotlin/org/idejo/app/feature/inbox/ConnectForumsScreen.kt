@@ -22,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,8 +57,9 @@ fun ConnectForumsRoute(
 }
 
 /**
- * **Connect your forums** (SI-06): each forum the member joined in the group, with its logo
- * and name, connected or not; **Connect N forums** signs in to each in a row.
+ * The inbox's **Forums** (IB-02, SI-06): a card per forum the member joined in the group,
+ * with its logo, name and "N new messages"; one not connected with **Connect**, and
+ * **Connect N forums** to sign in to each in a row; then **Find more forums** (SI-08).
  */
 @Composable
 fun ConnectForumsScreen(
@@ -68,8 +70,9 @@ fun ConnectForumsScreen(
 ) {
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
-            Modifier.safeDrawingPadding().padding(horizontal = 24.dp),
+            Modifier.padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item { Heading(state, onEvent) }
             items(state.cards, key = { "card " + it.url }) { forum ->
@@ -84,6 +87,7 @@ fun ConnectForumsScreen(
             items(state.forums, key = { it.url }) { forum ->
                 ForumRow(
                     forum,
+                    unread = state.unread[forum.url] ?: 0,
                     connecting = state.connecting == forum.url,
                     busy = state.connecting != null,
                     onEvent = onEvent,
@@ -109,13 +113,17 @@ private fun Heading(
     state: ConnectForumsState,
     onEvent: (ConnectForumsEvent) -> Unit,
 ) {
+    val waiting = state.notConnected.size
+    val quiet = !state.loading && !state.failed && state.forums.isNotEmpty() && waiting == 0
+    // Every forum connected: the cards say it all.
+    if (quiet) return
     Column(
-        Modifier.widthIn(max = 560.dp).padding(vertical = 24.dp),
+        Modifier.widthIn(max = 560.dp).padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             stringResource(R.string.connect_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
         )
         Spacer(Modifier.height(8.dp))
         val text =
@@ -127,7 +135,6 @@ private fun Heading(
             }
         Text(text, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
-        val waiting = state.notConnected.size
         when {
             state.loading -> {
                 CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -153,17 +160,36 @@ private fun Heading(
 @Composable
 private fun ForumRow(
     forum: GroupForum,
+    unread: Int,
     connecting: Boolean,
     busy: Boolean,
     onEvent: (ConnectForumsEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // A forum not connected is no link yet, and not faded either: Connect is its action.
+    if (forum.connected) {
+        OutlinedCard(
+            onClick = { onEvent(ConnectForumsEvent.Enter(forum)) },
+            enabled = !busy,
+            modifier = modifier.fillMaxWidth(),
+        ) { ForumCardContent(forum, unread, connecting, busy, onEvent) }
+    } else {
+        OutlinedCard(modifier.fillMaxWidth()) {
+            ForumCardContent(forum, unread, connecting, busy, onEvent)
+        }
+    }
+}
+
+@Composable
+private fun ForumCardContent(
+    forum: GroupForum,
+    unread: Int,
+    connecting: Boolean,
+    busy: Boolean,
+    onEvent: (ConnectForumsEvent) -> Unit,
+) {
     Row(
-        modifier
-            .fillMaxWidth()
-            .clickable(enabled = forum.connected && !busy) {
-                onEvent(ConnectForumsEvent.Enter(forum))
-            }.padding(vertical = 12.dp),
+        Modifier.padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -175,17 +201,23 @@ private fun ForumRow(
         Column(Modifier.weight(1f)) {
             Text(forum.name, style = MaterialTheme.typography.titleMedium)
             val status =
-                if (forum.connected) R.string.connect_connected else R.string.connect_not_connected
-            Text(
-                stringResource(status),
-                style = MaterialTheme.typography.bodyMedium,
-                color =
-                    if (forum.connected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-            )
+                when {
+                    !forum.connected -> stringResource(R.string.connect_not_connected)
+                    unread > 0 -> pluralStringResource(R.plurals.inbox_new_messages, unread, unread)
+                    else -> null
+                }
+            if (status != null) {
+                Text(
+                    status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color =
+                        if (forum.connected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                )
+            }
         }
         when {
             connecting -> {
