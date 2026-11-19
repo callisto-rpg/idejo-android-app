@@ -54,13 +54,16 @@ sealed interface Launch {
  * session is open at a time, the inbox's or a forum's.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Suppress("TooManyFunctions") // One per thing done to the forums held, each small.
+// One per thing done to the forums held, each small; and what every session shares.
+@Suppress("TooManyFunctions", "LongParameterList")
 class SessionManager(
     private val store: ForumStore,
     private val vault: TokenVault,
     private val http: OkHttpClient,
     private val scope: CoroutineScope,
     socketDispatcher: CoroutineDispatcher,
+    /** What each forum last answered, for offline (OF-01). */
+    private val pages: PageCache? = null,
     /** For tests and the fake server: an http address kept as it is. */
     private val addressOf: (String) -> ForumAddress = ::httpsAddress,
 ) {
@@ -75,6 +78,8 @@ class SessionManager(
             override suspend fun signedOut(session: ForumSession) = markSignedOut(session)
 
             override suspend fun serverRead(server: Server) = keepTheme(server)
+
+            override val cache: PageCache? get() = pages
         }
 
     private val mutableSignedOut = MutableSharedFlow<String>(extraBufferCapacity = SIGNED_OUT)

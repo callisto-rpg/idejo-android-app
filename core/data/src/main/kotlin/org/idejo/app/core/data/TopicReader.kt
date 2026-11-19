@@ -282,9 +282,9 @@ class TopicReader(
         messageId: String?,
         end: Boolean = false,
     ) {
-        val topic = session.call { topic(topicId) }.named()
+        val topic = session.cached(PageCache.TOPIC + topicId) { topic(topicId) }.named()
         val window =
-            session.call {
+            session.cached(PageCache.WINDOW + topicId) {
                 when {
                     end -> messages(topicId)
                     messageId != null -> messages(topicId, around = messageId)

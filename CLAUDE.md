@@ -459,7 +459,13 @@ Done so far: drafts (OF-03, NF-07: `Drafts` in core/data, one file per forum and
 written on its own thread at each change and renamed into place; the composer keeps the
 text after what the server holds and puts it back after the open message without sending
 `typing`, the new-topic form its title and body; a forum the app lets go of,
-`SessionManager.forgotten`, loses its drafts).
+`SessionManager.forgotten`, loses its drafts); the saved pages (OF-01: `PageCache`, Room in
+core/data, one row per forum and request read through `ForumSession.cached`: server, me,
+categories, the home page's topics, the sidebar's lists, Unread, the last 20 topics with
+their windows, user cards; least recently shown first out within App settings' storage
+limit; forgotten with the forum, emptied by **Clear cache**) and the offline bar (OF-02:
+`OfflineBar` over the page while `ForumSession.savedCopy` says a saved copy is shown, the
+forum not answering or answering 5xx).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);

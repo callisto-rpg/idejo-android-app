@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // The forums the app holds (ForumStore), their tokens sealed with a Keystore key
-// (TokenVault, SI-04), one ForumSession per forum, and the SessionManager. The Room cache
-// comes with OF-01 (M5; steward decision, 2026-11-14).
+// (TokenVault, SI-04), one ForumSession per forum, the SessionManager, and the Room cache
+// of what each forum last answered (OF-01).
 plugins {
     id("idejo.android.library")
     id("idejo.android.hilt")
@@ -19,8 +19,12 @@ dependencies {
     api(project(":core:realtime"))
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.robolectric)
 }

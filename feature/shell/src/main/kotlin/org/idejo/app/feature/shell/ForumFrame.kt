@@ -136,6 +136,8 @@ fun ForumFrame(
             modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
             page = {
                 Column(Modifier.fillMaxSize()) {
+                    // A saved copy on screen while the forum cannot be reached (OF-02).
+                    OfflineBar(shell.savedCopy)
                     // In the page's flow, so it never covers the composer (NT-07).
                     PushBar(
                         offered = shell.pushBarOffered,

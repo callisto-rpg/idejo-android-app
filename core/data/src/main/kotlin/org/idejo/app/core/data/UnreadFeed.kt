@@ -41,7 +41,8 @@ class UnreadFeed(
     private val following = MutableStateFlow<List<Topic>>(emptyList())
     private val others =
         Pages<Topic>(scope, key = { it.id }) { cursor ->
-            session.call { unread(cursor) }.map { unread ->
+            val key = cursor?.let { "unread:$it" } ?: "unread"
+            session.cached(key) { unread(cursor) }.map { unread ->
                 // Conversations never show in Unread (PC-04), whatever a server sends.
                 if (cursor == null) following.value = unread.following.filterNot { it.private }
                 unread.others.copy(data = unread.others.data.filterNot { it.private })

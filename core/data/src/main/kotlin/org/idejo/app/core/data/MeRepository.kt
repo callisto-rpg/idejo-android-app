@@ -29,7 +29,7 @@ class MeRepository internal constructor(
     /** Reads `GET /me` again and publishes it. A visitor has no `/me`: nothing is called. */
     suspend fun refresh(): ApiResult<Me>? {
         if (session.access.value != Access.SignedIn) return null
-        return session.call { me() }.also(::publish)
+        return session.cached("me") { me() }.also(::publish)
     }
 
     /** [refresh] only when nothing was read yet: what pages that only show the member call. */

@@ -12,6 +12,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.idejo.app.core.api.IdejoHttp
@@ -62,7 +63,22 @@ object DataModule {
         vault: TokenVault,
         http: OkHttpClient,
         @AppScope scope: CoroutineScope,
-    ): SessionManager = SessionManager(store, vault, http, scope, Dispatchers.Default)
+        pages: PageCache,
+    ): SessionManager =
+        SessionManager(store, vault, http, scope, Dispatchers.Default, pages).also { manager ->
+            scope.launch { manager.forgotten.collect { pages.forget(it) } }
+        }
+
+    /** The forums' last answers (OF-01), within App settings' storage limit (ST-21). */
+    @Provides
+    @Singleton
+    fun pages(
+        @ApplicationContext context: Context,
+        choices: AppChoices,
+    ): PageCache =
+        PageCache(PageCache.database(context).pages(), limitBytes = {
+            choices.cacheLimitMb.first() * MEGABYTE
+        })
 
     @Provides
     @Singleton
@@ -148,3 +164,5 @@ object DataModule {
     @Singleton
     fun pendingLinks(): PendingLinks = PendingLinks()
 }
+
+private const val MEGABYTE = 1024L * 1024L

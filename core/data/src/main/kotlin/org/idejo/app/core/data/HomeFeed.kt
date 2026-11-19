@@ -53,8 +53,8 @@ class HomeFeed(
 
     private suspend fun load(expanded: Boolean) =
         coroutineScope {
-            val categories = async { session.call { categories() } }
-            val active = async { session.call { activeTopics(expanded) } }
+            val categories = async { session.cached("categories") { categories() } }
+            val active = async { session.cached("active:$expanded") { activeTopics(expanded) } }
             val read = categories.await()
             val topics = active.await()
             when {

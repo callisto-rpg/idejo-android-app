@@ -8,6 +8,7 @@ import coil3.SingletonImageLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.idejo.app.core.data.PageCache
 import java.io.File
 import javax.inject.Inject
 
@@ -19,18 +20,23 @@ interface AppCache {
 }
 
 /**
- * The app's cache folder: the image cache (Coil's, cleared through it), pictures handed to
- * other apps, the WebViews' files. Pictures taken for a message not sent yet stay.
+ * The app's cache folder and the forums' saved pages (OF-01): the image cache (Coil's,
+ * cleared through it), pictures handed to other apps, the WebViews' files. Pictures taken
+ * for a message not sent yet stay, and so do drafts (OF-03).
  */
 class AppCacheFolder
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val pages: PageCache,
     ) : AppCache {
-        override suspend fun size(): Long = withContext(Dispatchers.IO) { context.cacheDir.bytes() }
+        override suspend fun size(): Long =
+            withContext(Dispatchers.IO) { context.cacheDir.bytes() + pages.bytes() }
 
         override suspend fun clear() =
             withContext(Dispatchers.IO) {
+                // The forums' saved pages too (OF-01); drafts are not cache and stay.
+                pages.clear()
                 val images = SingletonImageLoader.get(context)
                 images.memoryCache?.clear()
                 images.diskCache?.clear()

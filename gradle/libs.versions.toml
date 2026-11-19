@@ -19,6 +19,7 @@ detekt = "1.23.8"
 licensee = "1.14.1"
 roborazzi = "1.79.0"
 robolectric = "4.18"
+room = "2.8.5"
 kotlinx-serialization = "1.13.0"
 kotlinx-coroutines = "1.11.0"
 okhttp = "5.5.1"
@@ -52,6 +53,9 @@ compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
