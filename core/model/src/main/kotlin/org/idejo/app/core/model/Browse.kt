@@ -58,6 +58,11 @@ data class UserCard(
     @SerialName("joined_at") val joinedAt: Time? = null,
     @SerialName("ignored_by_me") val ignoredByMe: Boolean? = null,
     @SerialName("may_message") val mayMessage: Boolean = false,
+    /**
+     * With a chat service (IX-04): the person's idejo ID, when the member may write to them
+     * there; the conversation starts on the inbox (IB-07). Null otherwise.
+     */
+    @SerialName("idejo_id") val idejoId: String? = null,
     val deleted: Boolean = false,
     val system: Boolean = false,
 )

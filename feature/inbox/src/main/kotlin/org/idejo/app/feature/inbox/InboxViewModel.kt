@@ -133,7 +133,7 @@ class InboxViewModel
         /** In its forum, as a tapped notification is (NT-04): the link waits for its screen. */
         private fun open(item: ForumTopic) {
             val url = item.topic.url ?: "${item.origin.trimEnd('/')}/t/${item.topic.id}"
-            links.offer(PendingLink(item.origin, url))
+            links.offer(PendingLink(item.origin, url, fromInbox = true))
             viewModelScope.launch { sessions.enter(item.origin) }
         }
     }

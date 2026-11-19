@@ -35,7 +35,6 @@ import org.idejo.app.core.designsystem.theme.DisplayChoices
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.feature.composer.SharedImages
-import org.idejo.app.feature.inbox.InboxRoute
 import org.idejo.app.feature.onboarding.OnboardingFlow
 import javax.inject.Inject
 
@@ -93,7 +92,7 @@ class MainActivity : ComponentActivity() {
 
                 is Launch.Inbox -> {
                     IdejoTheme(display = display) {
-                        key(current.session) { InboxRoute() }
+                        key(current.session) { InboxApp(current.session) }
                     }
                 }
             }

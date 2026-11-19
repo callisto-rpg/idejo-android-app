@@ -46,6 +46,12 @@ data class OAuthInfo(
 @Serializable
 data class CommunityInfo(
     @SerialName("directory_url") val directoryUrl: String? = null,
+    /**
+     * The group's chat service, where members linked to idejo ID keep their private
+     * conversations (IX-04, idejo 0.3.18), or null; [inboxUrl] is the inbox it belongs to.
+     */
+    @SerialName("chat_url") val chatUrl: String? = null,
+    @SerialName("inbox_url") val inboxUrl: String? = null,
 )
 
 @Serializable

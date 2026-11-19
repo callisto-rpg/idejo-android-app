@@ -29,7 +29,12 @@ class InboxScreenTest {
     @Test
     fun `IB-01 the breadcrumb follows the tab, three tabs`() {
         rule.setContent {
-            InboxScreen(state, forums = { Text("forums page") }, topics = { Text("topics page") })
+            InboxScreen(
+                state,
+                forums = { Text("forums page") },
+                topics = { Text("topics page") },
+                chats = { Text("chats page") },
+            )
         }
         // The breadcrumb and the tab.
         rule.onAllNodesWithText("Forums").assertCountEquals(2)
@@ -40,9 +45,20 @@ class InboxScreenTest {
         rule.onAllNodesWithText("Topics").assertCountEquals(2)
         rule.onNodeWithText("Chats").performClick()
         rule.waitForIdle()
-        rule
-            .onNodeWithText("Your private conversations come here in a later version of the app.")
-            .assertExists()
+        rule.onNodeWithText("chats page").assertExists()
+        rule.onAllNodesWithText("Chats").assertCountEquals(2)
+    }
+
+    @Test
+    fun `IB-06 a chat under the breadcrumb Chats and its name, both leading back`() {
+        var back = 0
+        rule.setContent {
+            ChatFrame("idejo", null, "Bo Garden", onBack = { back++ }) { Text("the topic page") }
+        }
+        rule.onNodeWithText("the topic page").assertExists()
+        rule.onNodeWithText("Bo Garden").assertExists()
+        rule.onNodeWithText("Chats").performClick()
+        assertEquals(1, back)
     }
 
     @Test

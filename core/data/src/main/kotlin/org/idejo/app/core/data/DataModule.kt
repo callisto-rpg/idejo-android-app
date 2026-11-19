@@ -104,8 +104,17 @@ object DataModule {
     @Singleton
     fun foreground(
         sessions: SessionManager,
+        topics: InboxTopics,
         @AppScope scope: CoroutineScope,
-    ): ForegroundSockets = ForegroundSockets(sessions, scope)
+    ): ForegroundSockets = ForegroundSockets(sessions, scope, InboxSockets(sessions, topics, scope))
+
+    /** **Private Message** through the inbox's Chats (IB-07). */
+    @Provides
+    @Singleton
+    fun inboxChats(
+        sessions: SessionManager,
+        links: PendingLinks,
+    ): InboxChats = InboxChats(sessions, links)
 
     /** The address a tapped notification opens (NT-04). */
     @Provides

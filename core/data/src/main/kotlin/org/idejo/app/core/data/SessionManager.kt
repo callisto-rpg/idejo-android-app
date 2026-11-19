@@ -27,6 +27,8 @@ import org.idejo.app.core.api.OAuthClient
 import org.idejo.app.core.model.Community
 import org.idejo.app.core.model.Server
 import org.idejo.app.core.model.TokenGrant
+import org.idejo.app.core.realtime.OkHttpTransport
+import org.idejo.app.core.realtime.PhoenixSocket
 
 /** What the app shows first. */
 sealed interface Launch {
@@ -86,8 +88,18 @@ class SessionManager(
     private val mutableLaunch = MutableStateFlow<Launch>(Launch.Loading)
     val launch: StateFlow<Launch> = mutableLaunch.asStateFlow()
 
-    /** The forum open, if any. */
-    val active: ForumSession? get() = (mutableLaunch.value as? Launch.Forum)?.session
+    /**
+     * The session open, if any: a forum's, or in idejo ID mode the inbox's, whose Chats are
+     * its private conversations on its own topic pages (IB-06), its socket and push as any
+     * forum's.
+     */
+    val active: ForumSession?
+        get() =
+            when (val launch = mutableLaunch.value) {
+                is Launch.Forum -> launch.session
+                is Launch.Inbox -> launch.session
+                else -> null
+            }
 
     /** The inbox, while it is on screen. */
     val inbox: ForumSession? get() = (mutableLaunch.value as? Launch.Inbox)?.session
@@ -166,6 +178,24 @@ class SessionManager(
         val token = vault.open(record.sealedToken) ?: return null
         val base = record.discovery.api?.base ?: ForumSession.DEFAULT_BASE
         return ForumApi(addressOf(record.origin), base, { token }, http).request()
+    }
+
+    /**
+     * A socket to the held forum at [origin], with that forum's own token, outside its
+     * session: the inbox listens to every connected forum's `user:me` (IB-05). Not connected
+     * yet; null when the app holds no token there.
+     */
+    suspend fun socketFor(
+        origin: String,
+        scope: CoroutineScope,
+    ): PhoenixSocket? {
+        val record = store.current().forum(origin) ?: return null
+        val token = vault.open(record.sealedToken) ?: return null
+        val path = record.discovery.api?.socket ?: ForumSession.DEFAULT_SOCKET
+        return PhoenixSocket(
+            OkHttpTransport(addressOf(record.origin), path, { token }, http),
+            scope,
+        )
     }
 
     /** The group's forums at [origins] were shown to the member (SI-07). */

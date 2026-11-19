@@ -411,6 +411,13 @@ Docker image) are added with them.
   session makes each one tap). One session is open at a time, the inbox's (`Launch.Inbox`)
   or a forum's; Back on a forum's first page leads to the inbox. Single-forum mode is
   unchanged. Push registers the open forum only, until push for every connected forum.
+- 2026-11-19 — In idejo ID mode a forum with a chat service (IX-04, callisto-rpg/Idejo#374:
+  discovery's `community.chat_url` and `inbox_url`, user cards' `idejo_id`, the inbox's
+  `POST /conversations` `{subject}`) shows **Private Message** as the web does, by the idejo
+  ID, and starts the conversation on the inbox, which opens at it in **Chats**; outside idejo
+  ID mode the web's link opens in a Custom Tab. The inbox's chats use the topic page as any
+  forum's conversations, so the inbox's session is `SessionManager.active` while it is shown
+  (its socket connects and push may register it).
 
 ## Milestones (spec §26)
 
@@ -434,7 +441,11 @@ group's directory at discovery's `community.directory_url`, `DirectoryClient` in
 `/users/oidc`; the inbox (IB-01 to IB-03: `InboxRoute` with **Forums**, **Topics** and
 **Chats** tabs; `InboxTopics` in core/data reads every connected forum with its own token,
 `SessionManager.signedIn`, as IB-04 says; a topic tapped opens in its forum through
-`PendingLinks`). IB-05's sockets, IB-06's Chats and IB-08's back stack come next.
+`PendingLinks`); live (IB-05: `InboxSockets`, one socket per connected forum while the
+inbox is on screen); **Chats** (IB-06: the inbox's own conversations, `InboxApp` in app, the
+inbox's back stack, its session `SessionManager.active` while shown); **Private Message**
+through the inbox (IB-07: `InboxChats`, with idejo 0.3.18's IX-04); Back from a topic
+opened from Topics returns to the inbox (IB-08: `PendingLink.fromInbox`).
 M3 closed on 2026-11-19 (steward): Profile and account with Profile
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
@@ -454,6 +465,7 @@ The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links
 (the home page's Expanded view), #360 (Getting started), #361 (Help's commands), #362 (the
 window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the
 reader's last message), #370 (category icons, `mark_colour`), #371 (followed topics),
-#372 (the composer and controls choices; the app falls back without it) and #373 (the push
-VAPID key; without it the `play` build's FCM cannot register) (Steward decisions,
+#372 (the composer and controls choices; the app falls back without it), #373 (the push
+VAPID key; without it the `play` build's FCM cannot register) and #374 (the chat service,
+IX-04; without it Private Message stays the forum's own) (Steward decisions,
 2026-11-14 to 2026-11-18).

@@ -139,12 +139,15 @@ private fun NavGraphBuilder.cards(navigation: NavHostController) {
     dialog<UserCardDialog>(
         dialogProperties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        val context = LocalContext.current
         UserCardRoute(
             onClose = { navigation.popBackStack() },
             onConversation = { id ->
                 navigation.popBackStack()
                 navigation.go(Place.Topic(id, private = true))
             },
+            // The chat service's link outside idejo ID mode (PC-02): absolute, https.
+            onLink = { context.openLink(it, it) },
         )
     }
     inlineCard(navigation)
@@ -153,7 +156,7 @@ private fun NavGraphBuilder.cards(navigation: NavHostController) {
 }
 
 /** The forward card (CO-17): the target chosen opens with the message over its composer. */
-private fun NavGraphBuilder.forwardCard(navigation: NavHostController) =
+internal fun NavGraphBuilder.forwardCard(navigation: NavHostController) =
     dialog<ForwardDialog> { entry ->
         ForwardRoute(
             onPick = { target ->

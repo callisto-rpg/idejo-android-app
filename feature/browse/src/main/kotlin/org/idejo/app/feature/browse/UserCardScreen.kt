@@ -50,10 +50,18 @@ fun UserCardRoute(
     onClose: () -> Unit,
     onConversation: (String) -> Unit,
     viewModel: UserCardViewModel = hiltViewModel(),
+    onLink: (String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val opened by rememberUpdatedState(onConversation)
+    val link by rememberUpdatedState(onLink)
     LaunchedEffect(state.conversation) { state.conversation?.let { opened(it) } }
+    LaunchedEffect(state.outside) {
+        state.outside?.let {
+            link(it)
+            viewModel.outsideOpened()
+        }
+    }
     UserCardScreen(
         state,
         onIgnore = viewModel::ignore,
@@ -110,7 +118,7 @@ private fun Card(
     if (card.roles.isNotEmpty()) Roles(card)
     card.bioMd?.takeIf { it.isNotBlank() }?.let { Bio(it) }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (card.mayMessage) {
+        if (state.mayMessage) {
             Button(onClick = onMessage, enabled = !state.busy) {
                 Text(stringResource(R.string.user_private_message))
             }

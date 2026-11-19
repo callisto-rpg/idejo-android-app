@@ -176,7 +176,7 @@ class ForumSession internal constructor(
 
     internal companion object {
         const val DEFAULT_BASE = "/api/v1"
-        private const val DEFAULT_SOCKET = "/api/v1/socket"
+        internal const val DEFAULT_SOCKET = "/api/v1/socket"
         private const val EVENTS = 64
     }
 }

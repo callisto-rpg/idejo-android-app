@@ -34,7 +34,6 @@ SPDX-License-Identifier: Apache-2.0
     <string name="inbox_tab_forums">Forums</string>
     <string name="inbox_tab_topics">Topics</string>
     <string name="inbox_tab_chats">Chats</string>
-    <string name="inbox_chats_soon">Your private conversations come here in a later version of the app.</string>
     <plurals name="inbox_new_messages">
         <item quantity="one">1 new message</item>
         <item quantity="other">%d new messages</item>
