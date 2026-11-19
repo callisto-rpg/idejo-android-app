@@ -25,6 +25,7 @@ import org.idejo.app.feature.settings.R
 import org.idejo.app.feature.settings.parts.ErrorState
 import org.idejo.app.feature.settings.parts.LoadingState
 import org.idejo.app.feature.settings.parts.ProblemText
+import org.idejo.app.feature.settings.parts.SaveForAllForums
 import org.idejo.app.feature.settings.parts.SectionHeader
 import org.idejo.app.feature.settings.parts.SwitchRow
 
@@ -65,7 +66,7 @@ fun MessageControlsRoute(
     viewModel: MessageControlsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    MessageControlsScreen(state, viewModel::onEvent, modifier)
+    MessageControlsScreen(state, viewModel::onEvent, modifier) { SaveForAllForums(it) }
 }
 
 @Composable
@@ -73,6 +74,7 @@ fun MessageControlsScreen(
     state: MessageControlsUiState,
     onEvent: (MessageControlsEvent) -> Unit,
     modifier: Modifier = Modifier,
+    everywhere: @Composable (sections: List<String>) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         SectionHeader(stringResource(R.string.message_controls))
@@ -110,6 +112,7 @@ fun MessageControlsScreen(
                         onCheckedChange = { onEvent(MessageControlsEvent.OnDesktop(it)) },
                     )
                 }
+                everywhere(listOf("controls"))
                 state.problem?.let { ProblemText(it) }
             }
         }

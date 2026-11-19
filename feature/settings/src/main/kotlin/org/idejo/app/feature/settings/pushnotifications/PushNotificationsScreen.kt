@@ -33,6 +33,7 @@ import org.idejo.app.feature.settings.parts.ActionRow
 import org.idejo.app.feature.settings.parts.ErrorState
 import org.idejo.app.feature.settings.parts.LoadingState
 import org.idejo.app.feature.settings.parts.ProblemText
+import org.idejo.app.feature.settings.parts.SaveForAllForums
 import org.idejo.app.feature.settings.parts.SectionHeader
 import org.idejo.app.feature.settings.parts.SwitchRow
 import org.idejo.app.feature.settings.parts.day
@@ -114,7 +115,7 @@ fun PushNotificationsRoute(
     viewModel: PushNotificationsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    PushNotificationsScreen(state, viewModel::onEvent, modifier)
+    PushNotificationsScreen(state, viewModel::onEvent, modifier) { SaveForAllForums(it) }
 }
 
 @Composable
@@ -122,6 +123,7 @@ fun PushNotificationsScreen(
     state: PushNotificationsUiState,
     onEvent: (PushNotificationsEvent) -> Unit,
     modifier: Modifier = Modifier,
+    everywhere: @Composable (sections: List<String>) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         SectionHeader(stringResource(R.string.push_notifications))
@@ -144,6 +146,7 @@ fun PushNotificationsScreen(
                 )
                 ThisDevice(state.device, onEvent)
                 state.push?.let { push -> Choices(push, state, onEvent) }
+                everywhere(listOf("push"))
                 Devices(state, onEvent)
                 Test(state, onEvent)
                 state.problem?.let { ProblemText(it) }

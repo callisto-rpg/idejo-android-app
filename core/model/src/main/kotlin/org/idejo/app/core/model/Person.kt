@@ -82,6 +82,24 @@ data class Me(
     val administrator: Boolean = false,
     val moderator: Boolean = false,
     @SerialName("server_moderator") val serverModerator: Boolean = false,
+    /**
+     * On a group's inbox, for a member linked to its provider: **Save for all forums** is
+     * offered (ST-07, IX-17); false elsewhere and from older servers.
+     */
+    val everywhere: Boolean = false,
+)
+
+/** `POST /me/everywhere` (ST-07, IX-17): the inbox's [sections], saved on every forum. */
+@Serializable
+data class EverywhereRequest(
+    val sections: List<String>,
+)
+
+/** What `POST /me/everywhere` answers: the forums' names, saved and missed. */
+@Serializable
+data class EverywhereResult(
+    val saved: List<String> = emptyList(),
+    val missed: List<String> = emptyList(),
 )
 
 /**

@@ -435,8 +435,12 @@ Docker image) are added with them.
 - 2026-11-19 — Linked members (ST-07): idejo's `GET /me` does not say whether the member came
   with their idejo ID, so a forum counts as linked when the inbox's `GET /me/communities`
   lists it. Its Profile and account says the settings apply only there, with **Settings for
-  all forums**, the inbox's own Profile and account. **Save for all forums** waits for the
-  inbox's API: the web saves through the group's service, which API v1 does not offer.
+  all forums**, the inbox's own Profile and account. There, **Save for all forums** (IX-17,
+  callisto-rpg/Idejo#375, idejo 0.3.19) shows under each section while the inbox's `GET /me`
+  says `everywhere` (`SaveForAllForums`, through each section screen's `everywhere` slot,
+  filled by its route): one button for all of Profile (`profile`, `bio`, `avatar`), since
+  the app saves each change at once; never the username, which the web sends only after
+  the password.
 
 ## Milestones (spec §26)
 

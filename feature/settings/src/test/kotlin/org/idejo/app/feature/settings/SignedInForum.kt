@@ -111,6 +111,17 @@ class SignedInForum : ExternalResource() {
             requireNotNull(sessions.active)
         }
 
+    /** idejo ID mode, as [linked], with the inbox open and its `GET /me` read. */
+    fun onInbox(): ForumSession =
+        runBlocking {
+            linked()
+            sessions.openInbox()
+            val session = requireNotNull(sessions.active)
+            check(session.origin == inbox.address.toString())
+            session.me.refresh()
+            session
+        }
+
     /** The server stops answering: the next calls fail as offline. */
     fun goOffline() = fake.close()
 }
