@@ -70,4 +70,5 @@ SPDX-License-Identifier: Apache-2.0
     <string name="find_none">No forum matches “%1$s”.</string>
     <string name="find_failed">The directory did not answer. Try again in a moment.</string>
     <string name="connect_not_connected">Not connected</string>
+    <string name="inbox_profile_and_account">Profile and account</string>
 </resources>

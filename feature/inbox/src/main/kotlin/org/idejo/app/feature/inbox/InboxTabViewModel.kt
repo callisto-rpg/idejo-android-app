@@ -27,7 +27,7 @@ class InboxTabViewModel
         private val places: LastPlaces,
     ) : ViewModel() {
         /** Where the logo menu sent the member, taken once. */
-        val opening: InboxShortcut? = shortcuts.take { it !is InboxShortcut.Connect }
+        val opening: InboxShortcut? = shortcuts.take { it in TABS }
 
         /** The tab shown first: **Forums**, unless the logo menu asked for another. */
         val firstTab: InboxTab
@@ -56,3 +56,6 @@ class InboxTabViewModel
             viewModelScope.launch { places.keepInboxTab(tab.name) }
         }
     }
+
+/** The shortcuts this screen takes; Connect is the Forums tab's, Settings the app's. */
+private val TABS = setOf(InboxShortcut.Topics, InboxShortcut.Chats, InboxShortcut.FindForums)

@@ -47,12 +47,53 @@ fun ChatFrameRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatFrame(
     inbox: String,
     logoUrl: String?,
     title: String?,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) = InboxFrame(
+    inbox,
+    logoUrl,
+    listOfNotNull(
+        Crumb.Page(stringResource(R.string.inbox_tab_chats), onClick = onBack),
+        title?.let { Crumb.Page(it) },
+    ),
+    onBack,
+    modifier,
+    content,
+)
+
+/**
+ * Another page of the inbox: its **Profile and account** (ST-07), under the breadcrumb
+ * "› Profile and account"; the logo leads back to the tabs.
+ */
+@Composable
+fun InboxPageRoute(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: ConversationsViewModel = hiltViewModel(),
+    content: @Composable () -> Unit,
+) = InboxFrame(
+    viewModel.forumName,
+    viewModel.logoUrl,
+    listOf(Crumb.Page(title)),
+    onBack,
+    modifier,
+    content,
+)
+
+/** The inbox's top bar over a page: its logo (back to the tabs), then [pages]. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InboxFrame(
+    inbox: String,
+    logoUrl: String?,
+    pages: List<Crumb>,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -65,24 +106,16 @@ fun ChatFrame(
         ) {
             TopBar(
                 crumbs =
-                    listOfNotNull(
+                    listOf(
                         Crumb.Forum(
                             inbox,
                             onClick = onBack,
                             logo =
                                 logoUrl?.let {
-                                    {
-                                        AsyncImage(
-                                            it,
-                                            null,
-                                            Modifier.fillMaxSize(),
-                                        )
-                                    }
+                                    { AsyncImage(it, null, Modifier.fillMaxSize()) }
                                 },
                         ),
-                        Crumb.Page(stringResource(R.string.inbox_tab_chats), onClick = onBack),
-                        title?.let { Crumb.Page(it) },
-                    ),
+                    ) + pages,
             )
             Box(Modifier.weight(1f)) { content() }
         }

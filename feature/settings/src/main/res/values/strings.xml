@@ -136,6 +136,9 @@ SPDX-License-Identifier: Apache-2.0
     <string name="delete_account_open">Delete my account…</string>
     <!-- App settings → About (ST-23). -->
     <!-- App settings on this device (ST-20 to ST-22). -->
+    <!-- ST-07, the web's words. -->
+    <string name="settings_only_here">These settings apply only to %1$s. To change them for all your forums at once, use your settings for all forums.</string>
+    <string name="settings_all_forums">Settings for all forums</string>
     <string name="app_mode">Mode</string>
     <string name="app_mode_note">With your idejo ID, the app keeps your group\'s inbox and every forum you joined. With one forum, it keeps that forum only.</string>
     <string name="app_mode_idejo_id">idejo ID: your inbox and all your forums</string>
