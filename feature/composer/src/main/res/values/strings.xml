@@ -9,6 +9,7 @@ SPDX-License-Identifier: Apache-2.0
     <string name="composer_placeholder">Enter: send · Ctrl+Enter / Enter×3: New message</string>
     <!-- CO-05: the status bubble beside the picture. -->
     <string name="composer_unsent">unsent</string>
+    <string name="composer_will_send">Will send when you\'re back online</string>
     <string name="composer_sent">sent</string>
     <string name="composer_appends">sent, appends unsent</string>
     <string name="composer_committed">sent &amp; committed</string>

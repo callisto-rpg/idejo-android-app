@@ -10,6 +10,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -73,6 +75,15 @@ class ComposerViewModel
 
         init {
             composer?.refresh()
+            // OF-04: what waited for the forum goes when it answers again.
+            session?.let { forum ->
+                viewModelScope.launch {
+                    forum.offline
+                        .drop(1)
+                        .filter { !it }
+                        .collect { composer?.backOnline() }
+                }
+            }
             // A message forwarded here from the forward card (CO-17), once.
             val forward: String? = savedState["forward"]
             if (forward != null && savedState.get<Boolean>(FORWARDED) != true) {

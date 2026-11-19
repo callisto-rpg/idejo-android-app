@@ -468,7 +468,10 @@ limit; forgotten with the forum, emptied by **Clear cache**) and the offline bar
 forum not answering or answering 5xx); nothing else queued offline (OF-05: `ForumSession.offline`, set by any call the forum
 does not answer and cleared by any it does, disables the topic's and inline cards' **Follow**,
 reactions, **Vote**, and the sidebar's follows, Unfollow & mute and Mark unread; Android's
-network, `NetworkWatch`, makes the open forum offline when lost and asks it again when back).
+network, `NetworkWatch`, makes the open forum offline when lost and asks it again when back); OF-04:
+an Enter or commit the forum does not answer waits as **Will send when you're back online**
+(`ComposerState.waiting`), and when `offline` clears the composer is read again and the text goes
+once: into the open message if still open, else its unsent part as a new message).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);

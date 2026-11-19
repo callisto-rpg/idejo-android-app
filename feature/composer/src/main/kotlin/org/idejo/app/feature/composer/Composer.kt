@@ -244,6 +244,19 @@ class Composer(
         }
     }
 
+    /**
+     * The forum answers again (OF-04): the composer is read again, then the text waiting
+     * since an Enter found it unreachable goes once. Nothing waiting, nothing is read.
+     */
+    fun backOnline() {
+        if (!state.value.waiting) return
+        scope.launch {
+            val composer = backend.composer().getOrNull() ?: return@launch
+            val open = composer.openMessageId?.let { backend.message(it).getOrNull() }
+            dispatch(ComposerEvent.BackOnline(composer, open, clock()))
+        }
+    }
+
     private fun restore() {
         val slot = draft ?: return
         if (restored) return

@@ -4,6 +4,7 @@
 package org.idejo.app.feature.composer
 
 import org.idejo.app.core.api.ApiProblem
+import org.idejo.app.core.data.unreachable
 import org.idejo.app.core.model.ApiError
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
@@ -31,6 +32,9 @@ enum class ComposerStatus {
 
     /** Editing a closed message: no bubble (CO-18). */
     Editing,
+
+    /** Enter found the forum unreachable: kept, sent once it answers (OF-04). */
+    WillSend,
 }
 
 /** Why the last commit failed (CO-08). Nothing typed is lost either way. */
@@ -98,6 +102,13 @@ data class ComposerState(
     val confirmDelete: Boolean = false,
     /** A reply or forward waiting for the open message's unsent text to go (CO-16). */
     val queuedNew: NewMessage? = null,
+    /**
+     * An Enter found the forum unreachable (OF-04): the text waits, unsent, and goes once as
+     * one commit when the forum answers again; [waitingBreak] when one of the Enters asked
+     * to complete the message.
+     */
+    val waiting: Boolean = false,
+    val waitingBreak: Boolean = false,
 ) {
     /** Slow mode's line, from the server's state (CO-07); none while editing. */
     val line: TimerLine? get() =
@@ -125,6 +136,7 @@ data class ComposerState(
         get() =
             when {
                 editing != null -> ComposerStatus.Editing
+                waiting -> ComposerStatus.WillSend
                 committedId != null && text.isBlank() -> ComposerStatus.SentAndCommitted
                 sent.isEmpty() && text.isBlank() -> ComposerStatus.Empty
                 sent.isEmpty() -> ComposerStatus.Unsent
@@ -155,6 +167,16 @@ sealed interface ComposerEvent {
 
     /** Ctrl+Enter or **Send & start new message**: `break: true` (CO-03). */
     data object Complete : ComposerEvent
+
+    /**
+     * The forum answers again (OF-04), with its composer and the open message as it now is:
+     * the waiting text goes, once.
+     */
+    data class BackOnline(
+        val composer: ServerComposer,
+        val open: Message?,
+        val atMillis: Long = 0,
+    ) : ComposerEvent
 
     /** The commit [attempt] was answered. */
     data class Answered(
@@ -327,6 +349,10 @@ object ComposerMachine {
                 failed(state, event.problem)
             }
 
+            is ComposerEvent.BackOnline -> {
+                backOnline(state.copy(serverAtMillis = event.atMillis), event.composer, event.open)
+            }
+
             is ComposerEvent.Server -> {
                 server(state.copy(serverAtMillis = event.atMillis), event.composer, event.open)
             }
@@ -393,6 +419,10 @@ object ComposerMachine {
             return ComposerStep(state.copy(queuedBreak = queued))
         }
         if (state.editing != null) return ComposerModes.save(state, breakMessage)
+        // Waiting for the forum (OF-04): one commit later, completing if any Enter asked.
+        if (state.waiting) {
+            return ComposerStep(state.copy(waitingBreak = state.waitingBreak || breakMessage))
+        }
         val body = state.text.trimEnd()
         val nothingNew = body == state.sent.trimEnd()
         val nothingOpen = state.openMessageId == null && state.sent.isEmpty()
@@ -467,9 +497,53 @@ object ComposerMachine {
         problem: ApiProblem,
     ): ComposerStep {
         val error = errorOf(problem)
+        val attempt = state.inFlight
+        // No answer to a commit (OF-04): it waits, and goes when the forum is back.
+        if (problem.unreachable && attempt != null && state.editing == null) {
+            return ComposerStep(
+                state.copy(
+                    inFlight = null,
+                    queuedBreak = null,
+                    waiting = true,
+                    waitingBreak =
+                        state.waitingBreak || attempt.breakMessage || state.queuedBreak == true,
+                    error = null,
+                ),
+            )
+        }
         // Nothing typed is ever lost (invariant 4): the text stays, unsent.
         return ComposerStep(
             state.copy(inFlight = null, queuedBreak = null, queuedNew = null, error = error),
+        )
+    }
+
+    /**
+     * OF-04: the composer read again. Into the open message while the server still has it
+     * open, else the text not on the server starts a new message; one commit either way.
+     * A refusal (`too_soon`…) leaves the text in the box with the server's words.
+     */
+    private fun backOnline(
+        state: ComposerState,
+        composer: ServerComposer,
+        open: Message?,
+    ): ComposerStep {
+        if (!state.waiting) return ComposerStep(state.copy(server = composer))
+        val stillOpen =
+            state.openMessageId != null &&
+                composer.openMessageId == state.openMessageId &&
+                open?.id == state.openMessageId
+        val ready =
+            if (stillOpen || state.openMessageId == null) {
+                state
+            } else {
+                val unsent =
+                    (typedSince(state.text, state.sent) ?: state.text).trim()
+                state.copy(text = unsent, sent = "", openMessageId = null, openedAt = null)
+            }
+        val breakMessage = state.waitingBreak
+        return send(
+            ready.copy(server = composer, waiting = false, waitingBreak = false),
+            breakMessage,
         )
     }
 
