@@ -169,4 +169,27 @@ class InboxTopicsTest {
             live.close()
             assertTrue(!live.isOpen(garden.address.toString()))
         }
+
+    @Test
+    fun `IB-07 Private Message in a forum with a chat service starts the inbox's chat`() =
+        runBlocking {
+            inbox.inbox = true
+            inbox.idejoIds =
+                mapOf("u_ada" to "ada-sub", requireNotNull(FakePeople.Mina.id) to "mina-sub")
+            connected(garden)
+            val links = PendingLinks()
+
+            val result = InboxChats(sessions, links).open("mina-sub")
+
+            val id = (result as org.idejo.app.core.api.ApiResult.Success).value.id
+            assertEquals(listOf(FakePeople.Mina.id), result.value.with.map { it.id })
+            assertTrue(sessions.launch.value is Launch.Inbox)
+            val link = requireNotNull(links.take(inbox.address.toString()))
+            assertTrue(link.url.endsWith("/p/$id"))
+
+            // An idejo ID the inbox does not know: refused, nothing opens.
+            val unknown = InboxChats(sessions, links).open("nobody")
+            assertTrue(unknown is org.idejo.app.core.api.ApiResult.Failure)
+            assertEquals(null, links.pending.value)
+        }
 }

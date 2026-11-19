@@ -369,7 +369,11 @@ class ForumApi(
 
     /** **Private Message** (PC-03): the conversation with [userId], started or found. */
     suspend fun startConversation(userId: String): ApiResult<Conversation> =
-        call { startConversation(ConversationStart(userId)) }
+        call { startConversation(ConversationStart(userId = userId)) }
+
+    /** On a group's inbox (IB-07, IX-04): the conversation with idejo ID [subject]. */
+    suspend fun startConversationWith(subject: String): ApiResult<Conversation> =
+        call { startConversation(ConversationStart(subject = subject)) }
 
     /** The member's choices (ST, PC-03): only [patch]'s fields change; answers `GET /me`. */
     suspend fun updateMe(patch: MePatch): ApiResult<Me> = call { updateMe(patch) }

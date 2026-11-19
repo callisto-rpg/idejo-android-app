@@ -52,4 +52,23 @@ class UserCardTest {
         card = leo.copy(mayMessage = false)
         rule.onNodeWithText("Private Message").assertDoesNotExist()
     }
+
+    @Test
+    fun `IB-07 PC-02 with a chat service, Private Message by the idejo ID`() {
+        val chat = "https://my.example.org/chat"
+        var card by mutableStateOf(leo.copy(mayMessage = true, idejoId = null))
+        rule.setContent {
+            UserCardScreen(
+                UserCardUi(card, loading = false, chat = chat),
+                {},
+                {},
+                {},
+            )
+        }
+        // Linked members write at the chat service: no idejo ID, no button, as on the web.
+        rule.onNodeWithText("Private Message").assertDoesNotExist()
+        card = leo.copy(mayMessage = false, idejoId = "leo-sub")
+        rule.onNodeWithText("Private Message").assertExists()
+        assertEquals("$chat/new?with=leo-sub", chatLink(chat, "leo-sub"))
+    }
 }

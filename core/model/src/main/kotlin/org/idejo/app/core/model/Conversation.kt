@@ -39,5 +39,7 @@ data class ConversationLast(
 /** `POST /conversations`: starts or finds the conversation with [userId] (PC-03). */
 @Serializable
 data class ConversationStart(
-    @SerialName("user_id") val userId: String,
+    @SerialName("user_id") val userId: String? = null,
+    /** On a group's inbox: the other person's idejo ID (IX-04, IB-07). */
+    val subject: String? = null,
 )

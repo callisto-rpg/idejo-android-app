@@ -131,6 +131,18 @@ class FakeIdejo(
      */
     @Volatile var directory: List<org.idejo.app.core.model.DirectoryForum>? = null
 
+    /**
+     * The group's chat service (IX-04): its page and its inbox, named by discovery; with it a
+     * user card gives the person's idejo ID ([idejoIds]) when both are linked.
+     */
+    @Volatile var chat: Pair<String, String>? = null
+
+    /** Each person's idejo ID, by person id: those linked to the provider (IX-04). */
+    @Volatile var idejoIds: Map<String, String> = emptyMap()
+
+    /** A group's inbox: `POST /conversations` takes an idejo ID (`subject`, IX-04). */
+    @Volatile var inbox: Boolean = false
+
     /** False plays a server older than idejo 0.3.16: no `GET /me/followed` (IX-02). */
     @Volatile var followedList: Boolean = true
 
@@ -1203,7 +1215,11 @@ class FakeIdejo(
     private fun startConversation(call: Call): MockResponse {
         val viewer = call.viewer ?: return unauthenticated()
         val body = call.request.body?.utf8() ?: "{}"
-        val userId = IdejoJson.decodeFromString<ConversationStart>(body).userId
+        val start = IdejoJson.decodeFromString<ConversationStart>(body)
+        val userId =
+            start.subject?.let { subject ->
+                idejoIds.entries.firstOrNull { it.value == subject && inbox }?.key
+            } ?: start.userId
         val other =
             FakePeople.all
                 .firstOrNull { it.id == userId && it.id != viewer.id }
@@ -1410,10 +1426,14 @@ class FakeIdejo(
                     ),
                 features = listOf("unifiedpush", "polls", "private_messages"),
                 community =
-                    directory?.let {
+                    if (directory != null || chat != null) {
                         org.idejo.app.core.model.CommunityInfo(
-                            url.resolve("$DIRECTORY/").toString(),
+                            directory?.let { url.resolve("$DIRECTORY/").toString() },
+                            chat?.first,
+                            chat?.second,
                         )
+                    } else {
+                        null
                     },
             ),
         )
@@ -1665,6 +1685,14 @@ class FakeIdejo(
                 bioMd = "I grow *tomatoes* and ||secret|| peppers.",
                 ignoredByMe = viewer?.takeIf { it.id != id }?.let { id in reader(it).ignored },
                 mayMessage = viewer != null && viewer.id != id && reader(person).acceptsPrivate,
+                idejoId =
+                    idejoIds[id]?.takeIf {
+                        chat != null &&
+                            viewer != null &&
+                            viewer.id != id &&
+                            viewer.id in idejoIds &&
+                            reader(person).acceptsPrivate
+                    },
             ),
         )
     }
