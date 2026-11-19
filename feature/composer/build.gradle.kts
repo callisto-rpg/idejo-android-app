@@ -6,6 +6,7 @@ plugins {
     id("idejo.android.feature")
     id("idejo.android.hilt")
     id("idejo.android.screenshots")
+    id("idejo.serialization")
 }
 
 android {

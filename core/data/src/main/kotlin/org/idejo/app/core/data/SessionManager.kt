@@ -85,6 +85,14 @@ class SessionManager(
      */
     val signedOut: SharedFlow<String> = mutableSignedOut.asSharedFlow()
 
+    private val mutableForgotten = MutableSharedFlow<String>(extraBufferCapacity = SIGNED_OUT)
+
+    /**
+     * A forum the app lets go of, by its origin: signed out, removed, replaced in single-forum
+     * mode, or left with idejo ID mode. What the device kept of it goes too (its drafts, OF-03).
+     */
+    val forgotten: SharedFlow<String> = mutableForgotten.asSharedFlow()
+
     private val mutableLaunch = MutableStateFlow<Launch>(Launch.Loading)
     val launch: StateFlow<Launch> = mutableLaunch.asStateFlow()
 
@@ -264,7 +272,8 @@ class SessionManager(
 
     /**
      * Signs out of the forum (SI-11): the token revoked on the server, forgotten here; the
-     * forum stays, as a visitor. Its cache, drafts and push registration come with M5 and M3.
+     * forum stays, as a visitor. Its drafts go with it (`forgotten`, OF-03); its cache comes
+     * with M5.
      */
     suspend fun signOut(origin: String) =
         lock.withLock {
@@ -357,6 +366,7 @@ class SessionManager(
         )
 
     private suspend fun revoke(record: ForumRecord) {
+        mutableForgotten.tryEmit(record.origin)
         val token = vault.open(record.sealedToken) ?: return
         val revoke = record.discovery.oauth?.revoke ?: return
         oauth.revoke(addressOf(record.origin), revoke, token)

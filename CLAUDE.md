@@ -448,12 +448,19 @@ Docker image) are added with them.
 - [x] M1 — Read a forum
 - [x] M2 — Write
 - [x] M3 — Notifications and settings
-- [ ] **M4 — idejo ID mode**
-- [ ] M5 — 1.0, web parity
+- [x] M4 — idejo ID mode
+- [ ] **M5 — 1.0, web parity**
 - [ ] M6 — Moderation
 - [ ] M7 — Right sidebar
 
-Current milestone: **M4 — idejo ID mode**: the welcome screen's **Sign in with idejo ID**
+Current milestone: **M5 — 1.0, web parity**: offline (OF), links (DL), the accessibility
+audit (AX), the app's NF targets and the store listings; release on Play, F-Droid and GitHub.
+Done so far: drafts (OF-03, NF-07: `Drafts` in core/data, one file per forum and place,
+written on its own thread at each change and renamed into place; the composer keeps the
+text after what the server holds and puts it back after the open message without sending
+`typing`, the new-topic form its title and body; a forum the app lets go of,
+`SessionManager.forgotten`, loses its drafts).
+M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);
 the joined forums read again at launch and hourly (SI-07: `GroupForums.start`, with
@@ -478,7 +485,10 @@ opens where the menu asked through `InboxShortcuts`; App settings' **Mode** (MD-
 `SessionManager.leaveIdejoId`); the last place opened restored at launch (MD-05:
 `LastPlaces`, `routeOf`/`placeOf` in feature/shell); linked members' note in a forum's
 Profile and account with **Settings for all forums**, the inbox's own Profile and account
-(ST-07: `InboxPageRoute`).
+(ST-07: `InboxPageRoute`) and its **Save for all forums** (IX-17: `SaveForAllForums`); the
+logo's dot for news in the other forums (SH-03: `logoNews`, read again every five minutes
+while a forum is open in idejo ID mode). M4's rest waits for idejo's API: SH-15's **Mark all
+read** (Could).
 M3 closed on 2026-11-19 (steward): Profile and account with Profile
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and
@@ -498,6 +508,7 @@ The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links
 window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the
 reader's last message), #370 (category icons, `mark_colour`), #371 (followed topics),
 #372 (the composer and controls choices; the app falls back without it), #373 (the push
-VAPID key; without it the `play` build's FCM cannot register) and #374 (the chat service,
-IX-04; without it Private Message stays the forum's own) (Steward decisions,
+VAPID key; without it the `play` build's FCM cannot register), #374 (the chat service,
+IX-04; without it Private Message stays the forum's own) and #375 (Save for all forums,
+IX-17, idejo 0.3.19; without it the button does not show) (Steward decisions,
 2026-11-14 to 2026-11-18).

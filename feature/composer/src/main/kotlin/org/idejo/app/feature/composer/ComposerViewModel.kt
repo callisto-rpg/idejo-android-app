@@ -16,6 +16,7 @@ import okhttp3.OkHttpClient
 import org.idejo.app.core.api.GifSearch
 import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.AppChoices
+import org.idejo.app.core.data.Drafts
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.model.Me
@@ -35,6 +36,7 @@ class ComposerViewModel
         choices: AppChoices,
         http: OkHttpClient,
         private val shared: SharedImages,
+        drafts: Drafts,
     ) : ViewModel() {
         private val session = sessions.active?.takeIf { it.access.value == Access.SignedIn }
         val topicId: String = checkNotNull(savedState["id"])
@@ -47,9 +49,12 @@ class ComposerViewModel
         /** Null for visitors: no composer. */
         val composer: Composer? =
             session?.let {
-                Composer(ApiComposerBackend.of(it, topicId), viewModelScope) { provider ->
-                    GifSearch.of(http, provider)
-                }
+                Composer(
+                    ApiComposerBackend.of(it, topicId),
+                    viewModelScope,
+                    gifSearch = { provider -> GifSearch.of(http, provider) },
+                    draft = drafts.slot(it.origin, Drafts.topic(topicId)),
+                )
             }
 
         /** The author, drawn on the composer's head (CO-05), and their choices (ST-02). */
@@ -83,3 +88,14 @@ class ComposerViewModel
     }
 
 private const val FORWARDED = "forwarded"
+
+/** [place]'s draft in [origin], for the composer and the new-topic form (OF-03). */
+fun Drafts.slot(
+    origin: String,
+    place: String,
+): DraftSlot =
+    object : DraftSlot {
+        override fun read() = get(origin, place)
+
+        override fun write(text: String) = put(origin, place, text)
+    }

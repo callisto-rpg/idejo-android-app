@@ -135,6 +135,14 @@ data class ComposerState(
 
 /** What the member did, or what the server said. */
 sealed interface ComposerEvent {
+    /**
+     * The draft kept on the device (OF-03) goes back after the open message: [unsent] after
+     * what the server holds. Not typing: `typing` waits for the member's next change.
+     */
+    data class Restored(
+        val unsent: String,
+    ) : ComposerEvent
+
     /** The box's text changed (typing, pasting, Shift+Enter or **New line**). */
     data class Typed(
         val text: String,
@@ -295,6 +303,10 @@ object ComposerMachine {
         event: ComposerEvent,
     ): ComposerStep =
         when (event) {
+            is ComposerEvent.Restored -> {
+                ComposerStep(restored(state, event.unsent))
+            }
+
             is ComposerEvent.Typed -> {
                 typed(state, event.text)
             }
@@ -494,11 +506,35 @@ object ComposerMachine {
     }
 }
 
+/** The draft after the open message (OF-03), unless the box changed or is not the composer. */
+private fun restored(
+    state: ComposerState,
+    unsent: String,
+): ComposerState =
+    if (state.editing == null && state.draftOver == null && !state.hasUnsent) {
+        state.copy(text = state.sent + unsent)
+    } else {
+        state
+    }
+
 /** What was typed after [body] while it was on its way; null when [body] was changed. */
 private fun typedSince(
     text: String,
     body: String,
 ): String? = if (text.startsWith(body)) text.substring(body.length) else null
+
+/**
+ * What the device keeps of [state] as a draft (OF-03): the text after what the server holds,
+ * or null where nothing is to be kept now (an edit, a reply or forward over the open
+ * message, or the open message changed under the box).
+ */
+fun draftOf(state: ComposerState): String? =
+    when {
+        state.editing != null || state.draftOver != null -> null
+        state.replying != null || state.forwarding != null -> null
+        !state.text.startsWith(state.sent) -> null
+        else -> state.text.removePrefix(state.sent)
+    }
 
 /** The part of [text] that differs from [sent] (CO-04), or null when nothing is unsent. */
 fun unsentRange(

@@ -12,6 +12,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.idejo.app.core.api.IdejoHttp
 import java.io.File
@@ -129,6 +130,18 @@ object DataModule {
         store: ForumStore,
         @AppScope scope: CoroutineScope,
     ): LastPlaces = LastPlaces(sessions, store, scope)
+
+    /** The text typed and not sent (OF-03), dropped with a forum the app lets go of. */
+    @Provides
+    @Singleton
+    fun drafts(
+        @ApplicationContext context: Context,
+        sessions: SessionManager,
+        @AppScope scope: CoroutineScope,
+    ): Drafts =
+        Drafts(File(context.filesDir, "drafts")).also { drafts ->
+            scope.launch { sessions.forgotten.collect { drafts.forget(it) } }
+        }
 
     /** The address a tapped notification opens (NT-04). */
     @Provides

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.api.ForumApi
+import org.idejo.app.core.data.Drafts
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.TopicCreate
@@ -76,11 +77,29 @@ class NewTopic(
     private val backend: NewTopicBackend,
     private val scope: kotlinx.coroutines.CoroutineScope,
     start: NewTopicForm,
+    /** Where the unsent title and first message are kept on the device (OF-03). */
+    private val draft: DraftSlot? = null,
 ) {
-    private val mutable = MutableStateFlow(start)
+    private val mutable = MutableStateFlow(restored(start))
     val form: StateFlow<NewTopicForm> = mutable.asStateFlow()
 
+    /** The kept title and body, unless the route brought its own (a shared text). */
+    private fun restored(start: NewTopicForm): NewTopicForm {
+        if (start.title.isNotEmpty() || start.body.isNotEmpty()) return start
+        val kept = draft?.read()?.let(::readDraft) ?: return start
+        return start.copy(title = kept.title, body = kept.body)
+    }
+
     init {
+        draft?.let { slot ->
+            scope.launch {
+                // Before the next frame (NF-07); gone once the topic is started or waits.
+                mutable.collect { form ->
+                    val done = form.created != null || form.pending != null
+                    slot.write(if (done) "" else writeDraft(form))
+                }
+            }
+        }
         scope.launch {
             val all = (backend.categories() as? ApiResult.Success)?.value.orEmpty()
             val open = all.filter { it.permissions.createTopic && !it.archive }
@@ -177,6 +196,7 @@ class NewTopicViewModel
     constructor(
         savedState: SavedStateHandle,
         sessions: SessionManager,
+        drafts: Drafts,
     ) : ViewModel() {
         private val session = sessions.active
 
@@ -200,6 +220,26 @@ class NewTopicViewModel
                         body = savedState.get<String>("body").orEmpty(),
                         from = savedState["from"],
                     ),
+                    drafts.slot(forum.origin, Drafts.newTopic(savedState["categoryId"])),
                 )
             }
     }
+
+/** The new-topic form's draft (OF-03): its title and first message. */
+@kotlinx.serialization.Serializable
+private data class TopicDraft(
+    val title: String = "",
+    val body: String = "",
+)
+
+private val draftJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+private fun writeDraft(form: NewTopicForm): String =
+    if (form.title.isBlank() && form.body.isBlank()) {
+        ""
+    } else {
+        draftJson.encodeToString(TopicDraft.serializer(), TopicDraft(form.title, form.body))
+    }
+
+private fun readDraft(text: String): TopicDraft? =
+    runCatching { draftJson.decodeFromString(TopicDraft.serializer(), text) }.getOrNull()

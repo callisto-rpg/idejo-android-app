@@ -13,6 +13,8 @@ SPDX-License-Identifier: Apache-2.0
     <!-- Top bar (SH-01, SH-02). -->
     <string name="top_bar_sidebar">Show the sidebar</string>
     <string name="top_bar_forum_menu">%1$s menu</string>
+    <string name="top_bar_news">%1$s, new messages in your other forums</string>
+    <string name="top_bar_news_mention">%1$s, you were mentioned in another of your forums</string>
     <string name="top_bar_new_forum">%1$s, a forum you joined is waiting to be connected</string>
     <string name="top_bar_account">Your account</string>
     <string name="top_bar_unread">Unread</string>
