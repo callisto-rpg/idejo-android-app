@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.idejo.app.core.api.ApiResult
+import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Topic
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -36,6 +37,11 @@ data class InboxTopicsState(
      * replies and mentions only).
      */
     val unread: Map<String, Int> = emptyMap(),
+    /**
+     * Each connected forum's strongest reason for news, by origin, as the sidebar's dots
+     * (SH-12, SH-32): a mention, a reply, a `+role`, new messages; absent without news.
+     */
+    val levels: Map<String, MentionState> = emptyMap(),
     /** Forums that did not answer in time: "Couldn't reach {name}" (IB-04). */
     val unreachable: List<String> = emptyList(),
     val loading: Boolean = true,
@@ -82,6 +88,11 @@ class InboxTopics(
                         .mapNotNull { (forum, found) ->
                             found?.let { forum.origin to it.unread }
                         }.toMap(),
+                levels =
+                    read
+                        .mapNotNull { (forum, found) ->
+                            found?.level?.let { forum.origin to it }
+                        }.toMap(),
                 unreachable = read.filter { it.second == null }.map { it.first.name },
                 loading = false,
             )
@@ -110,6 +121,9 @@ class InboxTopics(
                             }
                     ).sortedByDescending { it.topic.lastActivityAt ?: it.topic.createdAt },
                 unread = state.unread + (origin to found.unread),
+                levels =
+                    found.level?.let { state.levels + (origin to it) }
+                        ?: (state.levels - origin),
                 unreachable = state.unreachable - forum.name,
             )
         }
@@ -118,6 +132,7 @@ class InboxTopics(
     private class Found(
         val unread: Int,
         val topics: List<Topic>,
+        val level: MentionState?,
     )
 
     private suspend fun read(forum: ForumRecord): Found? =
@@ -133,14 +148,21 @@ class InboxTopics(
                     else -> counts.value.following
                 }
             val unreadTopics = counts.value.following + counts.value.others.data
-            Found(unreadTopics.sumOf { it.unreadCount }, topics)
-        }
-
-    private fun logoOf(forum: ForumRecord): String? =
-        forum.discovery.logoUrl?.let {
-            forum.origin
-                .toHttpUrlOrNull()
-                ?.resolve(it)
-                ?.toString()
+            Found(unreadTopics.sumOf { it.unreadCount }, topics, levelOf(unreadTopics))
         }
 }
+
+/** The forum's logo from discovery, on the forum's own host; null without one. */
+fun logoOf(forum: ForumRecord): String? =
+    forum.discovery.logoUrl?.let {
+        forum.origin
+            .toHttpUrlOrNull()
+            ?.resolve(it)
+            ?.toString()
+    }
+
+/** The strongest reason among [topics] (MentionState's order), or null without news. */
+private fun levelOf(topics: List<Topic>): MentionState? =
+    topics
+        .filter { it.unreadCount > 0 || it.mentionState != MentionState.None }
+        .maxOfOrNull { maxOf(it.mentionState, MentionState.New) }

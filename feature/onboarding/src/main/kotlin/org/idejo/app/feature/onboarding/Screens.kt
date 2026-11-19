@@ -123,8 +123,12 @@ fun WelcomeScreen(
     }
 }
 
+/**
+ * **Enter a forum address** (SI-01 to SI-03): from the welcome screen, or the logo menu's
+ * **Add a forum** in idejo ID mode (SH-14), where the forum joins the others.
+ */
 @Composable
-private fun AddForumRoute(
+fun AddForumRoute(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AddForumViewModel = hiltViewModel(),

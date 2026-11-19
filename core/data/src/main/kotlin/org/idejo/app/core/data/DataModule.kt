@@ -116,6 +116,11 @@ object DataModule {
         links: PendingLinks,
     ): InboxChats = InboxChats(sessions, links)
 
+    /** Where the logo menu sends the member in the inbox (SH-12 to SH-14). */
+    @Provides
+    @Singleton
+    fun inboxShortcuts(): InboxShortcuts = InboxShortcuts()
+
     /** The address a tapped notification opens (NT-04). */
     @Provides
     @Singleton

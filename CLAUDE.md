@@ -418,6 +418,14 @@ Docker image) are added with them.
   ID mode the web's link opens in a Custom Tab. The inbox's chats use the topic page as any
   forum's conversations, so the inbox's session is `SessionManager.active` while it is shown
   (its socket connects and push may register it).
+- 2026-11-19 — The logo menu in idejo ID mode (SH-12 to SH-15): **Your forums** lists the
+  forums held, then the group's joined forums the app does not hold, with **Connect**, which
+  opens the inbox's Forums and connects there (features never depend on each other). A
+  forum's dot is the strongest reason among its unread topics, read when the menu opens.
+  **Find more forums** stands under **Add a forum** only (SH-13 and SH-14 name it twice).
+  SH-15's **Mark all read** (Could) waits: idejo's API has no call to mark a forum read.
+  Removing another forum than the one open keeps it open. Single-forum mode's **Add a
+  forum** keeps its note and offers **Sign in with idejo ID**, which keeps the forum.
 
 ## Milestones (spec §26)
 
@@ -434,8 +442,8 @@ Current milestone: **M4 — idejo ID mode**: the welcome screen's **Sign in with
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);
 the joined forums read again at launch and hourly (SI-07: `GroupForums.start`, with
-`AppState.seenForums`), a Connect card for one joined since, the logo's dot and the logo
-menu's **Your forums** (SH-12's full list comes later); **Find more forums** (SI-08: the
+`AppState.seenForums`), a Connect card for one joined since and the logo's dot;
+**Find more forums** (SI-08: the
 group's directory at discovery's `community.directory_url`, `DirectoryClient` in core/api,
 `FindForumsRoute`), whose **Join** is the forum's own app sign-in, not the web's
 `/users/oidc`; the inbox (IB-01 to IB-03: `InboxRoute` with **Forums**, **Topics** and
@@ -445,7 +453,13 @@ group's directory at discovery's `community.directory_url`, `DirectoryClient` in
 inbox is on screen); **Chats** (IB-06: the inbox's own conversations, `InboxApp` in app, the
 inbox's back stack, its session `SessionManager.active` while shown); **Private Message**
 through the inbox (IB-07: `InboxChats`, with idejo 0.3.18's IX-04); Back from a topic
-opened from Topics returns to the inbox (IB-08: `PendingLink.fromInbox`).
+opened from Topics returns to the inbox (IB-08: `PendingLink.fromInbox`); single-forum
+mode's user card offers idejo ID mode under a chat service's **Private Message** (PC-02:
+`Place.IdejoId`); the logo menu's **Your forums** with their dots (SH-12: `YourForums.kt`,
+`InboxTopicsState.levels`), **All my topics** and **Private Conversations** (SH-13),
+**Add a forum** by address or **Find more forums** (SH-14: `Place.AddForum`), and a
+forum's long-press with **Remove from app** and **Open in browser** (SH-15); the inbox
+opens where the menu asked through `InboxShortcuts`.
 M3 closed on 2026-11-19 (steward): Profile and account with Profile
 (ST-01: name, bio with Preview, pictures cropped to square on the device), Writing (ST-02), Message controls and Email notifications (ST-03), Private messages, Ignored users
 (ST-08), Push notifications (NT-08: this device is "on" once NT-02 registers it), Apps and

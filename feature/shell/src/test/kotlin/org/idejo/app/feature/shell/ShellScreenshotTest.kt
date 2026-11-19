@@ -89,7 +89,14 @@ class ShellScreenshotTest {
     @Test
     fun `SH-10 SH-11 SH-14 the logo menu in single-forum mode`() =
         snapshots("LogoMenu") {
-            LogoMenu("Garden club", "garden.example.org", {}, {}, {})
+            LogoMenu(
+                "Garden club",
+                "garden.example.org",
+                {},
+                {},
+                {},
+                actions = RecordedActions(mutableListOf()),
+            )
         }
 
     @Test
@@ -104,8 +111,27 @@ class ShellScreenshotTest {
                 {},
                 {},
                 {},
-                onForums = {},
-                newForums = true,
+                group =
+                    GroupMenu(
+                        listOf(
+                            YourForum("https://garden.example.org/", "Garden club", current = true),
+                            YourForum(
+                                "https://bees.example.org/",
+                                "Bee keepers",
+                                level = org.idejo.app.core.model.MentionState.Reply,
+                            ),
+                            YourForum(
+                                "https://weave.example.org/",
+                                "Weavers",
+                                held = false,
+                                connect = true,
+                                new = true,
+                            ),
+                        ),
+                        chatsWithNews = 2,
+                        directory = true,
+                    ),
+                actions = RecordedActions(mutableListOf()),
             )
         }
     }

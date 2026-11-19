@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiResult
 import org.idejo.app.core.data.GroupForum
 import org.idejo.app.core.data.GroupForums
+import org.idejo.app.core.data.InboxShortcut
+import org.idejo.app.core.data.InboxShortcuts
 import org.idejo.app.core.data.InboxTopics
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.SignInCoordinator
@@ -66,6 +68,7 @@ class ConnectForumsViewModel
         private val group: GroupForums,
         private val signIn: SignInCoordinator,
         private val topics: InboxTopics,
+        private val shortcuts: InboxShortcuts,
     ) : ViewModel() {
         private val mutableState =
             MutableStateFlow(ConnectForumsState(inboxName = sessions.inbox?.name.orEmpty()))
@@ -131,12 +134,20 @@ class ConnectForumsViewModel
                         )
                     }
                     group.seen()
+                    connectAsked(result.value)
                 }
 
                 is ApiResult.Failure -> {
                     mutableState.update { it.copy(loading = false, failed = it.forums.isEmpty()) }
                 }
             }
+        }
+
+        /** **Connect** beside a forum in the logo menu (SH-12): its sign-in, here. */
+        private fun connectAsked(forums: List<GroupForum>) {
+            val asked = shortcuts.take { it is InboxShortcut.Connect } as? InboxShortcut.Connect
+            val forum = forums.firstOrNull { it.url == asked?.url } ?: return
+            if (!forum.connected) connect(listOf(forum))
         }
 
         /** One forum after the other; one skipped or failed stays "Not connected". */

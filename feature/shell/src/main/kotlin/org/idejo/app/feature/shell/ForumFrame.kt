@@ -161,6 +161,7 @@ fun ForumFrame(
         )
 
         Slide(overlay == Overlay.LogoMenu, horizontal = false) {
+            LaunchedEffect(Unit) { viewModel.logoMenuOpened() }
             LogoMenu(
                 name = shell.name,
                 address = shell.address,
@@ -168,8 +169,8 @@ fun ForumFrame(
                 onShare = { context.shareText(shell.record.origin) },
                 onClose = { overlay = Overlay.None },
                 logo = logo,
-                onForums = if (shell.idejoId) viewModel::openInbox else null,
-                newForums = shell.newForums,
+                group = shell.group.takeIf { shell.idejoId },
+                actions = logoMenuActions(viewModel, context, go),
             )
         }
 

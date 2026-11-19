@@ -11,6 +11,7 @@ SPDX-License-Identifier: Apache-2.0
     <string name="place_rules">Rules &amp; Roles</string>
     <string name="place_help">Help</string>
     <string name="place_app_settings">App settings</string>
+    <string name="place_idejo_id">idejo ID</string>
     <string name="place_profile_and_account">Profile and account</string>
     <string name="place_conversations">Private Conversations</string>
     <plurals name="conversations_with_news">
@@ -54,6 +55,15 @@ SPDX-License-Identifier: Apache-2.0
     <string name="logo_menu_add_forum">Add a forum</string>
     <string name="logo_menu_your_forums">Your forums</string>
     <string name="logo_menu_new_forum">A forum you joined is waiting to be connected</string>
+    <string name="logo_menu_all_topics">All my topics</string>
+    <string name="logo_menu_by_address">By address</string>
+    <string name="logo_menu_find_more">Find more forums</string>
+    <string name="logo_menu_offer_idejo_id">Or sign in with your idejo ID: the app then keeps %1$s beside every forum of your idejo group, with their topics and chats in one inbox.</string>
+    <string name="logo_menu_sign_in_idejo_id">Sign in with idejo ID</string>
+    <string name="your_forums_open">Open now</string>
+    <string name="your_forums_connect">Connect</string>
+    <string name="your_forums_more">More for this forum</string>
+    <string name="your_forums_browser">Open in browser</string>
     <string name="logo_menu_single_forum">The app is %1$s’s app and holds no other forum. To read another forum here, remove this one under Accounts, in the menu under your name, then enter the other forum’s address.</string>
 
     <!-- User menu (SH-20 to SH-25). -->

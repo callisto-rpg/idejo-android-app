@@ -39,6 +39,7 @@ class InboxTopicsTest {
     private val inbox = FakeIdejo(clock, FakeSettings(name = "idejo"))
     private val garden = FakeIdejo(clock)
     private val bees = FakeIdejo(clock, FakeSettings(name = "Bee keepers"))
+    private val quiet = FakeIdejo(clock, FakeSettings(name = "Weavers"))
     private val http = IdejoHttp.forLocalTesting()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
@@ -56,7 +57,7 @@ class InboxTopicsTest {
 
     @After
     fun stop() {
-        listOf(inbox, garden, bees).forEach { it.close() }
+        listOf(inbox, garden, bees, quiet).forEach { it.close() }
         scope.cancel()
     }
 
@@ -94,6 +95,49 @@ class InboxTopicsTest {
             assertEquals(listOf(5, 3), topics.topics.map { it.topic.unreadCount })
             assertTrue(topics.topics.all { it.logoUrl?.endsWith("/logo") == true })
             assertTrue(topics.unreachable.isEmpty())
+        }
+
+    @Test
+    fun `SH-12 each forum's dot is its strongest reason for news`() =
+        runBlocking {
+            val tomatoes = garden.addTopic("Tomato plans")
+            garden.unread(FakePeople.Ada, tomatoes.id, 3, MentionState.Mention)
+            garden.unread(FakePeople.Ada, garden.addTopic("Beans").id, 1)
+            bees.unread(FakePeople.Ada, bees.addTopic("A swarm on Tuesday").id, 5)
+            connected(garden, bees, quiet)
+
+            val levels =
+                InboxTopics(sessions)
+                    .also { it.refresh() }
+                    .state.value.levels
+            assertEquals(MentionState.Mention, levels[garden.address.toString()])
+            assertEquals(MentionState.New, levels[bees.address.toString()])
+            assertEquals(null, levels[quiet.address.toString()])
+        }
+
+    @Test
+    fun `SH-12 SH-13 SH-14 the logo menu's shortcuts wait for the inbox, taken once`() {
+        val shortcuts = InboxShortcuts()
+        shortcuts.offer(InboxShortcut.Connect("https://garden.example.org/"))
+        // The inbox's tabs leave a Connect to its Forums.
+        assertEquals(null, shortcuts.take { it !is InboxShortcut.Connect })
+        assertEquals(
+            InboxShortcut.Connect("https://garden.example.org/"),
+            shortcuts.take { it is InboxShortcut.Connect },
+        )
+        assertEquals(null, shortcuts.take())
+        shortcuts.offer(InboxShortcut.Chats)
+        assertEquals(InboxShortcut.Chats, shortcuts.take())
+    }
+
+    @Test
+    fun `SH-13 the inbox's conversations with news, from a forum`() =
+        runBlocking {
+            inbox.inbox = true
+            inbox.idejoIds = mapOf(requireNotNull(FakePeople.Mina.id) to "mina-sub")
+            connected(garden)
+            val chats = InboxChats(sessions, PendingLinks())
+            assertEquals(0, chats.withNews())
         }
 
     @Test

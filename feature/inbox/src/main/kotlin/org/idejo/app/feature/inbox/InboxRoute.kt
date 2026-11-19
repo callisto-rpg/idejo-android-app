@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.idejo.app.core.data.InboxShortcut
 
 /**
  * idejo ID mode's inbox (MD-02): **Forums**, **Topics** and **Chats** (IB-01 to IB-03,
@@ -23,7 +24,9 @@ fun InboxRoute(
     modifier: Modifier = Modifier,
     viewModel: InboxViewModel = hiltViewModel(),
 ) {
-    var finding by rememberSaveable { mutableStateOf(false) }
+    var finding by rememberSaveable {
+        mutableStateOf(viewModel.opening == InboxShortcut.FindForums)
+    }
     if (finding) {
         BackHandler { finding = false }
         FindForumsRoute(onBack = { finding = false }, modifier = modifier)
@@ -36,5 +39,6 @@ fun InboxRoute(
         topics = { TopicsTab(state, viewModel::onEvent) },
         chats = { ConversationsRoute(onConversation, titled = false) },
         modifier = modifier,
+        initialTab = viewModel.firstTab,
     )
 }

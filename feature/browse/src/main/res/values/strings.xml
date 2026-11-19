@@ -140,6 +140,8 @@
     <string name="user_roles">Roles</string>
     <string name="user_ignore">Ignore</string>
     <string name="user_private_message">Private Message</string>
+    <string name="user_chat_outside">Private messages here open in your browser, at the forum\'s chat. Signed in with your idejo ID, the app keeps them in its inbox.</string>
+    <string name="user_chat_idejo_id">Sign in with idejo ID</string>
     <string name="user_unignore">Stop ignoring</string>
     <string name="user_close">Close</string>
     <string name="user_picture">Picture of %1$s</string>

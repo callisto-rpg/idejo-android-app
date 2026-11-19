@@ -8,13 +8,16 @@ import org.idejo.app.core.model.MentionState
 import org.idejo.app.core.model.Topic
 
 /** A topic's dot (SH-32): the strongest reason it has news, or none when it has none. */
-fun Topic.dot(): DotKind? =
-    when (mentionState) {
+fun Topic.dot(): DotKind? = mentionState.dot() ?: if (unreadCount > 0) DotKind.NewMessages else null
+
+/** The dot for [MentionState] (SH-32), as a forum's in the logo menu (SH-12); none for none. */
+fun MentionState.dot(): DotKind? =
+    when (this) {
         MentionState.Mention -> DotKind.Mention
         MentionState.Reply -> DotKind.Reply
         MentionState.Role -> DotKind.RoleMention
         MentionState.New -> DotKind.NewMessages
-        MentionState.None -> if (unreadCount > 0) DotKind.NewMessages else null
+        MentionState.None -> null
     }
 
 /** The **Unread** button's colour from the counter's `level` (SH-01). */

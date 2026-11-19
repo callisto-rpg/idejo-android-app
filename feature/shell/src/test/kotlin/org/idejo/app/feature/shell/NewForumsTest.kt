@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.idejo.app.core.designsystem.component.Crumb
 import org.idejo.app.core.designsystem.component.TopBar
 import org.junit.Assert.assertEquals
@@ -39,8 +40,8 @@ class NewForumsTest {
     }
 
     @Test
-    fun `MD-02 Your forums leads to the inbox, with the dot`() {
-        var opened = 0
+    fun `SI-07 a forum joined since, with its dot and Connect, in Your forums`() {
+        val connected = mutableListOf<String>()
         rule.setContent {
             LogoMenu(
                 "Garden club",
@@ -48,21 +49,86 @@ class NewForumsTest {
                 {},
                 {},
                 {},
-                onForums = { opened++ },
-                newForums = true,
+                group =
+                    GroupMenu(
+                        listOf(
+                            YourForum(
+                                "https://bees.example.org/",
+                                "Bee keepers",
+                                held = false,
+                                connect = true,
+                                new = true,
+                            ),
+                        ),
+                    ),
+                actions = RecordedActions(connected),
             )
         }
         rule
             .onNodeWithContentDescription(
                 "A forum you joined is waiting to be connected",
             ).assertExists()
-        rule.onNodeWithText("Your forums").performClick()
-        assertEquals(1, opened)
+        rule.onNodeWithText("Connect").performScrollTo().performClick()
+        assertEquals(listOf("connect https://bees.example.org/"), connected)
     }
 
     @Test
-    fun `MD-03 single-forum mode keeps its note`() {
-        rule.setContent { LogoMenu("Garden club", "garden.example.org", {}, {}, {}) }
+    fun `MD-03 single-forum mode keeps its note and offers idejo ID mode`() {
+        val done = mutableListOf<String>()
+        rule.setContent {
+            LogoMenu(
+                "Garden club",
+                "garden.example.org",
+                {},
+                {},
+                {},
+                actions = RecordedActions(done),
+            )
+        }
         rule.onNodeWithText("Add a forum").assertExists()
+        rule.onNodeWithText("Your forums").assertDoesNotExist()
+        rule.onNodeWithText("Sign in with idejo ID").performScrollTo().performClick()
+        assertEquals(listOf("idejo ID"), done)
+    }
+}
+
+/** The logo menu's actions, written down as they happen. */
+internal class RecordedActions(
+    private val done: MutableList<String>,
+) : LogoMenuActions {
+    override fun enter(forum: YourForum) {
+        done += "enter ${forum.origin}"
+    }
+
+    override fun connect(forum: YourForum) {
+        done += "connect ${forum.origin}"
+    }
+
+    override fun remove(forum: YourForum) {
+        done += "remove ${forum.origin}"
+    }
+
+    override fun openInBrowser(forum: YourForum) {
+        done += "browser ${forum.origin}"
+    }
+
+    override fun topics() {
+        done += "topics"
+    }
+
+    override fun chats() {
+        done += "chats"
+    }
+
+    override fun findForums() {
+        done += "find"
+    }
+
+    override fun addByAddress() {
+        done += "address"
+    }
+
+    override fun idejoId() {
+        done += "idejo ID"
     }
 }
