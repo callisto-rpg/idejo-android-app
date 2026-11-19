@@ -13,11 +13,13 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.idejo.app.core.api.ApiResult
+import org.idejo.app.core.api.DirectoryClient
 import org.idejo.app.core.api.DiscoveryClient
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
 import org.idejo.app.core.api.IdejoHttp
 import org.idejo.app.core.model.Community
+import org.idejo.app.core.model.DirectoryForum
 import org.idejo.app.core.testing.FakeIdejo
 import org.idejo.app.core.testing.FakePeople
 import org.idejo.app.core.testing.FakeSettings
@@ -163,7 +165,13 @@ class IdejoIdModeTest {
         }
 
     private val group by lazy {
-        GroupForums(sessions, coordinator, DiscoveryClient(http), "Pixel 8") {
+        GroupForums(
+            sessions,
+            coordinator,
+            DiscoveryClient(http),
+            DirectoryClient(http),
+            "Pixel 8",
+        ) {
             ForumAddress.forLocalTesting(it.toHttpUrl())
         }
     }
@@ -261,7 +269,13 @@ class IdejoIdModeTest {
 
                 // Next launch, still new: what was seen is kept on the device.
                 val later =
-                    GroupForums(manager(), coordinator, DiscoveryClient(http), "Pixel 8") {
+                    GroupForums(
+                        manager(),
+                        coordinator,
+                        DiscoveryClient(http),
+                        DirectoryClient(http),
+                        "Pixel 8",
+                    ) {
                         ForumAddress.forLocalTesting(it.toHttpUrl())
                     }
                 later.refresh()
@@ -313,5 +327,68 @@ class IdejoIdModeTest {
             sessions.add(found(garden))
             assertTrue(group.refresh() is ApiResult.Failure)
             assertTrue(group.joined.value.isEmpty())
+        }
+
+    private fun listed(
+        fake: FakeIdejo,
+        members: Int,
+    ): DirectoryForum {
+        val name = if (fake === garden) "Garden club" else "Bee keepers"
+        return DirectoryForum(name, fake.address.toString(), fake.address.host, members = members)
+    }
+
+    @Test
+    fun `SI-08 Find more forums searches the group's directory, page by page`() =
+        runBlocking {
+            inbox.directory =
+                listOf(listed(garden, 12), listed(bees, 4)) +
+                (1..25).map {
+                    DirectoryForum(
+                        "Forum $it",
+                        "https://f$it.example.org/",
+                        "f$it.example.org",
+                    )
+                }
+            signInToInbox()
+            assertTrue(group.hasDirectory())
+
+            val first = (group.directory("", 1) as ApiResult.Success).value
+            assertEquals(20, first.forums.size)
+            assertEquals(27, first.total)
+            assertTrue(first.more)
+            val second = (group.directory("", 2) as ApiResult.Success).value
+            assertEquals(7, second.forums.size)
+            assertFalse(second.more)
+
+            val bees = (group.directory("bee", 1) as ApiResult.Success).value
+            assertEquals(listOf("Bee keepers"), bees.forums.map { it.name })
+            assertEquals(4, bees.forums.single().members)
+        }
+
+    @Test
+    fun `SI-08 Join signs in to the forum, which is then held and listed`() =
+        runBlocking {
+            inbox.directory = listOf(listed(garden, 12))
+            signInToInbox()
+            val forum = (group.directory("", 1) as ApiResult.Success).value.forums.single()
+            // Signing in there with the idejo ID makes the member one of its members.
+            inbox.communities = listOf(Community("Garden club", garden.address.toString()))
+            val joined =
+                group.join(forum) { url ->
+                    coordinator.complete(requireNotNull(garden.authorize(url, FakePeople.Ada)))
+                    true
+                }
+            assertTrue(joined)
+            assertEquals(listOf("Garden club"), held.forums.map { it.name })
+            assertEquals(listOf(true), group.joined.value.map { it.connected })
+            assertTrue(launch is Launch.Inbox)
+        }
+
+    @Test
+    fun `SI-08 a group without a directory has no Find more forums`() =
+        runBlocking {
+            signInToInbox()
+            assertFalse(group.hasDirectory())
+            assertTrue(group.directory("", 1) is ApiResult.Failure)
         }
 }

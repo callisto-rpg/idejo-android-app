@@ -3,9 +3,6 @@
 
 package org.idejo.app.feature.inbox
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,49 +26,33 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import okhttp3.HttpUrl
 import org.idejo.app.core.data.GroupForum
 import org.idejo.app.core.designsystem.component.ForumLogo
 
 /** idejo ID mode's inbox (MD-02): for now, the group's forums to connect and open (SI-06). */
 @Composable
 fun ConnectForumsRoute(
+    onFindMore: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConnectForumsViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val tab by viewModel.tab.collectAsStateWithLifecycle()
-    var leftForTab by remember { mutableStateOf(false) }
-    LaunchedEffect(tab) {
-        val url = tab ?: return@LaunchedEffect
-        viewModel.tabOpened(context.openTab(url))
-    }
-    // Back from a sign-in page without its answer: closed, so on to the next forum.
-    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { leftForTab = state.connecting != null }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if (leftForTab) viewModel.tabClosed()
-        leftForTab = false
-    }
-    ConnectForumsScreen(state, viewModel::onEvent, modifier)
+    SignInTabsEffect(
+        viewModel.tabs,
+        busy = state.connecting != null,
+        onClose = viewModel::tabClosed,
+    )
+    ConnectForumsScreen(state, viewModel::onEvent, modifier, onFindMore)
 }
 
 /**
@@ -83,6 +64,7 @@ fun ConnectForumsScreen(
     state: ConnectForumsState,
     onEvent: (ConnectForumsEvent) -> Unit,
     modifier: Modifier = Modifier,
+    onFindMore: () -> Unit = {},
 ) {
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -107,6 +89,16 @@ fun ConnectForumsScreen(
                     onEvent = onEvent,
                     modifier = Modifier.widthIn(max = 560.dp),
                 )
+            }
+            if (state.directory) {
+                item {
+                    OutlinedButton(
+                        onClick = onFindMore,
+                        enabled = state.connecting == null,
+                        modifier =
+                            Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(vertical = 24.dp),
+                    ) { Text(stringResource(R.string.find_more)) }
+                }
             }
         }
     }
@@ -261,16 +253,3 @@ private fun JoinedCard(
         }
     }
 }
-
-/** A forum's sign-in page in a Custom Tab (SI-03); false without a browser. */
-private fun Context.openTab(url: HttpUrl): Boolean =
-    try {
-        CustomTabsIntent
-            .Builder()
-            .setShowTitle(true)
-            .build()
-            .launchUrl(this, url.toString().toUri())
-        true
-    } catch (_: ActivityNotFoundException) {
-        false
-    }

@@ -29,6 +29,20 @@ SPDX-License-Identifier: Apache-2.0
     <string name="connect_one">Connect</string>
     <string name="connect_joined">You joined %1$s</string>
     <string name="connect_joined_text">Connect it to read it here.</string>
+
+    <!-- SI-08 -->
+    <string name="find_more">Find more forums</string>
+    <string name="find_back">Back to your forums</string>
+    <string name="find_search">Search by name or address</string>
+    <plurals name="find_members">
+        <item quantity="one">1 member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
+    <string name="find_join">Join</string>
+    <string name="find_open">Open</string>
+    <string name="find_load_more">More forums</string>
+    <string name="find_none">No forum matches “%1$s”.</string>
+    <string name="find_failed">The directory did not answer. Try again in a moment.</string>
     <string name="connect_connected">Connected</string>
     <string name="connect_not_connected">Not connected</string>
 </resources>

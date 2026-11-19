@@ -125,6 +125,12 @@ class FakeIdejo(
      */
     @Volatile var communities: List<org.idejo.app.core.model.Community> = emptyList()
 
+    /**
+     * The group's directory (SI-08), served at `/directory/`: when set, discovery names it as
+     * `community.directory_url`, as an inbox's does.
+     */
+    @Volatile var directory: List<org.idejo.app.core.model.DirectoryForum>? = null
+
     /** False plays a server older than idejo 0.3.16: no `GET /me/followed` (IX-02). */
     @Volatile var followedList: Boolean = true
 
@@ -535,6 +541,7 @@ class FakeIdejo(
     private fun route(request: RecordedRequest): MockResponse {
         val path = request.url.encodedPath
         if (path == "/.well-known/idejo") return discovery()
+        if (path == "$DIRECTORY/api/v1/forums") return directoryPage(request)
         if (path == "/api/v1/socket/websocket") return socketUpgrade(request)
         if (!path.startsWith(API)) return status(HTTP_NOT_FOUND)
         if (apiOff) return error(HTTP_NOT_FOUND, ApiError.NOT_FOUND, "Not found.")
@@ -1402,6 +1409,42 @@ class FakeIdejo(
                                 ?.takeIf { accountDeletion },
                     ),
                 features = listOf("unifiedpush", "polls", "private_messages"),
+                community =
+                    directory?.let {
+                        org.idejo.app.core.model.CommunityInfo(
+                            url.resolve("$DIRECTORY/").toString(),
+                        )
+                    },
+            ),
+        )
+    }
+
+    /** The group's directory (SI-08): 20 a page, searched in names and hosts. */
+    private fun directoryPage(request: RecordedRequest): MockResponse {
+        val all = directory ?: return status(HTTP_NOT_FOUND)
+        val query =
+            request.url
+                .queryParameter("q")
+                .orEmpty()
+                .trim()
+        val page =
+            request.url
+                .queryParameter("page")
+                ?.toIntOrNull()
+                ?.coerceAtLeast(1) ?: 1
+        val found =
+            all.filter {
+                query.isEmpty() ||
+                    it.name.contains(query, ignoreCase = true) ||
+                    it.host.contains(query, ignoreCase = true)
+            }
+        val pages = maxOf(1, (found.size + DIRECTORY_PAGE - 1) / DIRECTORY_PAGE)
+        return ok(
+            org.idejo.app.core.model.DirectoryPage(
+                found.drop((page - 1) * DIRECTORY_PAGE).take(DIRECTORY_PAGE),
+                page,
+                pages,
+                found.size,
             ),
         )
     }
@@ -2427,6 +2470,8 @@ class FakeIdejo(
         val FAKE_VAPID_KEY = "B" + "A".repeat(86)
         const val PASSWORD_MIN = 12
         const val API = "/api/v1"
+        const val DIRECTORY = "/directory"
+        const val DIRECTORY_PAGE = 20
         const val AUTH_TOKEN_PREFIX = "base64url.bearer.phx."
         const val CHALLENGE_LENGTH = 43
         val CODE_LIFETIME: Duration = Duration.ofSeconds(60)

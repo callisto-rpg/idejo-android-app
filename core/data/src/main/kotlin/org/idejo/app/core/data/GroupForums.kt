@@ -18,12 +18,16 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.api.ApiResult
+import org.idejo.app.core.api.DirectoryClient
 import org.idejo.app.core.api.DiscoveryClient
 import org.idejo.app.core.api.DiscoveryResult
 import org.idejo.app.core.api.ForumAddress
 import org.idejo.app.core.model.Community
+import org.idejo.app.core.model.DirectoryForum
+import org.idejo.app.core.model.DirectoryPage
 import java.io.IOException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -49,6 +53,7 @@ class GroupForums(
     private val sessions: SessionManager,
     private val signIn: SignInCoordinator,
     private val discovery: DiscoveryClient,
+    private val directory: DirectoryClient,
     private val deviceName: String,
     /** A forum's address from the inbox's list; null for one the app may not reach (https). */
     private val addressOf: (String) -> ForumAddress? = ::httpsOnly,
@@ -96,6 +101,41 @@ class GroupForums(
                 result
             }
         }
+
+    /** Whether the group has a directory (SI-08): discovery's `community.directory_url`. */
+    suspend fun hasDirectory(): Boolean = directoryUrl() != null
+
+    /** **Find more forums** (SI-08): the directory's [page] for [query]. */
+    suspend fun directory(
+        query: String,
+        page: Int,
+    ): ApiResult<DirectoryPage> {
+        val url =
+            directoryUrl()
+                ?: return ApiResult.Failure(ApiProblem.Network(IOException("No directory")))
+        return directory.page(url, query, page)
+    }
+
+    /**
+     * **Join** (SI-08): the forum's own sign-in page, as [connect]; signing in there with the
+     * idejo ID makes the member one of its members. The list is read again after.
+     */
+    suspend fun join(
+        forum: DirectoryForum,
+        openTab: suspend (HttpUrl) -> Boolean,
+    ): Boolean {
+        val joined = GroupForum(forum.name, forum.url, forum.logoUrl)
+        return connect(joined, openTab).also { if (it) refresh() }
+    }
+
+    private suspend fun directoryUrl(): HttpUrl? =
+        sessions.state
+            .first()
+            .inbox
+            ?.discovery
+            ?.community
+            ?.directoryUrl
+            ?.toHttpUrlOrNull()
 
     /** The member saw the group's forums (the inbox's list): none is new any more. */
     suspend fun seen() {

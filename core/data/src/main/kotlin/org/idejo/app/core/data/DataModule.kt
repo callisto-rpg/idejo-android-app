@@ -76,11 +76,14 @@ object DataModule {
         sessions: SessionManager,
         signIn: SignInCoordinator,
         discovery: org.idejo.app.core.api.DiscoveryClient,
+        http: OkHttpClient,
     ): GroupForums =
         GroupForums(
             sessions,
             signIn,
             discovery,
+            org.idejo.app.core.api
+                .DirectoryClient(http),
             android.os.Build.MODEL
                 ?.takeIf { it.isNotBlank() } ?: "Android",
         )
