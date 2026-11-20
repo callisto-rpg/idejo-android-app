@@ -51,7 +51,9 @@ class BrowseScreenshotTest {
 
     @Test
     fun `BR-01 BR-03 home, expanded`() =
-        snapshots("HomeExpanded") { HomeScreen(home(TopicView.Expanded), {}, {}, {}, {}, {}) }
+        snapshots("HomeExpanded") {
+            HomeScreen(home(TopicView.Expanded), {}, {}, {}, {}, {}, initialTab = HomeTab.Active)
+        }
 
     @Test
     fun `BR-02 category page`() =

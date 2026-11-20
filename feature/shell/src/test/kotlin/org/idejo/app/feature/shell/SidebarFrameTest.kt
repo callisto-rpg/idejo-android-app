@@ -49,14 +49,11 @@ class SidebarFrameTest {
     }
 
     @Test
-    fun `SH-30 a swipe to the right across the page opens the sidebar, to the left closes it`() {
+    fun `SH-30 a swipe from the left edge opens the sidebar, to the left across it closes it`() {
         frame()
         rule.onNodeWithTag(OVER).assertDoesNotExist()
 
-        rule
-            .onNodeWithTag(
-                PAGE,
-            ).performTouchInput { swipeRight(startX = 120f, endX = right - 120f) }
+        rule.onNodeWithTag(PAGE).performTouchInput { swipeRight(startX = 2f, endX = right - 120f) }
         rule.onNodeWithTag(OVER).assertExists()
 
         rule.onNodeWithTag(OVER).performTouchInput { swipeLeft(startX = right - 120f, endX = 120f) }
@@ -65,41 +62,77 @@ class SidebarFrameTest {
     }
 
     @Test
-    fun `SH-30 the sidebar follows the finger, and a short drag lets it slide back`() {
+    fun `SH-30 the sidebar follows the finger from the edge before letting go`() {
         frame()
         rule.onNodeWithTag(PAGE).performTouchInput {
-            down(Offset(120f, centerY))
+            down(Offset(2f, centerY))
             moveBy(Offset(40f, 0f))
             moveBy(Offset(60f, 0f))
         }
         // Peeking: drawn under the finger before letting go, and not yet open.
         rule.onNodeWithTag(OVER).assertExists()
         assertFalse(open)
-
         rule.onNodeWithTag(PAGE).performTouchInput { up() }
+        rule.waitForIdle()
+        assertTrue(open)
+    }
+
+    @Test
+    fun `SH-30 a short slow swipe from the edge opens the sidebar, and a short one closes it`() {
+        frame()
+        rule.onNodeWithTag(PAGE).performTouchInput {
+            down(Offset(2f, centerY))
+            repeat(4) { moveBy(Offset(40f, 0f), delayMillis = 100) }
+            up()
+        }
+        rule.waitForIdle()
+        assertTrue(open)
+        rule.onNodeWithTag(OVER).performTouchInput {
+            down(Offset(centerX, centerY))
+            repeat(4) { moveBy(Offset(-40f, 0f), delayMillis = 100) }
+            up()
+        }
         rule.waitForIdle()
         assertFalse(open)
         rule.onNodeWithTag(OVER).assertDoesNotExist()
     }
 
     @Test
-    fun `SH-30 a slow drag past a third of the way opens the sidebar`() {
+    fun `SH-30 the way the drag last moved decides, after a pause too`() {
         frame()
         rule.onNodeWithTag(PAGE).performTouchInput {
-            down(Offset(120f, centerY))
-            repeat(20) { moveBy(Offset(width / 40f, 0f), delayMillis = 100) }
+            down(Offset(2f, centerY))
+            repeat(5) { moveBy(Offset(60f, 0f)) }
+            moveBy(Offset(0f, 0f), delayMillis = 500)
+            moveBy(Offset(-20f, 0f))
+            up()
+        }
+        rule.waitForIdle()
+        assertFalse(open)
+        rule.onNodeWithTag(OVER).assertDoesNotExist()
+
+        open = true
+        rule.waitForIdle()
+        rule.onNodeWithTag(OVER).performTouchInput {
+            down(Offset(centerX, centerY))
+            repeat(5) { moveBy(Offset(-60f, 0f)) }
+            moveBy(Offset(20f, 0f))
             up()
         }
         rule.waitForIdle()
         assertTrue(open)
-        rule.onNodeWithTag(OVER).assertExists()
     }
 
     @Test
-    fun `SH-30 a swipe from the screen's edge is system back's, not the sidebar's`() {
+    fun `SH-30 a swipe right across the middle of the page opens the sidebar`() {
         frame()
-        rule.onNodeWithTag(PAGE).performTouchInput { swipeRight(startX = 2f, endX = centerX) }
-        rule.onNodeWithTag(OVER).assertDoesNotExist()
+        rule
+            .onNodeWithTag(
+                PAGE,
+            ).performTouchInput { swipeRight(startX = 120f, endX = right - 120f) }
+        rule.waitForIdle()
+        assertTrue(open)
+        rule.onNodeWithTag(OVER).assertExists()
     }
 
     @Test

@@ -7,24 +7,34 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -41,12 +51,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -58,21 +80,24 @@ import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.Crumb
+import org.idejo.app.core.designsystem.component.ForumLogo
 import org.idejo.app.core.designsystem.component.TopBar
-import org.idejo.app.core.designsystem.component.Unread
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
 import org.idejo.app.core.model.Topic
+import kotlin.math.abs
+import org.idejo.app.core.designsystem.R as DesignR
 
 /** Which full-screen page covers the forum. */
 private enum class Overlay { None, Sidebar, LogoMenu, UserMenu }
 
 /**
- * The frame of every page of a forum (spec §6): the top bar with the logo, breadcrumbs,
- * **Unread** and the member's picture (SH-01, SH-02), and the full-screen sidebar (SH-30),
- * logo menu (SH-10) and user menu (SH-20) over it. [place] is the page shown; [onNavigate]
- * goes elsewhere; [onSignIn] starts the forum's sign-in (SI-05, SI-09).
+ * The frame of every page of a forum (spec §6): the top bar with the logo, breadcrumbs and
+ * the member's picture (SH-01, SH-02; **Unread** is a tab of the home page), and the
+ * full-screen sidebar (SH-30), logo menu (SH-10) and user menu (SH-20) over it. [place] is
+ * the page shown; [onNavigate] goes elsewhere; [onSignIn] starts the forum's sign-in
+ * (SI-05, SI-09).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongMethod") // The frame and its layers, over the page, in one place.
@@ -108,46 +133,75 @@ fun ForumFrame(
     val logo = logoOf(shell)
     val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
+    // The menus' glass: what is behind them blurs as they come in (SidebarGlass).
+    val menuIn by animateFloatAsState(
+        if (overlay == Overlay.LogoMenu || overlay == Overlay.UserMenu) 1f else 0f,
+        if (IdejoTheme.reducedMotion) snap() else spring(),
+        label = "menu glass",
+    )
     Box(modifier.fillMaxSize()) {
-        SidebarFrame(
-            wide = wide,
-            fold = fold,
-            open = overlay == Overlay.Sidebar,
-            onOpen = { overlay = Overlay.Sidebar },
-            onClose = { overlay = Overlay.None },
-            topBar = {
-                TopBar(
-                    crumbs =
-                        crumbs(shell, place, go, logo, { overlay = Overlay.LogoMenu }) {
-                            wholeTitle = it
-                        },
-                    unread = unreadOf(shell) { go(Place.Unread) },
-                    scrollBehavior = scroll,
-                ) {
-                    Account(shell, onSignIn) { overlay = Overlay.UserMenu }
-                }
-            },
-            sidebar = { docked ->
-                SidebarPage(shell, sidebarActions(viewModel, context, go), docked) {
-                    overlay = Overlay.None
-                }
-            },
-            modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
-            page = {
-                Column(Modifier.fillMaxSize()) {
-                    // A saved copy on screen while the forum cannot be reached (OF-02).
-                    OfflineBar(shell.savedCopy)
-                    // In the page's flow, so it never covers the composer (NT-07).
-                    PushBar(
-                        offered = shell.pushBarOffered,
-                        bubble = shell.tutorialBubbles == TutorialBubbles.All,
-                        place = place,
-                        onDismiss = viewModel::dismissPushBar,
-                    )
-                    Box(Modifier.weight(1f)) { content() }
-                }
-            },
-        )
+        Box(Modifier.fillMaxSize().glassBehind { menuIn }) {
+            SidebarFrame(
+                wide = wide,
+                fold = fold,
+                open = overlay == Overlay.Sidebar,
+                onOpen = { overlay = Overlay.Sidebar },
+                onClose = { overlay = Overlay.None },
+                topBar = {
+                    var account by remember { mutableStateOf(Rect.Zero) }
+                    var bar by remember { mutableStateOf(Offset.Zero) }
+                    TopBar(
+                        crumbs =
+                            crumbs(shell, place, go, logo, {
+                                if (!docked) overlay = Overlay.Sidebar
+                            }) { wholeTitle = it },
+                        modifier =
+                            Modifier
+                                .onGloballyPositioned { bar = it.positionInRoot() }
+                                .pullDown { at ->
+                                    // From the member's picture, their menu; else the forum's.
+                                    overlay =
+                                        if (account.contains(at + bar)) {
+                                            Overlay.UserMenu
+                                        } else {
+                                            Overlay.LogoMenu
+                                        }
+                                },
+                        scrollBehavior = scroll,
+                    ) {
+                        Account(
+                            shell,
+                            onSignIn,
+                            onOpen = { overlay = Overlay.UserMenu },
+                            modifier =
+                                Modifier.onGloballyPositioned {
+                                    account = it.boundsInRoot()
+                                },
+                        )
+                    }
+                },
+                sidebar = { docked ->
+                    SidebarPage(shell, logo, sidebarActions(viewModel, context, go), docked) {
+                        overlay = Overlay.LogoMenu
+                    }
+                },
+                modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
+                page = {
+                    Column(Modifier.fillMaxSize()) {
+                        // A saved copy on screen while the forum cannot be reached (OF-02).
+                        OfflineBar(shell.savedCopy)
+                        // In the page's flow, so it never covers the composer (NT-07).
+                        PushBar(
+                            offered = shell.pushBarOffered,
+                            bubble = shell.tutorialBubbles == TutorialBubbles.All,
+                            place = place,
+                            onDismiss = viewModel::dismissPushBar,
+                        )
+                        Box(Modifier.weight(1f)) { content() }
+                    }
+                },
+            )
+        }
 
         // Over the page, under the menus (NT-01).
         LiveBubbleStack(
@@ -166,6 +220,7 @@ fun ForumFrame(
             LogoMenu(
                 name = shell.name,
                 address = shell.address,
+                // Home, on Categories: any way home starts there.
                 onHome = { go(Place.Home) },
                 onShare = { context.shareText(shell.record.origin) },
                 onClose = { overlay = Overlay.None },
@@ -210,8 +265,9 @@ private fun Account(
     shell: ShellState,
     onSignIn: () -> Unit,
     onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         if (!shell.signedIn) {
             TextButton(onClick = onSignIn) { Text(stringResource(R.string.sign_in)) }
         }
@@ -282,16 +338,19 @@ private fun UserMenuPage(
 @Composable
 private fun SidebarPage(
     shell: ShellState,
+    logo: String?,
     actions: SidebarActions,
     docked: Boolean,
-    onClose: () -> Unit,
+    onMenu: () -> Unit,
 ) {
     Surface(
         Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        // Over the page, frosted glass while the trial lasts (SidebarGlass).
+        color = glassBackground(opaque = docked),
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
         Column(if (docked) Modifier else Modifier.safeDrawingPadding()) {
-            if (!docked) SidebarHead(onClose)
+            if (!docked) SidebarHead(shell.name, logo, onMenu)
             Sidebar(
                 state = shell.sidebar,
                 folded = shell.record.folded,
@@ -305,20 +364,41 @@ private fun SidebarPage(
     }
 }
 
+/**
+ * The sidebar's head over the page (SH-30): the forum's logo and name, and at the right the
+ * idejo logo, which opens the forum menu. Back, or a swipe to the left, closes the sidebar.
+ */
 @Composable
-private fun SidebarHead(onClose: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(4.dp)) {
+private fun SidebarHead(
+    name: String,
+    logo: String?,
+    onMenu: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        ForumLogo(name, size = HEAD_LOGO, logoUrl = logo)
         Text(
-            stringResource(R.string.sidebar_title),
-            Modifier.weight(1f).padding(12.dp),
+            name,
+            Modifier.weight(1f).semantics { heading() },
             style = IdejoTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
-        IconButton(onClick = onClose) {
-            Icon(
-                painterResource(org.idejo.app.core.designsystem.R.drawable.ic_close),
-                stringResource(R.string.close),
-            )
-        }
+        // The idejo button, as tall as the forum's logo, in a 48 dp target (AX).
+        val button = painterResource(R.drawable.ic_idejo)
+        Image(
+            button,
+            stringResource(DesignR.string.top_bar_forum_menu, name),
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(role = Role.Button, onClick = onMenu)
+                .padding(horizontal = 4.dp, vertical = (TARGET - HEAD_LOGO) / 2)
+                .height(HEAD_LOGO)
+                .aspectRatio(button.intrinsicSize.width / button.intrinsicSize.height),
+        )
     }
 }
 
@@ -338,6 +418,43 @@ private fun WholeTitle(
         ) { Text(title, Modifier.padding(16.dp), style = IdejoTheme.typography.titleMedium) }
     }
 }
+
+/**
+ * A pull down that starts on this (the top bar, SH-01) calls [onPull] with where it started:
+ * seen before the bar's own drag, which hides and shows it, so the pull always wins.
+ */
+private fun Modifier.pullDown(onPull: (Offset) -> Unit): Modifier =
+    pointerInput(Unit) {
+        val far = PULL.toPx()
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            var moved = Offset.Zero
+            // Watched until let go, pulled down, or dragged sideways.
+            var watching = true
+            while (watching) {
+                val change =
+                    awaitPointerEvent(PointerEventPass.Initial)
+                        .changes
+                        .firstOrNull { it.id == down.id }
+                moved += change?.positionChange() ?: Offset.Zero
+                val pulled = moved.y > far && moved.y > abs(moved.x)
+                if (pulled) {
+                    change?.consume()
+                    onPull(down.position)
+                }
+                watching = change?.pressed == true && !pulled && abs(moved.x) <= far
+            }
+        }
+    }
+
+/** How far down a pull goes before it opens a menu. */
+private val PULL = 24.dp
+
+/** The height of the sidebar head's forum logo and idejo button, the same. */
+private val HEAD_LOGO = 34.dp
+
+/** The least height of a touch target (AX). */
+private val TARGET = 48.dp
 
 /** Under the top bar. */
 private val BUBBLES_TOP = 64.dp

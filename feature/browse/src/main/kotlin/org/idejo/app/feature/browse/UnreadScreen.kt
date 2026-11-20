@@ -27,10 +27,12 @@ fun UnreadRoute(
     onTopic: (String) -> Unit,
     onTag: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Whether the page shows its title; the home page's tab does not. */
+    titled: Boolean = true,
     viewModel: UnreadViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    UnreadScreen(state, onTopic, onTag, viewModel::refresh, viewModel::more, modifier)
+    UnreadScreen(state, onTopic, onTag, viewModel::refresh, viewModel::more, modifier, titled)
 }
 
 /**
@@ -46,6 +48,7 @@ fun UnreadScreen(
     onRefresh: () -> Unit,
     onMore: () -> Unit,
     modifier: Modifier = Modifier,
+    titled: Boolean = true,
 ) {
     val unread = state.unread
     val others = unread.others
@@ -60,7 +63,7 @@ fun UnreadScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item(key = "title") { PageTitle(stringResource(R.string.unread_title)) }
+            if (titled) item(key = "title") { PageTitle(stringResource(R.string.unread_title)) }
             if (unread.following.isNotEmpty()) {
                 item(key = "following") { SectionTitle(stringResource(R.string.unread_following)) }
                 items(unread.following, key = { "f:${it.id}" }) { topic ->

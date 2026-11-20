@@ -23,7 +23,6 @@ SPDX-License-Identifier: Apache-2.0
     <string name="close">Close</string>
 
     <!-- Left sidebar (SH-30 to SH-38), in the member guide's words. -->
-    <string name="sidebar_title">Sidebar</string>
     <string name="sidebar_all_categories">All categories</string>
     <string name="sidebar_all">All</string>
     <string name="sidebar_roll_up">Roll up into icons</string>
@@ -50,11 +49,12 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Logo menu (SH-10, SH-11, SH-14). -->
     <string name="logo_menu_this_forum">This forum</string>
-    <string name="logo_menu_home">Home</string>
+    <string name="logo_menu_followed">Followed topics</string>
+    <string name="logo_menu_invite">Invite</string>
+    <string name="logo_menu_support">Support</string>
     <!-- Private Conversations without idejo ID: greyed, with this button (steward decision, 2026-11-20). -->
     <string name="logo_menu_connect">Connect</string>
     <string name="logo_menu_connect_conversations">Connect idejo ID for private conversations</string>
-    <string name="logo_menu_share">Share link</string>
     <string name="logo_menu_add_forum">Add a forum</string>
     <string name="logo_menu_your_forums">Your forums</string>
     <string name="logo_menu_new_forum">A forum you joined is waiting to be connected</string>

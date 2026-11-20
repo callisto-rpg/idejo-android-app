@@ -40,7 +40,7 @@ internal fun GlowingName(
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = GLOW_ALPHA * strength.value))
             .padding(horizontal = 4.dp, vertical = 10.dp),
-        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp),
+        style = IdejoTheme.typography.titleMedium,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )

@@ -13,9 +13,7 @@ import org.idejo.app.core.data.InboxShortcut
 import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.designsystem.component.Crumb
-import org.idejo.app.core.designsystem.component.Unread
 import org.idejo.app.core.designsystem.component.dot
-import org.idejo.app.core.designsystem.component.unreadLevel
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Topic
@@ -27,17 +25,6 @@ internal fun logoOf(shell: ShellState): String? =
             .toHttpUrlOrNull()
             ?.resolve(logo)
             ?.toString()
-    }
-
-/** **Unread** with its count and colour (SH-01), for a member signed in. */
-internal fun unreadOf(
-    shell: ShellState,
-    onClick: () -> Unit,
-): Unread? =
-    if (shell.signedIn) {
-        Unread(shell.sidebar.unread.count, unreadLevel(shell.sidebar.unread.level), onClick)
-    } else {
-        null
     }
 
 internal fun Place.label(): Int =
@@ -155,13 +142,14 @@ internal fun crumbs(
     place: Place,
     go: (Place) -> Unit,
     logo: String?,
-    openLogoMenu: () -> Unit,
+    openSidebar: () -> Unit,
     showWhole: (String) -> Unit,
 ): List<Crumb> {
+    // The forum's logo: its home page, or from there the sidebar.
     val forum =
         Crumb.Forum(
             shell.name,
-            onClick = openLogoMenu,
+            onClick = { if (place == Place.Home) openSidebar() else go(Place.Home) },
             logo = logo,
             dot = shell.newForums,
             news = shell.news,

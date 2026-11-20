@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -279,8 +280,8 @@ private fun CategoryRow(
             Text(
                 category.title,
                 Modifier.weight(1f).semantics { heading() },
-                style = TEXT.copy(fontSize = 18.sp),
-                fontWeight = FontWeight.Medium,
+                // In the title font, as titles are everywhere.
+                style = IdejoTheme.typography.titleMedium.copy(fontSize = 18.sp),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -314,7 +315,8 @@ private fun TopicRow(
 ) {
     var menu by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
-    val highlight = if (open) colors.secondaryContainer else colors.background
+    // Only the open topic is highlighted; the others show the sidebar through.
+    val highlight = if (open) colors.secondaryContainer else Color.Transparent
     Box {
         Row(
             Modifier

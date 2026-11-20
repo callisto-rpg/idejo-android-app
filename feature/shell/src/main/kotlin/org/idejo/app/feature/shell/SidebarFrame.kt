@@ -39,8 +39,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
@@ -48,11 +50,14 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sign
 
 /**
  * Whether the window is wide enough to keep the sidebar beside the page (SH-60): the
@@ -91,10 +96,10 @@ internal fun currentFold(): Fold? {
 /**
  * The page under the top bar, and the sidebar (SH-30, SH-60, SH-61). On a phone (compact and
  * medium widths) the sidebar comes in from the left under the finger as soon as a drag to
- * the right across the page starts, so it can be peeked at; let go past a third of the way,
- * or flung, it opens over the whole screen, else it slides back. **Sidebar** in the forum
- * menu opens it too. A drag to the left closes it the same way, as do back and its close
- * button. In an expanded window the sidebar stays open beside the page. Across a [fold]
+ * the right across the page starts, or as the back gesture moves (gesture navigation);
+ * letting go after moving right opens it over the whole screen, after moving left shuts it.
+ * **Sidebar** in the forum menu, and the forum's logo on the home page, open it too. A drag
+ * to the left across it closes it the same way, as does back. In an expanded window the sidebar stays open beside the page. Across a [fold]
  * the two take a side each, so no message is ever under the hinge: in book posture the
  * sidebar on the left, the page on the right; in tabletop posture the page above.
  * [sidebar] is told whether it is docked beside the page.
@@ -123,8 +128,11 @@ internal fun SidebarFrame(
     sliding.width =
         LocalWindowInfo.current.containerSize.width
             .toFloat()
+    val pulling = rememberPulling(sliding)
     Scaffold(
-        modifier,
+        modifier.glassBehind(enabled = !wide && fold == null) {
+            if (sliding.width > 0f) sliding.shown.value / sliding.width else 0f
+        },
         topBar = topBar,
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
@@ -148,12 +156,14 @@ internal fun SidebarFrame(
                     .padding(padding)
                     .fillMaxSize()
                     .testTag(PAGE)
-                    .reveal(sliding, opening = true),
+                    .nestedScroll(pulling)
+                    .reveal(sliding),
             ) { shownPage() }
         }
     }
     if (!wide && fold == null) {
         BackHandler(enabled = open, onBack = onClose)
+        BackGestureOpens(open, sliding) { opened() }
         LaunchedEffect(open, sliding.width) { sliding.settle(open) }
         if (sliding.shown.value > 0f) {
             Box(
@@ -161,7 +171,7 @@ internal fun SidebarFrame(
                     .fillMaxSize()
                     .offset { IntOffset((sliding.shown.value - sliding.width).roundToInt(), 0) }
                     .testTag(OVER)
-                    .reveal(sliding, opening = false),
+                    .reveal(sliding),
             ) { shownSidebar(false) }
         }
     }
@@ -171,7 +181,7 @@ internal fun SidebarFrame(
  * How much of the sidebar is drawn over the page, from 0 (hidden) to [width] (open). A drag
  * moves it with the finger; letting go settles it open or shut and tells the frame.
  */
-private class Sliding(
+internal class Sliding(
     private val scope: CoroutineScope,
     private val reduced: () -> Boolean,
     private val onOpen: () -> Unit,
@@ -180,23 +190,30 @@ private class Sliding(
     val shown = Animatable(0f)
     var width = 0f
 
+    /** Drawn at [progress] (0 to 1) of the way, as a back gesture moves. */
+    fun peek(progress: Float) {
+        scope.launch { shown.snapTo(width * progress.coerceIn(0f, 1f)) }
+    }
+
+    /** The way the finger last moved: 1 right, -1 left, 0 not yet. */
+    private var heading = 0f
+
+    /**
+     * One drag's move by [delta] px (positive to the right): the sidebar follows the finger,
+     * held where it is while the finger rests. Opening and closing are the same drag.
+     */
     fun drag(delta: Float) {
+        if (abs(delta) >= JITTER) heading = sign(delta)
         scope.launch { shown.snapTo((shown.value + delta).coerceIn(0f, width)) }
     }
 
-    /** Let go with [velocity] (px/s, positive to the right) while [opening] or closing. */
-    fun release(
-        opening: Boolean,
-        velocity: Float,
-        fling: Float,
-    ) {
-        val open =
-            when {
-                velocity > fling -> true
-                velocity < -fling -> false
-                opening -> shown.value > width * OPENS_PAST
-                else -> shown.value > width * (1 - OPENS_PAST)
-            }
+    /**
+     * Let go: the way the finger last moved decides, right opens and left closes; a drag
+     * that never moved settles where it is nearer.
+     */
+    fun release() {
+        val open = if (heading == 0f) shown.value > width / 2 else heading > 0f
+        heading = 0f
         if (open) onOpen() else onClose()
         settle(open)
     }
@@ -204,6 +221,47 @@ private class Sliding(
     fun settle(open: Boolean) {
         val target = if (open) width else 0f
         scope.launch { if (reduced()) shown.snapTo(target) else shown.animateTo(target) }
+    }
+}
+
+/**
+ * A sideways swipe a child scroller leaves over (the home page's tabs, swiped right on the
+ * leftmost one) pulls the sidebar as a drag across the page would; once pulling, the swipe
+ * back is the sidebar's too, not the child's.
+ */
+@Composable
+private fun rememberPulling(sliding: Sliding): NestedScrollConnection {
+    return remember(sliding) {
+        object : NestedScrollConnection {
+            var pulling = false
+
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (!pulling || source != NestedScrollSource.UserInput) return Offset.Zero
+                sliding.drag(available.x)
+                return Offset(available.x, 0f)
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (source != NestedScrollSource.UserInput || available.x <= 0f) return Offset.Zero
+                pulling = true
+                sliding.drag(available.x)
+                return Offset(available.x, 0f)
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (!pulling) return Velocity.Zero
+                pulling = false
+                sliding.release()
+                return available
+            }
+        }
     }
 }
 
@@ -285,42 +343,21 @@ internal fun Slide(
 }
 
 /**
- * Drags across the page move the sidebar with the finger (SH-30), not those from the screen's
- * edges, which belong to system back. A child that scrolls sideways keeps its drags.
+ * Drags move the sidebar with the finger (SH-30): across the page to open it (a category,
+ * a topic; the home page's tabs hand theirs on, see [rememberPulling]), across the sidebar
+ * to close it. A child that scrolls sideways keeps its drags. Both are the same drag
+ * ([Sliding]): the way it last moved decides.
  */
-private fun Modifier.reveal(
-    sliding: Sliding,
-    opening: Boolean,
-): Modifier =
-    pointerInput(opening) {
-        val edge = EDGE.toPx()
-        val fling = FLING.toPx()
-        val tracker = VelocityTracker()
-        var counted = false
-        val end = {
-            if (counted) sliding.release(opening, tracker.calculateVelocity().x, fling)
-            counted = false
-        }
+private fun Modifier.reveal(sliding: Sliding): Modifier =
+    pointerInput(sliding) {
         detectHorizontalDragGestures(
-            onDragStart = { start ->
-                tracker.resetTracking()
-                counted = start.x > edge && start.x < size.width - edge
-            },
-            onDragEnd = end,
-            onDragCancel = end,
+            onDragEnd = sliding::release,
+            onDragCancel = sliding::release,
         ) { change, delta ->
-            if (counted) {
-                change.consume()
-                tracker.addPosition(change.uptimeMillis, change.position)
-                sliding.drag(delta)
-            }
+            change.consume()
+            sliding.drag(delta)
         }
     }
 
-private val EDGE = 32.dp
-
-/** Let go past this share of its width, the sidebar opens (closing: back under it, it shuts). */
-private const val OPENS_PAST = 1f / 3
-
-/** A fling this fast (per second) opens or closes the sidebar wherever it is. */
-private val FLING = 400.dp
+/** A move smaller than this (px) is the finger's tremble, not a change of way. */
+private const val JITTER = 1f

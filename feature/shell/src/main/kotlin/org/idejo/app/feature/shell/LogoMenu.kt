@@ -3,12 +3,19 @@
 
 package org.idejo.app.feature.shell
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -16,7 +23,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.idejo.app.core.designsystem.component.ForumLogo
@@ -51,8 +66,10 @@ interface LogoMenuActions : YourForumsActions {
 }
 
 /**
- * The logo menu (SH-10 to SH-15): **This forum** with its logo, name and address, **Home**,
- * **Sidebar** while it is not docked (SH-30) and **Share link**. In idejo ID mode ([group]),
+ * The logo menu (SH-10 to SH-15): **This forum** with its logo, and its name and address,
+ * which open the home page on **Categories** ([onHome]); then on one line **Followed
+ * topics** (the sidebar, while it is not docked, SH-30), **Invite** (the forum's link) and
+ * **Support** (greyed, not offered yet). In idejo ID mode ([group]),
  * **Your forums** (SH-12), the inbox's shortcuts (SH-13) and **Add a forum** by address or from
  * the directory (SH-14); in single-forum mode, **Add a forum** explains that the app holds this
  * forum only and offers idejo ID mode (MD-03).
@@ -79,7 +96,12 @@ fun LogoMenu(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             ForumLogo(name, size = 64.dp, logoUrl = logo)
-            Column(Modifier.weight(1f)) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(role = Role.Button, onClick = onHome),
+            ) {
                 Text(name, style = MaterialTheme.typography.headlineSmall)
                 Text(
                     address,
@@ -90,11 +112,16 @@ fun LogoMenu(
                 )
             }
         }
-        Item(R.drawable.ic_home, stringResource(R.string.logo_menu_home), onHome)
-        onSidebar?.let {
-            Item(DesignR.drawable.ic_menu, stringResource(R.string.sidebar_title), it)
-        }
-        Item(R.drawable.ic_share, stringResource(R.string.logo_menu_share), onShare)
+        ForumButtons(
+            listOfNotNull(
+                onSidebar?.let {
+                    ForumButton(DesignR.drawable.ic_menu, R.string.logo_menu_followed, it)
+                },
+                ForumButton(R.drawable.ic_share, R.string.logo_menu_invite, onShare),
+                // Not offered yet: shown greyed.
+                ForumButton(R.drawable.ic_help, R.string.logo_menu_support, null),
+            ),
+        )
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         if (group != null && actions != null) {
             GroupPart(group, actions)
@@ -173,3 +200,83 @@ private fun SingleForum(
         ) { Text(stringResource(R.string.logo_menu_sign_in_idejo_id)) }
     }
 }
+
+/** One of **This forum**'s buttons; without [onClick], greyed and unavailable. */
+internal data class ForumButton(
+    val icon: Int,
+    val label: Int,
+    val onClick: (() -> Unit)?,
+)
+
+/**
+ * [buttons] on one line, each its icon and label; when the labels do not all fit, the
+ * leftmost lose theirs first (TalkBack still reads them).
+ */
+@Composable
+private fun ForumButtons(buttons: List<ForumButton>) {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    val labels = buttons.map { stringResource(it.label) }
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        val density = LocalDensity.current
+        val bare = with(density) { (BUTTON_PADDING * 2 + ICON).roundToPx() }
+        val extra =
+            labels.map {
+                measurer.measure(it, style).size.width + with(density) { GAP.roundToPx() }
+            }
+        val labelled = labelled(bare, extra, constraints.maxWidth)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            buttons.forEachIndexed { index, button ->
+                ForumButtonView(button, labels[index], index >= buttons.size - labelled)
+            }
+        }
+    }
+}
+
+/**
+ * How many buttons, from the right, keep their label in [room]: each is [bare] without it,
+ * and its [extra] wider with it.
+ */
+internal fun labelled(
+    bare: Int,
+    extra: List<Int>,
+    room: Int,
+): Int =
+    (extra.size downTo 0).first { kept ->
+        bare * extra.size + extra.takeLast(kept).sum() <=
+            room
+    }
+
+@Composable
+private fun ForumButtonView(
+    button: ForumButton,
+    label: String,
+    labelled: Boolean,
+) {
+    val enabled = button.onClick != null
+    val colour =
+        if (enabled) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
+        }
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled, role = Role.Button) { button.onClick?.invoke() }
+            .semantics(mergeDescendants = true) {
+                if (!labelled) contentDescription = label
+                if (!enabled) disabled()
+            }.heightIn(min = 48.dp)
+            .padding(horizontal = BUTTON_PADDING),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(GAP),
+    ) {
+        Icon(painterResource(button.icon), null, Modifier.size(ICON), tint = colour)
+        if (labelled) Text(label, style = MaterialTheme.typography.labelLarge, color = colour)
+    }
+}
+
+private val BUTTON_PADDING = 12.dp
+private val ICON = 24.dp
+private val GAP = 8.dp

@@ -68,8 +68,8 @@ data class ForumRecord(
     val topicView: TopicView = TopicView.Compact,
     /** Categories folded to topics with news (SH-33). */
     val folded: Set<String> = emptySet(),
-    /** The sidebar's links rolled up into icons (SH-35). */
-    val linksRolled: Boolean = false,
+    /** The sidebar's links rolled up into icons (SH-35), as they start. */
+    val linksRolled: Boolean = true,
     /** This device's push registration with the forum (NT-02); null without one. */
     val push: PushRecord? = null,
     /** The page last open here (MD-05), as the app's route writes it; null for home. */

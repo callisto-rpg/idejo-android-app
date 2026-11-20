@@ -404,7 +404,7 @@ internal fun UnavailableItem(
 }
 
 /** Material's opacity for content that is disabled. */
-private const val DISABLED_ALPHA = 0.38f
+internal const val DISABLED_ALPHA = 0.38f
 
 /**
  * A menu filling the screen (SH-10, SH-20): a close button at the top, its content
@@ -438,7 +438,12 @@ internal fun MenuPage(
                 }
             }
         }
-    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    // Frosted glass while the trial lasts (SidebarGlass).
+    Surface(
+        modifier.fillMaxSize(),
+        color = glassBackground(),
+        contentColor = MaterialTheme.colorScheme.onBackground,
+    ) {
         Column(Modifier.safeDrawingPadding()) {
             Row(Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.End) {
                 IconButton(onClick = onClose) {
