@@ -190,4 +190,14 @@ SPDX-License-Identifier: Apache-2.0
     <string name="settings_everywhere_none">You have joined no other forum yet.</string>
     <string name="settings_everywhere_missed">Not saved on %1$s: they did not answer or need an update. Try again later.</string>
     <string name="settings_everywhere_unreachable">Your forums could not be reached. Try again later.</string>
+    <!-- ST-20: open links in the app (DL-01); Android keeps the choice. -->
+    <string name="app_links">Links</string>
+    <string name="app_links_system">Android asks which app opens a forum\'s link, or remembers your answer.</string>
+    <string name="app_links_off">Forum links open in your browser. Turn on \"Open supported links\" to open them here.</string>
+    <string name="app_links_unverified">Forum links open in your browser until their forum confirms this app. You can also add them yourself in Android\'s settings.</string>
+    <plurals name="app_links_on">
+        <item quantity="one">Links to %1$d forum address open in the app.</item>
+        <item quantity="other">Links to %1$d of %2$d forum addresses open in the app.</item>
+    </plurals>
+    <string name="app_links_change">Change in Android settings</string>
 </resources>

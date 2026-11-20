@@ -26,8 +26,8 @@ import org.idejo.app.feature.settings.parts.SwitchRow
 
 /**
  * App settings above About (ST-20 to ST-22): **Mode** (MD-04), **Notifications** (the push
- * distributor), **Display** (text size inside messages, haptics, reduced motion),
- * **Storage** (the cache).
+ * distributor), **Links** (open forum links in the app, DL-01), **Display** (text size
+ * inside messages, haptics, reduced motion), **Storage** (the cache).
  */
 internal fun LazyListScope.deviceSections(
     state: AppSettingsUiState,
@@ -41,6 +41,8 @@ internal fun LazyListScope.deviceSections(
     }
     item { SectionTitle(stringResource(R.string.app_notifications)) }
     item { Distributors(state, names, onEvent) }
+    item { SectionTitle(stringResource(R.string.app_links)) }
+    item { LinkHandlingSection() }
     item { SectionTitle(stringResource(R.string.app_display)) }
     item { Display(state, onEvent) }
     item { SectionTitle(stringResource(R.string.app_storage)) }
