@@ -64,7 +64,7 @@ fun LogoMenu(
     onShare: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    logo: (@Composable () -> Unit)? = null,
+    logo: String? = null,
     group: GroupMenu? = null,
     actions: LogoMenuActions? = null,
 ) {
@@ -75,7 +75,7 @@ fun LogoMenu(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            ForumLogo(name, size = 64.dp, image = logo)
+            ForumLogo(name, size = 64.dp, logoUrl = logo)
             Column(Modifier.weight(1f)) {
                 Text(name, style = MaterialTheme.typography.headlineSmall)
                 Text(

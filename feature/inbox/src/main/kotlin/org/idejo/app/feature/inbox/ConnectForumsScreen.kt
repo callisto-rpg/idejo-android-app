@@ -36,7 +36,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import org.idejo.app.core.data.GroupForum
 import org.idejo.app.core.designsystem.component.ForumLogo
 
@@ -196,7 +195,7 @@ private fun ForumCardContent(
         ForumLogo(
             name = forum.name,
             size = 44.dp,
-            image = forum.logoUrl?.let { { AsyncImage(model = it, contentDescription = null) } },
+            logoUrl = forum.logoUrl,
         )
         Column(Modifier.weight(1f)) {
             Text(forum.name, style = MaterialTheme.typography.titleMedium)
@@ -254,15 +253,7 @@ private fun JoinedCard(
             ForumLogo(
                 name = forum.name,
                 size = 44.dp,
-                image =
-                    forum.logoUrl?.let {
-                        {
-                            AsyncImage(
-                                model = it,
-                                contentDescription = null,
-                            )
-                        }
-                    },
+                logoUrl = forum.logoUrl,
             )
             Column(Modifier.weight(1f)) {
                 Text(

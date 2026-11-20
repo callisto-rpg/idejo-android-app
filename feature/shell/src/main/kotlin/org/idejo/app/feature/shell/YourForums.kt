@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -30,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -38,7 +36,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.GroupForum
 import org.idejo.app.core.data.InboxTopicsState
@@ -187,10 +184,7 @@ private fun RowScope.Name(forum: YourForum) {
     ForumLogo(
         forum.name,
         size = 36.dp,
-        image =
-            forum.logoUrl?.let {
-                { AsyncImage(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-            },
+        logoUrl = forum.logoUrl,
     )
     Column(Modifier.weight(1f)) {
         Text(

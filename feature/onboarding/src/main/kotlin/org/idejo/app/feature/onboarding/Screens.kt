@@ -47,7 +47,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import org.idejo.app.core.data.SignInState
 import org.idejo.app.core.designsystem.component.ForumLogo
 
@@ -243,7 +242,7 @@ private fun FoundForum(
         ForumLogo(
             name = discovery.name,
             size = 64.dp,
-            image = logo?.let { { AsyncImage(model = it, contentDescription = null) } },
+            logoUrl = logo,
         )
         Spacer(Modifier.height(12.dp))
         Text(

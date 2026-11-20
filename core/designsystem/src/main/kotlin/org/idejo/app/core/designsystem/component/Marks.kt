@@ -13,18 +13,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.onColorFor
 import org.idejo.app.core.model.Category
@@ -87,36 +92,43 @@ fun CategoryMark(
 )
 
 /**
- * A forum's logo in the top bar and menus (SH-01): [image] when there is one, on nothing of
- * its own, so a transparent logo shows the surface it sits on (dark, light, a card); else the
- * forum's initial on its primary colour.
+ * A forum's logo (SH-01): the image at [logoUrl] on the surface around it, so a transparent
+ * logo shows that surface (dark, light, a card). Until the image has loaded, and when there
+ * is none or it cannot be read, the forum's initial on its primary colour stands in, so a
+ * logo is never missing.
  */
 @Composable
 fun ForumLogo(
     name: String,
     modifier: Modifier = Modifier,
     size: Dp = 34.dp,
-    image: (@Composable () -> Unit)? = null,
+    logoUrl: String? = null,
 ) {
+    var loaded by remember(logoUrl) { mutableStateOf(false) }
     Box(
-        modifier
-            .size(size)
-            .clip(RoundedCornerShape(size * LOGO_CORNER))
-            .behind(initial = image == null),
+        modifier.size(size).clip(RoundedCornerShape(size * LOGO_CORNER)),
         contentAlignment = Alignment.Center,
     ) {
-        if (image != null) {
-            image()
-        } else {
-            Initial(name, MaterialTheme.colorScheme.onPrimary, (size.value * INITIAL_SCALE).sp)
+        if (!loaded) {
+            Box(
+                Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Initial(name, MaterialTheme.colorScheme.onPrimary, (size.value * INITIAL_SCALE).sp)
+            }
+        }
+        if (logoUrl != null) {
+            AsyncImage(
+                logoUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                onSuccess = { loaded = true },
+                onError = { loaded = false },
+            )
         }
     }
 }
-
-/** The initial's tile; nothing behind a logo image (SH-01). */
-@Composable
-private fun Modifier.behind(initial: Boolean): Modifier =
-    if (initial) background(MaterialTheme.colorScheme.primary) else this
 
 /**
  * A person's picture (TV-02): [image] when they have one (see `pictureUrl`, TH-10), on

@@ -4,13 +4,10 @@
 package org.idejo.app.feature.shell
 
 import android.content.Context
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import coil3.compose.AsyncImage
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.idejo.app.core.data.InboxShortcut
 import org.idejo.app.core.data.ThemeMode
@@ -24,16 +21,13 @@ import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.model.Topic
 
 /** The forum's logo from discovery, on the forum's own host, when it has one. */
-internal fun logoOf(shell: ShellState): (@Composable () -> Unit)? {
-    val url =
-        shell.record.discovery.logoUrl
-            ?.let {
-                shell.record.origin
-                    .toHttpUrlOrNull()
-                    ?.resolve(it)
-            }?.toString() ?: return null
-    return { AsyncImage(url, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-}
+internal fun logoOf(shell: ShellState): String? =
+    shell.record.discovery.logoUrl?.let { logo ->
+        shell.record.origin
+            .toHttpUrlOrNull()
+            ?.resolve(logo)
+            ?.toString()
+    }
 
 /** **Unread** with its count and colour (SH-01), for a member signed in. */
 internal fun unreadOf(
@@ -160,7 +154,7 @@ internal fun crumbs(
     shell: ShellState,
     place: Place,
     go: (Place) -> Unit,
-    logo: (@Composable () -> Unit)?,
+    logo: String?,
     openLogoMenu: () -> Unit,
     showWhole: (String) -> Unit,
 ): List<Crumb> {

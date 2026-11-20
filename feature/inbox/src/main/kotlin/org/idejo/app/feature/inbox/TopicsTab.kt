@@ -189,16 +189,7 @@ private fun InboxTopicRow(
                     ForumLogo(
                         item.forum,
                         size = 30.dp,
-                        image =
-                            item.logoUrl?.let {
-                                {
-                                    AsyncImage(
-                                        it,
-                                        null,
-                                        Modifier.fillMaxSize(),
-                                    )
-                                }
-                            },
+                        logoUrl = item.logoUrl,
                     )
                 },
                 starter =

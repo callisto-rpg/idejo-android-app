@@ -6,6 +6,7 @@ package org.idejo.app.core.designsystem.component
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -27,18 +28,38 @@ import org.robolectric.annotation.GraphicsMode
 class ForumLogoTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
+    private fun centreOf(tag: String): Color {
+        val pixels = rule.onNodeWithTag(tag).captureToImage().toPixelMap()
+        return pixels[pixels.width / 2, pixels.height / 2]
+    }
+
     @Test
-    fun `SH-01 a transparent logo shows the background it is placed on`() {
-        val surface = Color(0xFF101010)
+    fun `SH-01 without a logo, the initial on the primary colour`() {
+        var primary = Color.Unspecified
         rule.setContent {
             IdejoTheme {
-                Box(Modifier.background(surface)) {
-                    ForumLogo("Garden club", Modifier.testTag("logo"), image = {})
-                }
+                primary = MaterialTheme.colorScheme.primary
+                ForumLogo("Garden club", Modifier.testTag("logo"))
             }
         }
-        val pixels = rule.onNodeWithTag("logo").captureToImage().toPixelMap()
-        assertEquals(surface, pixels[pixels.width / 2, pixels.height / 2])
+        assertEquals(primary, centreOf("logo"))
+    }
+
+    @Test
+    fun `SH-01 a logo that cannot be read leaves the initial, never nothing`() {
+        var primary = Color.Unspecified
+        rule.setContent {
+            IdejoTheme {
+                primary = MaterialTheme.colorScheme.primary
+                ForumLogo(
+                    "Garden club",
+                    Modifier.testTag("logo"),
+                    logoUrl = "https://invalid.test/x.svg",
+                )
+            }
+        }
+        rule.waitForIdle()
+        assertEquals(primary, centreOf("logo"))
     }
 
     @Test

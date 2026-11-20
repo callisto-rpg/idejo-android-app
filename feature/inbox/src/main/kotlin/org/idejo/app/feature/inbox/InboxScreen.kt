@@ -83,7 +83,7 @@ fun InboxScreen(
             TopBar(
                 crumbs =
                     listOf(
-                        Crumb.Forum(state.name, onClick = {}, logo = logoOf(state.logoUrl)),
+                        Crumb.Forum(state.name, onClick = {}, logo = state.logoUrl),
                         Crumb.Page(stringResource(tab.title)),
                     ),
             ) { Me(state) }
@@ -119,6 +119,3 @@ private fun Me(state: InboxState) {
         image = url?.let { { AsyncImage(it, null, Modifier.fillMaxSize()) } },
     )
 }
-
-private fun logoOf(url: String?): (@Composable () -> Unit)? =
-    url?.let { { AsyncImage(it, null, Modifier.fillMaxSize()) } }

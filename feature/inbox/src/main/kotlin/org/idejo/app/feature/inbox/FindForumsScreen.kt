@@ -38,7 +38,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import org.idejo.app.core.designsystem.component.ForumLogo
 import org.idejo.app.core.model.DirectoryForum
 
@@ -128,15 +127,7 @@ private fun ForumCard(
             ForumLogo(
                 name = forum.name,
                 size = 44.dp,
-                image =
-                    forum.logoUrl?.let {
-                        {
-                            AsyncImage(
-                                model = it,
-                                contentDescription = null,
-                            )
-                        }
-                    },
+                logoUrl = forum.logoUrl,
             )
             Column(Modifier.weight(1f)) {
                 Text(forum.name, style = MaterialTheme.typography.titleMedium)

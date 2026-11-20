@@ -250,7 +250,7 @@ private fun MemberAvatar(
 private fun UserMenuPage(
     shell: ShellState,
     actions: UserMenuActions,
-    logo: (@Composable () -> Unit)?,
+    logo: String?,
     onClose: () -> Unit,
 ) {
     val me = shell.me
