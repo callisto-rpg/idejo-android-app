@@ -176,7 +176,7 @@ The web's sidebar, filling the whole screen when pulled.
 | SH-33 | The fold arrow beside a category keeps only its topics with news (and the one open); remembered per forum | Must |
 | SH-34 | **×** unfollows; the topic open is highlighted and listed with **+** to follow when not followed | Must |
 | SH-35 | Above the categories: **Filter by tag**, **Search**, **Rules & Roles**, **Help**, with the web's roll-up (^/V) into icons, remembered | Must |
-| SH-36 | At the bottom: **Private Conversations** with its count (the forum's own, or the inbox's Chats when the forum uses a chat service: IX-04) and, on linked forums, **All my topics** | Must |
+| SH-36 | ~~At the bottom: **Private Conversations** with its count~~ (steward decision, 2026-11-20: **Private Conversations** is in the forum (logo) menu, PC-01, never in the sidebar) and, on linked forums, **All my topics** | Must |
 | SH-38 | Sized for the thumb: every row at least 54 dp tall (categories 56 dp), text 17–18 sp, category tiles 34 dp, and the fold arrow, × and + each a 44 dp target of their own, so a tap on them never opens the topic | Must |
 | SH-37 | Long-press a topic: **Follow/Unfollow**, **Unfollow & mute**, **Mark unread**, **Copy link**, **Share** | Must |
 
@@ -337,7 +337,7 @@ The home of idejo ID mode, matching my.idejo.org's pages, in the inbox's own col
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| PC-01 | Forums without a chat service keep their own conversations (`/conversations`): list at the sidebar's bottom with the count of conversations with news; a conversation works like a topic with no slow mode | Must |
+| PC-01 | Private conversations live only on the group's inbox, with an idejo ID (steward decision, 2026-11-20; idejo 0.3.21: forums host none). **Private Conversations** is in the forum (logo) menu: in idejo ID mode the inbox's Chats with the count (SH-13); in single-forum mode, on a forum with a chat service, greyed with a small **Connect** at its right, which signs in with idejo ID (MD-04); on a forum without one, absent. A conversation works like a topic with no slow mode | Must |
 | PC-02 | Forums with a chat service (IX-04) send the member to the inbox's Chats in idejo ID mode; in single-forum mode, to the chat page in a Custom Tab with a line offering idejo ID mode | Must |
 | PC-03 | "Members can send me private messages" in settings; a user card shows **Private Message** only when allowed | Must |
 | PC-04 | Conversations never appear in search, the sidebar's categories or Unread (as the web) | Must |

@@ -69,6 +69,7 @@ fun LogoMenu(
     group: GroupMenu? = null,
     actions: LogoMenuActions? = null,
     onSidebar: (() -> Unit)? = null,
+    chatService: Boolean = false,
 ) {
     MenuPage(onClose, modifier) {
         Heading(stringResource(R.string.logo_menu_this_forum))
@@ -98,7 +99,7 @@ fun LogoMenu(
         if (group != null && actions != null) {
             GroupPart(group, actions)
         } else {
-            SingleForum(name, actions)
+            SingleForum(name, actions, chatService)
         }
     }
 }
@@ -140,7 +141,20 @@ private fun ColumnScope.GroupPart(
 private fun SingleForum(
     name: String,
     actions: LogoMenuActions?,
+    chatService: Boolean,
 ) = Column {
+    // Private conversations live on the group's inbox, with an idejo ID (steward decision,
+    // 2026-11-20): greyed here, with Connect; none on a forum without a chat service.
+    if (chatService && actions != null) {
+        UnavailableItem(
+            R.drawable.ic_chat,
+            stringResource(R.string.place_conversations),
+            stringResource(R.string.logo_menu_connect),
+            stringResource(R.string.logo_menu_connect_conversations),
+            actions::idejoId,
+        )
+        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+    }
     Heading(stringResource(R.string.logo_menu_add_forum))
     Text(
         stringResource(R.string.logo_menu_single_forum, name),

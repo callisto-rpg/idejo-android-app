@@ -448,6 +448,13 @@ Docker image) are added with them.
   page it is drawn under it, so it can be peeked at; let go past a third of the way, or
   flung (400 dp/s), it opens, else it slides back; closing is the same mirrored
   (`SidebarFrame`'s `Sliding`). Reduced motion keeps the drag, without the settling animation.
+- 2026-11-20 — Private conversations live only on the group's inbox (idejo 0.3.21,
+  callisto-rpg/Idejo#381: a forum hosts none, its discovery has no `private_messages`, so
+  ForumConversations, the user card's own **Private Message** and the Private messages
+  section turn off by themselves). **Private Conversations** left the sidebar's foot
+  (SH-36) for the forum (logo) menu: idejo ID mode keeps SH-13's Chats; single-forum mode on
+  a forum with a chat service (`community.chat_url`) shows it greyed with **Connect**
+  (`UnavailableItem`, `LogoMenu`'s `chatService`), which is **Sign in with idejo ID**.
 
 ## Milestones (spec §26)
 

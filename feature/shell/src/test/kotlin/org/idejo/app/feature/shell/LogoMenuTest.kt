@@ -4,6 +4,7 @@
 package org.idejo.app.feature.shell
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -121,7 +122,10 @@ class LogoMenuTest {
     @Test
     fun `SH-30 the sidebar opens from the forum menu, not the top bar`() {
         rule.setContent {
-            LogoMenu("Garden club", "garden.example.org", {}, {}, {}) { done += "sidebar" }
+            LogoMenu("Garden club", "garden.example.org", {}, {}, {}, onSidebar = {
+                done +=
+                    "sidebar"
+            })
         }
         rule.onNodeWithText("Sidebar").performClick()
         assertEquals(listOf("sidebar"), done)
@@ -131,5 +135,41 @@ class LogoMenuTest {
     fun `SH-30 docked, the forum menu has no Sidebar`() {
         rule.setContent { LogoMenu("Garden club", "garden.example.org", {}, {}, {}) }
         rule.onNodeWithText("Sidebar").assertDoesNotExist()
+    }
+
+    @Test
+    fun `PC-01 without idejo ID, Private Conversations is greyed, Connect signs in with it`() {
+        rule.setContent {
+            LogoMenu(
+                "Garden club",
+                "garden.example.org",
+                {},
+                {},
+                {},
+                actions = RecordedActions(done),
+                chatService = true,
+            )
+        }
+        rule.onNodeWithText("Private Conversations").assertIsNotEnabled()
+        rule
+            .onNodeWithContentDescription(
+                "Connect idejo ID for private conversations",
+            ).performClick()
+        assertEquals(listOf("idejo ID"), done)
+    }
+
+    @Test
+    fun `PC-01 a forum without a chat service has no Private Conversations`() {
+        rule.setContent {
+            LogoMenu(
+                "Garden club",
+                "garden.example.org",
+                {},
+                {},
+                {},
+                actions = RecordedActions(done),
+            )
+        }
+        rule.onNodeWithText("Private Conversations").assertDoesNotExist()
     }
 }

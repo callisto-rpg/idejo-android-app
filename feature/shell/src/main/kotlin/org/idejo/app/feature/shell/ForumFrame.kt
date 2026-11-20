@@ -172,6 +172,9 @@ fun ForumFrame(
                 logo = logo,
                 // The sidebar's button lives here, not in the top bar (SH-30); docked, none.
                 onSidebar = if (docked) null else ({ overlay = Overlay.Sidebar }),
+                chatService =
+                    shell.record.discovery.community
+                        ?.chatUrl != null,
                 group = shell.group.takeIf { shell.idejoId },
                 actions = logoMenuActions(viewModel, context, go),
             )
@@ -296,7 +299,6 @@ private fun SidebarPage(
                 signedIn = shell.signedIn,
                 openTopic = shell.openTopic,
                 actions = actions,
-                conversations = shell.conversations,
                 contentPadding = WindowInsets(bottom = 24.dp).asPaddingValues(),
             )
         }
