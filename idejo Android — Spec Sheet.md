@@ -170,7 +170,7 @@ The web's sidebar, filling the whole screen when pulled.
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| SH-30 | Opened by a swipe to the right on the page (not from the screen edge, which belongs to system back), or by **Sidebar** in the forum (logo) menu, under **Home** (steward decision, 2026-11-20: no sidebar button in the top bar); it covers the full screen and closes with a swipe to the left, back, or choosing a place. On expanded widths it stays open beside the page (SH-60) | Must |
+| SH-30 | Opened by a swipe to the right on the page, the sidebar following the finger from the start of the drag so it can be peeked at (steward decision, 2026-11-20: past a third of the way or flung it opens, else it slides back) (not from the screen edge, which belongs to system back), or by **Sidebar** in the forum (logo) menu, under **Home** (steward decision, 2026-11-20: no sidebar button in the top bar); it covers the full screen and closes with a swipe to the left, back, or choosing a place. On expanded widths it stays open beside the page (SH-60) | Must |
 | SH-31 | The same order and groups as the home page: **All categories**, each category with its icon tile and, under it, the topics the member follows there in the order joined; past four, **N more topics** | Must |
 | SH-32 | Dots before topics: grey new messages, blue a `+role` mentioned, orange a reply, red a mention; a topic's name glows briefly when a message arrives (live, from the category and user channels) | Must |
 | SH-33 | The fold arrow beside a category keeps only its topics with news (and the one open); remembered per forum | Must |

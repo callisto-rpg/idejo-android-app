@@ -444,6 +444,10 @@ Docker image) are added with them.
 - 2026-11-20 — The sidebar (SH-30) has no button in the top bar: it opens from **Sidebar**
   in the forum (logo) menu, under **Home** (`LogoMenu`'s `onSidebar`), or by a swipe to the
   right. Docked (SH-60, a fold) the menu has no such entry, as the bar had no button.
+- 2026-11-20 — The sidebar follows the finger (SH-30): from the start of a drag across the
+  page it is drawn under it, so it can be peeked at; let go past a third of the way, or
+  flung (400 dp/s), it opens, else it slides back; closing is the same mirrored
+  (`SidebarFrame`'s `Sliding`). Reduced motion keeps the drag, without the settling animation.
 
 ## Milestones (spec §26)
 

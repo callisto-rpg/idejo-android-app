@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -60,6 +62,37 @@ class SidebarFrameTest {
         rule.onNodeWithTag(OVER).performTouchInput { swipeLeft(startX = right - 120f, endX = 120f) }
         rule.waitForIdle()
         rule.onNodeWithTag(OVER).assertDoesNotExist()
+    }
+
+    @Test
+    fun `SH-30 the sidebar follows the finger, and a short drag lets it slide back`() {
+        frame()
+        rule.onNodeWithTag(PAGE).performTouchInput {
+            down(Offset(120f, centerY))
+            moveBy(Offset(40f, 0f))
+            moveBy(Offset(60f, 0f))
+        }
+        // Peeking: drawn under the finger before letting go, and not yet open.
+        rule.onNodeWithTag(OVER).assertExists()
+        assertFalse(open)
+
+        rule.onNodeWithTag(PAGE).performTouchInput { up() }
+        rule.waitForIdle()
+        assertFalse(open)
+        rule.onNodeWithTag(OVER).assertDoesNotExist()
+    }
+
+    @Test
+    fun `SH-30 a slow drag past a third of the way opens the sidebar`() {
+        frame()
+        rule.onNodeWithTag(PAGE).performTouchInput {
+            down(Offset(120f, centerY))
+            repeat(20) { moveBy(Offset(width / 40f, 0f), delayMillis = 100) }
+            up()
+        }
+        rule.waitForIdle()
+        assertTrue(open)
+        rule.onNodeWithTag(OVER).assertExists()
     }
 
     @Test
