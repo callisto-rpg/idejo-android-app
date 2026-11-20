@@ -87,7 +87,8 @@ fun CategoryMark(
 )
 
 /**
- * A forum's logo in the top bar and menus (SH-01): [image] when there is one, else the
+ * A forum's logo in the top bar and menus (SH-01): [image] when there is one, on nothing of
+ * its own, so a transparent logo shows the surface it sits on (dark, light, a card); else the
  * forum's initial on its primary colour.
  */
 @Composable
@@ -101,7 +102,7 @@ fun ForumLogo(
         modifier
             .size(size)
             .clip(RoundedCornerShape(size * LOGO_CORNER))
-            .background(MaterialTheme.colorScheme.primary),
+            .behind(initial = image == null),
         contentAlignment = Alignment.Center,
     ) {
         if (image != null) {
@@ -111,6 +112,11 @@ fun ForumLogo(
         }
     }
 }
+
+/** The initial's tile; nothing behind a logo image (SH-01). */
+@Composable
+private fun Modifier.behind(initial: Boolean): Modifier =
+    if (initial) background(MaterialTheme.colorScheme.primary) else this
 
 /**
  * A person's picture (TV-02): [image] when they have one (see `pictureUrl`, TH-10), else
