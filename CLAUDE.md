@@ -441,6 +441,9 @@ Docker image) are added with them.
   filled by its route): one button for all of Profile (`profile`, `bio`, `avatar`), since
   the app saves each change at once; never the username, which the web sends only after
   the password.
+- 2026-11-20 — The sidebar (SH-30) has no button in the top bar: it opens from **Sidebar**
+  in the forum (logo) menu, under **Home** (`LogoMenu`'s `onSidebar`), or by a swipe to the
+  right. Docked (SH-60, a fold) the menu has no such entry, as the bar had no button.
 
 ## Milestones (spec §26)
 

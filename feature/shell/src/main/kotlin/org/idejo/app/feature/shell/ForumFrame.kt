@@ -121,7 +121,6 @@ fun ForumFrame(
                         crumbs(shell, place, go, logo, { overlay = Overlay.LogoMenu }) {
                             wholeTitle = it
                         },
-                    onSidebarClick = if (docked) null else ({ overlay = Overlay.Sidebar }),
                     unread = unreadOf(shell) { go(Place.Unread) },
                     scrollBehavior = scroll,
                 ) {
@@ -171,6 +170,8 @@ fun ForumFrame(
                 onShare = { context.shareText(shell.record.origin) },
                 onClose = { overlay = Overlay.None },
                 logo = logo,
+                // The sidebar's button lives here, not in the top bar (SH-30); docked, none.
+                onSidebar = if (docked) null else ({ overlay = Overlay.Sidebar }),
                 group = shell.group.takeIf { shell.idejoId },
                 actions = logoMenuActions(viewModel, context, go),
             )

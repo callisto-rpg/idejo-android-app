@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.idejo.app.core.designsystem.component.ForumLogo
+import org.idejo.app.core.designsystem.R as DesignR
 
 /** idejo ID mode's part of the logo menu (SH-12 to SH-14). */
 @Immutable
@@ -50,11 +51,11 @@ interface LogoMenuActions : YourForumsActions {
 }
 
 /**
- * The logo menu (SH-10 to SH-15): **This forum** with its logo, name and address, **Home**
- * and **Share link**. In idejo ID mode ([group]), **Your forums** (SH-12), the inbox's
- * shortcuts (SH-13) and **Add a forum** by address or from the directory (SH-14); in
- * single-forum mode, **Add a forum** explains that the app holds this forum only and offers
- * idejo ID mode (MD-03).
+ * The logo menu (SH-10 to SH-15): **This forum** with its logo, name and address, **Home**,
+ * **Sidebar** while it is not docked (SH-30) and **Share link**. In idejo ID mode ([group]),
+ * **Your forums** (SH-12), the inbox's shortcuts (SH-13) and **Add a forum** by address or from
+ * the directory (SH-14); in single-forum mode, **Add a forum** explains that the app holds this
+ * forum only and offers idejo ID mode (MD-03).
  */
 @Composable
 fun LogoMenu(
@@ -67,6 +68,7 @@ fun LogoMenu(
     logo: String? = null,
     group: GroupMenu? = null,
     actions: LogoMenuActions? = null,
+    onSidebar: (() -> Unit)? = null,
 ) {
     MenuPage(onClose, modifier) {
         Heading(stringResource(R.string.logo_menu_this_forum))
@@ -88,6 +90,9 @@ fun LogoMenu(
             }
         }
         Item(R.drawable.ic_home, stringResource(R.string.logo_menu_home), onHome)
+        onSidebar?.let {
+            Item(DesignR.drawable.ic_menu, stringResource(R.string.sidebar_title), it)
+        }
         Item(R.drawable.ic_share, stringResource(R.string.logo_menu_share), onShare)
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         if (group != null && actions != null) {
