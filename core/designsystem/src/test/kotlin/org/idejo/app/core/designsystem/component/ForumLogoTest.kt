@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.GraphicsMode
 
-/** SH-01: a forum's logo sits on the surface around it, not on idejo's yellow. */
+/** SH-01, TV-02: forum logos and profile pictures sit on the surface around them. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ForumLogoTest {
@@ -38,6 +38,25 @@ class ForumLogoTest {
             }
         }
         val pixels = rule.onNodeWithTag("logo").captureToImage().toPixelMap()
+        assertEquals(surface, pixels[pixels.width / 2, pixels.height / 2])
+    }
+
+    @Test
+    fun `TV-02 a transparent profile picture shows the background it is placed on`() {
+        val surface = Color(0xFFF5F2EA)
+        rule.setContent {
+            IdejoTheme {
+                Box(Modifier.background(surface)) {
+                    Avatar(
+                        "Ada Lovelace",
+                        Color(0xFFF5C518),
+                        Modifier.testTag("avatar"),
+                        image = {},
+                    )
+                }
+            }
+        }
+        val pixels = rule.onNodeWithTag("avatar").captureToImage().toPixelMap()
         assertEquals(surface, pixels[pixels.width / 2, pixels.height / 2])
     }
 }
