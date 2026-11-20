@@ -117,4 +117,19 @@ class LogoMenuTest {
         rule.onNodeWithText("Remove").performClick()
         assertEquals(listOf("browser $bees", "remove $bees"), done)
     }
+
+    @Test
+    fun `SH-30 the sidebar opens from the forum menu, not the top bar`() {
+        rule.setContent {
+            LogoMenu("Garden club", "garden.example.org", {}, {}, {}) { done += "sidebar" }
+        }
+        rule.onNodeWithText("Sidebar").performClick()
+        assertEquals(listOf("sidebar"), done)
+    }
+
+    @Test
+    fun `SH-30 docked, the forum menu has no Sidebar`() {
+        rule.setContent { LogoMenu("Garden club", "garden.example.org", {}, {}, {}) }
+        rule.onNodeWithText("Sidebar").assertDoesNotExist()
+    }
 }

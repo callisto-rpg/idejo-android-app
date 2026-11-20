@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -27,22 +29,30 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import kotlin.math.roundToInt
 
 /**
  * Whether the window is wide enough to keep the sidebar beside the page (SH-60): the
@@ -80,9 +90,11 @@ internal fun currentFold(): Fold? {
 
 /**
  * The page under the top bar, and the sidebar (SH-30, SH-60, SH-61). On a phone (compact and
- * medium widths) a swipe to the right across the page, or the top bar's sidebar button,
- * opens the sidebar over the whole screen; a swipe to the left, back or its close button
- * closes it. In an expanded window the sidebar stays open beside the page. Across a [fold]
+ * medium widths) the sidebar comes in from the left under the finger as soon as a drag to
+ * the right across the page starts, so it can be peeked at; let go past a third of the way,
+ * or flung, it opens over the whole screen, else it slides back. **Sidebar** in the forum
+ * menu opens it too. A drag to the left closes it the same way, as do back and its close
+ * button. In an expanded window the sidebar stays open beside the page. Across a [fold]
  * the two take a side each, so no message is ever under the hinge: in book posture the
  * sidebar on the left, the page on the right; in tabletop posture the page above.
  * [sidebar] is told whether it is docked beside the page.
@@ -102,6 +114,15 @@ internal fun SidebarFrame(
     // Kept across a change of width (a fold opened): the page keeps its state.
     val shownPage = remember(page) { movableContentOf(page) }
     val shownSidebar = remember(sidebar) { movableContentOf(sidebar) }
+    val scope = rememberCoroutineScope()
+    val reduced by rememberUpdatedState(IdejoTheme.reducedMotion)
+    val opened by rememberUpdatedState(onOpen)
+    val closed by rememberUpdatedState(onClose)
+    val sliding = remember { Sliding(scope, { reduced }, { opened() }, { closed() }) }
+    // The sidebar over the page is as wide as the window.
+    sliding.width =
+        LocalWindowInfo.current.containerSize.width
+            .toFloat()
     Scaffold(
         modifier,
         topBar = topBar,
@@ -127,17 +148,62 @@ internal fun SidebarFrame(
                     .padding(padding)
                     .fillMaxSize()
                     .testTag(PAGE)
-                    .swipe(right = true, onSwipe = onOpen),
+                    .reveal(sliding, opening = true),
             ) { shownPage() }
         }
     }
     if (!wide && fold == null) {
         BackHandler(enabled = open, onBack = onClose)
-        Slide(open, horizontal = true) {
-            Box(Modifier.fillMaxSize().testTag(OVER).swipe(right = false, onSwipe = onClose)) {
-                shownSidebar(false)
-            }
+        LaunchedEffect(open, sliding.width) { sliding.settle(open) }
+        if (sliding.shown.value > 0f) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .offset { IntOffset((sliding.shown.value - sliding.width).roundToInt(), 0) }
+                    .testTag(OVER)
+                    .reveal(sliding, opening = false),
+            ) { shownSidebar(false) }
         }
+    }
+}
+
+/**
+ * How much of the sidebar is drawn over the page, from 0 (hidden) to [width] (open). A drag
+ * moves it with the finger; letting go settles it open or shut and tells the frame.
+ */
+private class Sliding(
+    private val scope: CoroutineScope,
+    private val reduced: () -> Boolean,
+    private val onOpen: () -> Unit,
+    private val onClose: () -> Unit,
+) {
+    val shown = Animatable(0f)
+    var width = 0f
+
+    fun drag(delta: Float) {
+        scope.launch { shown.snapTo((shown.value + delta).coerceIn(0f, width)) }
+    }
+
+    /** Let go with [velocity] (px/s, positive to the right) while [opening] or closing. */
+    fun release(
+        opening: Boolean,
+        velocity: Float,
+        fling: Float,
+    ) {
+        val open =
+            when {
+                velocity > fling -> true
+                velocity < -fling -> false
+                opening -> shown.value > width * OPENS_PAST
+                else -> shown.value > width * (1 - OPENS_PAST)
+            }
+        if (open) onOpen() else onClose()
+        settle(open)
+    }
+
+    fun settle(open: Boolean) {
+        val target = if (open) width else 0f
+        scope.launch { if (reduced()) shown.snapTo(target) else shown.animateTo(target) }
     }
 }
 
@@ -219,30 +285,42 @@ internal fun Slide(
 }
 
 /**
- * A quick swipe to the [right] (or to the left) across the page, not from the screen's
- * edges, which belong to system back (SH-30). A child that scrolls sideways keeps its drags.
+ * Drags across the page move the sidebar with the finger (SH-30), not those from the screen's
+ * edges, which belong to system back. A child that scrolls sideways keeps its drags.
  */
-private fun Modifier.swipe(
-    right: Boolean,
-    onSwipe: () -> Unit,
+private fun Modifier.reveal(
+    sliding: Sliding,
+    opening: Boolean,
 ): Modifier =
-    pointerInput(right) {
+    pointerInput(opening) {
         val edge = EDGE.toPx()
-        val distance = SWIPE.toPx()
-        var travelled = 0f
+        val fling = FLING.toPx()
+        val tracker = VelocityTracker()
         var counted = false
+        val end = {
+            if (counted) sliding.release(opening, tracker.calculateVelocity().x, fling)
+            counted = false
+        }
         detectHorizontalDragGestures(
             onDragStart = { start ->
-                travelled = 0f
+                tracker.resetTracking()
                 counted = start.x > edge && start.x < size.width - edge
             },
-            onDragEnd = {
-                if (counted && (if (right) travelled > distance else travelled < -distance)) {
-                    onSwipe()
-                }
-            },
-        ) { _, delta -> travelled += delta }
+            onDragEnd = end,
+            onDragCancel = end,
+        ) { change, delta ->
+            if (counted) {
+                change.consume()
+                tracker.addPosition(change.uptimeMillis, change.position)
+                sliding.drag(delta)
+            }
+        }
     }
 
 private val EDGE = 32.dp
-private val SWIPE = 72.dp
+
+/** Let go past this share of its width, the sidebar opens (closing: back under it, it shuts). */
+private const val OPENS_PAST = 1f / 3
+
+/** A fling this fast (per second) opens or closes the sidebar wherever it is. */
+private val FLING = 400.dp
