@@ -478,7 +478,9 @@ here, on another forum held or the inbox there (`AppState.originOf`, a `PendingL
 a Custom Tab with the forum's primary colour); DL-01: App Links hosts are build-time only, `my.idejo.org`,
 `*.idejo.org` and the `idejo.appLinkHosts` Gradle property, written into a generated manifest by
 `AppLinksManifest` in `app/build.gradle.kts`; MainActivity opens a link with `openAt`, else in a
-Custom Tab).
+Custom Tab); DL-04: text shared to the app (`text/plain`) waits in `SharedImages.text`
+as pictures do, the share card shows the forums held as chips when there are several (picking one
+enters it and the card opens again there), and the topic's composer puts the text after its own).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);

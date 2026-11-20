@@ -123,6 +123,14 @@ private fun MainActivity.receive(intent: Intent?) {
         }
         return
     }
+    // DL-04: text shared from another app (a link, a quote), its subject before it.
+    if (intent.action == Intent.ACTION_SEND && intent.type?.startsWith("text/") == true) {
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+        val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        sharedImages.offerText(
+            listOfNotNull(subject?.takeIf { it !in text }, text).joinToString("\n"),
+        )
+    }
     val uris = sharedUris(intent)
     if (uris.isNotEmpty()) lifecycleScope.launch { sharedImages.offer(contentResolver, uris) }
 }
