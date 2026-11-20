@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,6 +53,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -363,6 +365,46 @@ internal fun Item(
         }
     }
 }
+
+/**
+ * An entry the member cannot use yet: greyed, read as unavailable, with a small [action]
+ * button at its right that makes it available ([actionLabel] what it says to TalkBack).
+ */
+@Composable
+internal fun UnavailableItem(
+    icon: Int,
+    label: String,
+    action: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+) {
+    val greyed = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Row(
+            Modifier.weight(1f).semantics(mergeDescendants = true) { disabled() },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Icon(painterResource(icon), null, tint = greyed)
+            Text(label, style = MaterialTheme.typography.bodyLarge, color = greyed)
+        }
+        OutlinedButton(
+            onClick = onAction,
+            modifier = Modifier.semantics { contentDescription = actionLabel },
+            contentPadding = PaddingValues(horizontal = 12.dp),
+        ) { Text(action, style = MaterialTheme.typography.labelLarge) }
+    }
+}
+
+/** Material's opacity for content that is disabled. */
+private const val DISABLED_ALPHA = 0.38f
 
 /**
  * A menu filling the screen (SH-10, SH-20): a close button at the top, its content

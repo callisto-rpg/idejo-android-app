@@ -54,7 +54,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.idejo.app.core.data.ConversationsState
 import org.idejo.app.core.data.SidebarCategory
 import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.designsystem.component.CategoryMark
@@ -105,7 +104,6 @@ fun Sidebar(
     openTopic: Topic?,
     actions: SidebarActions,
     modifier: Modifier = Modifier,
-    conversations: ConversationsState = ConversationsState(),
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
@@ -137,11 +135,6 @@ fun Sidebar(
                     onExpand = { expanded = expanded + entry.category.id },
                     offline = state.offline,
                 )
-            }
-        }
-        if (conversations.available) {
-            item(key = "conversations") {
-                ConversationsRow(conversations.withNews) { actions.open(Place.Conversations) }
             }
         }
     }

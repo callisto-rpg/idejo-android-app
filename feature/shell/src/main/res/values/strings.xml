@@ -51,6 +51,9 @@ SPDX-License-Identifier: Apache-2.0
     <!-- Logo menu (SH-10, SH-11, SH-14). -->
     <string name="logo_menu_this_forum">This forum</string>
     <string name="logo_menu_home">Home</string>
+    <!-- Private Conversations without idejo ID: greyed, with this button (steward decision, 2026-11-20). -->
+    <string name="logo_menu_connect">Connect</string>
+    <string name="logo_menu_connect_conversations">Connect idejo ID for private conversations</string>
     <string name="logo_menu_share">Share link</string>
     <string name="logo_menu_add_forum">Add a forum</string>
     <string name="logo_menu_your_forums">Your forums</string>
