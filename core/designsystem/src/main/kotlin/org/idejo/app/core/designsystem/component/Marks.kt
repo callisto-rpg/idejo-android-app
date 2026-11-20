@@ -119,8 +119,9 @@ private fun Modifier.behind(initial: Boolean): Modifier =
     if (initial) background(MaterialTheme.colorScheme.primary) else this
 
 /**
- * A person's picture (TV-02): [image] when they have one (see `pictureUrl`, TH-10), else
- * their initials on [color]. Decorative unless given a [contentDescription].
+ * A person's picture (TV-02): [image] when they have one (see `pictureUrl`, TH-10), on
+ * nothing of its own so a transparent picture shows the surface around it; else their
+ * initials on [color]. Decorative unless given a [contentDescription].
  */
 @Composable
 fun Avatar(
@@ -135,7 +136,7 @@ fun Avatar(
         modifier
             .size(size)
             .clip(CircleShape)
-            .background(color)
+            .then(if (image == null) Modifier.background(color) else Modifier)
             .then(
                 if (contentDescription != null) {
                     Modifier.semantics { this.contentDescription = contentDescription }
