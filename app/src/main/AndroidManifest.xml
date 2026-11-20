@@ -36,6 +36,12 @@ SPDX-License-Identifier: Apache-2.0
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
+            <!-- DL-04: text shared from another app goes to a forum and topic the member picks. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
 
         <!-- SI-03: the sign-in redirect, org.idejo.app:/oauth/callback. It has no host, so the

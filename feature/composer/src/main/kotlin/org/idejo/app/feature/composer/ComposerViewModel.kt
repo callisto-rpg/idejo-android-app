@@ -74,7 +74,9 @@ class ComposerViewModel
         val origin: String = session?.origin.orEmpty()
 
         init {
-            composer?.refresh()
+            // DL-04: shared text goes after what the box holds, once the composer is read.
+            val text = if (share) shared.takeText() else null
+            composer?.refresh { text?.let { composer.typed(after(composer.state.value.text, it)) } }
             // OF-04: what waited for the forum goes when it answers again.
             session?.let { forum ->
                 viewModelScope.launch {
@@ -110,3 +112,9 @@ fun Drafts.slot(
 
         override fun write(text: String) = put(origin, place, text)
     }
+
+/** [shared] after what the box holds (DL-04). */
+internal fun after(
+    box: String,
+    shared: String,
+): String = box.trimEnd().let { if (it.isEmpty()) shared else "$it $shared" }

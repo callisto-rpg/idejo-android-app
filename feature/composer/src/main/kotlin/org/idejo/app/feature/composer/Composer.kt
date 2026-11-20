@@ -233,7 +233,7 @@ class Composer(
      * The first time, the draft kept on the device goes back after it, even when the server
      * did not answer (OF-03), and from then on every change is kept.
      */
-    fun refresh() {
+    fun refresh(then: () -> Unit = {}) {
         scope.launch {
             val composer = backend.composer().getOrNull()
             if (composer != null) {
@@ -241,6 +241,7 @@ class Composer(
                 dispatch(ComposerEvent.Server(composer, open, clock()))
             }
             restore()
+            then()
         }
     }
 

@@ -87,10 +87,12 @@ fun ForwardRoute(
     /** The card's heading: **Forward**, or **Share to** for shared pictures (CO-14). */
     @StringRes title: Int = R.string.forward_title,
     viewModel: ForwardViewModel = hiltViewModel(),
+    /** Above the search: **Share to**'s forums (DL-04). */
+    header: @Composable () -> Unit = {},
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val targets by viewModel.targets.collectAsStateWithLifecycle()
-    ForwardCard(query, targets, viewModel::search, onPick, modifier, title)
+    ForwardCard(query, targets, viewModel::search, onPick, modifier, title, header)
 }
 
 @Composable
@@ -101,6 +103,7 @@ fun ForwardCard(
     onPick: (ForwardTarget) -> Unit,
     modifier: Modifier = Modifier,
     @StringRes title: Int = R.string.forward_title,
+    header: @Composable () -> Unit = {},
 ) = Surface(modifier, shape = MaterialTheme.shapes.large, tonalElevation = 6.dp) {
     Column(Modifier.padding(16.dp)) {
         Text(
@@ -108,6 +111,7 @@ fun ForwardCard(
             Modifier.semantics { heading() },
             style = IdejoTheme.typography.titleMedium,
         )
+        header()
         OutlinedTextField(
             query,
             onSearch,

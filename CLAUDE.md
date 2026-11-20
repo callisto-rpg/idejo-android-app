@@ -478,7 +478,9 @@ here, on another forum held or the inbox there (`AppState.originOf`, a `PendingL
 a Custom Tab with the forum's primary colour); DL-01: App Links hosts are build-time only, `my.idejo.org`,
 `*.idejo.org` and the `idejo.appLinkHosts` Gradle property, written into a generated manifest by
 `AppLinksManifest` in `app/build.gradle.kts`; MainActivity opens a link with `openAt`, else in a
-Custom Tab).
+Custom Tab); DL-04: text shared to the app (`text/plain`) waits in `SharedImages.text`
+as pictures do, the share card shows the forums held as chips when there are several (picking one
+enters it and the card opens again there), and the topic's composer puts the text after its own).
 M4 closed on 2026-11-19 (steward): the welcome screen's **Sign in with idejo ID**
 and **Connect your forums** (SI-06: `IdejoIdRoute` in feature/onboarding, `GroupForums` in
 core/data, `ConnectForumsRoute` in feature/inbox, which stands for the inbox until IB);
@@ -518,7 +520,9 @@ NT-06, NT-09: `PushRegistrar` in core/data, the connector's `IdejoPushService` a
 `PushNotifier` in feature/notifications, a tapped notification through `PendingLinks` and
 `linkTarget`); the notifications bar (NT-07: the shell's `PushBar`); App settings' push
 service, display and storage (ST-20 to ST-22, `AppSettingsViewModel`). M3's rest waits for
-later milestones: ST-20's "open links in the app" for M5's App Links (DL-01). M2
+later milestones (ST-20's "open links in the app" came with M5's App Links: App settings →
+**Links**, `LinkHandling.kt`, reads Android's per-host link state and opens its Open by default
+page, since Android keeps the choice). M2
 closed on 2026-11-15 (steward): the composer (CO), message actions (MA), private
 conversations (PC-01, PC-03, PC-04). M1 closed on 2026-11-15: single-forum mode, sign-in, the shell,
 browsing, the topic page, large screens.
