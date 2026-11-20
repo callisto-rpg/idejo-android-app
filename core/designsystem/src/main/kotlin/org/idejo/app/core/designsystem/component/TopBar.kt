@@ -56,7 +56,8 @@ sealed interface Crumb {
     data class Forum(
         val name: String,
         val onClick: () -> Unit,
-        val logo: (@Composable () -> Unit)? = null,
+        /** The forum's logo address (SH-01). */
+        val logo: String? = null,
         /** A forum joined since last seen waits to be connected (SI-07). */
         val dot: Boolean = false,
         /** News in the member's other forums (SH-03), as the web's community dot. */
@@ -186,7 +187,7 @@ private fun ForumCrumb(crumb: Crumb.Forum) {
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        ForumLogo(crumb.name, image = crumb.logo)
+        ForumLogo(crumb.name, logoUrl = crumb.logo)
         // One dot: a mention first, then a forum to connect, then new messages.
         val colour =
             when {

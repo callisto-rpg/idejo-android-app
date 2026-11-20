@@ -111,7 +111,7 @@ fun UserMenu(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     avatar: @Composable () -> Unit = {},
-    logo: (@Composable () -> Unit)? = null,
+    logo: String? = null,
     /** **Profile and account** (SH-21): for a member signed in to this forum. */
     profileAndAccount: Boolean = member != null,
 ) {
@@ -231,7 +231,7 @@ private fun Accounts(
     actions: UserMenuActions,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    logo: (@Composable () -> Unit)? = null,
+    logo: String? = null,
 ) {
     var confirm by remember { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(onBack = onBack)
@@ -242,7 +242,7 @@ private fun Accounts(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            ForumLogo(forumName, size = 48.dp, image = logo)
+            ForumLogo(forumName, size = 48.dp, logoUrl = logo)
             Column(Modifier.weight(1f)) {
                 Text(forumName, style = MaterialTheme.typography.titleMedium)
                 Text(

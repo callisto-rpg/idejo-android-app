@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import org.idejo.app.core.designsystem.component.Crumb
 import org.idejo.app.core.designsystem.component.TopBar
 
@@ -110,10 +109,7 @@ private fun InboxFrame(
                         Crumb.Forum(
                             inbox,
                             onClick = onBack,
-                            logo =
-                                logoUrl?.let {
-                                    { AsyncImage(it, null, Modifier.fillMaxSize()) }
-                                },
+                            logo = logoUrl,
                         ),
                     ) + pages,
             )

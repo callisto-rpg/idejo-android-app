@@ -13,6 +13,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.coil.compose)
     // Components that draw the API's resources (topics, their dots).
     api(project(":core:model"))
     implementation(libs.androidx.activity.compose)

@@ -9,6 +9,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.svg.SvgDecoder
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,8 +69,11 @@ class IdejoApplication :
         val megabytes = runBlocking(Dispatchers.IO) { choices.cacheLimitMb.first() }
         return ImageLoader
             .Builder(context)
-            .components { add(OkHttpNetworkFetcherFactory(callFactory = { http })) }
-            .diskCache {
+            .components {
+                add(OkHttpNetworkFetcherFactory(callFactory = { http }))
+                // SH-01: SVG logos, idejo's default `/images/logo-small.svg` among them.
+                add(SvgDecoder.Factory())
+            }.diskCache {
                 DiskCache
                     .Builder()
                     .directory(cacheDir.resolve(IMAGE_CACHE).toOkioPath())

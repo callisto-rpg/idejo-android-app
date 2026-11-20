@@ -76,6 +76,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    // SH-01: forum logos are often SVG, idejo's own default among them.
+    implementation(libs.coil.svg)
 }
 
 /**
