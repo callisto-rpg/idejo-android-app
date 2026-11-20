@@ -29,14 +29,14 @@ class NewForumsTest {
         rule.setContent { TopBar(listOf(Crumb.Forum("Garden club", {}, dot = true))) }
         rule
             .onNodeWithContentDescription(
-                "Garden club menu, a forum you joined is waiting to be connected",
+                "Garden club, a forum you joined is waiting to be connected",
             ).assertExists()
     }
 
     @Test
     fun `SI-07 without a new forum, the logo is the menu only`() {
         rule.setContent { TopBar(listOf(Crumb.Forum("Garden club", {}))) }
-        rule.onNodeWithContentDescription("Garden club menu").assertExists()
+        rule.onNodeWithContentDescription("Garden club").assertExists()
     }
 
     @Test

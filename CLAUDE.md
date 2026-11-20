@@ -444,10 +444,38 @@ Docker image) are added with them.
 - 2026-11-20 — The sidebar (SH-30) has no button in the top bar: it opens from **Sidebar**
   in the forum (logo) menu, under **Home** (`LogoMenu`'s `onSidebar`), or by a swipe to the
   right. Docked (SH-60, a fold) the menu has no such entry, as the bar had no button.
-- 2026-11-20 — The sidebar follows the finger (SH-30): from the start of a drag across the
-  page it is drawn under it, so it can be peeked at; let go past a third of the way, or
-  flung (400 dp/s), it opens, else it slides back; closing is the same mirrored
-  (`SidebarFrame`'s `Sliding`). Reduced motion keeps the drag, without the settling animation.
+- 2026-11-20 — The sidebar follows the finger (SH-30). While it is shut, the back gesture
+  (predictive back, from either edge; `enableOnBackInvokedCallback`) pulls it in and opens
+  it; the back button still goes back. A drag to the right anywhere on the page (a category,
+  a topic) opens it too; a drag to the left anywhere on it closes it. Opening and
+  closing are one drag (`SidebarFrame`'s `Sliding`): the sidebar follows the finger and holds
+  while it rests; letting go, the way it last moved decides, right open, left shut. A sideways swipe a child scroller leaves over (the home
+  page's tabs, swiped right on **Categories**) pulls the sidebar too (`rememberPulling`, a
+  nested scroll connection). Reduced motion keeps the drag, without the settling animation.
+- 2026-11-20 — The home page (BR-01, BR-03, BR-06) is three tabs as the inbox's, in the
+  forum's colours: **Categories** (cards two to a row on a phone, more on wider screens,
+  `GridCells.Adaptive(150.dp)`), **Active topics** and **Unread** (`UnreadRoute` without
+  its title). The top bar has no **Unread** button any more (SH-01); `Place.Unread` stays
+  for links and notifications.
+- 2026-11-20 — The sidebar over the page has no title: its head is the forum's logo and
+  name, and at the right the idejo button (`ic_idejo`, idejoButton1.svg, as tall as the forum's
+  logo beside it, 34 dp, in its own gold), which opens the forum menu; back or a swipe
+  left closes it (no close button). **All categories**' links start
+  rolled up (SH-35, `ForumRecord.linksRolled = true` for a forum added from now on).
+- 2026-11-20 — The top bar (SH-01, SH-10, SH-20): a tap on the forum's logo opens its home
+  page, or there the sidebar (nothing when docked); a pull down on the bar opens the forum
+  menu, from the member's picture the user menu (`pullDown` in `ForumFrame`, seen before
+  the bar's own hide-and-show drag). The forum menu's button is the sidebar's idejo button.
+- 2026-11-20 — The forum menu's **This forum** (SH-10, SH-11): the forum's name opens the
+  home page on **Categories** (any way home from the frame does: `HomeRoute`'s
+  `categoriesCalls`); no **Home** entry. One line of buttons: **Followed topics** (the
+  sidebar, not when docked), **Invite** (the system's share sheet with the forum's address,
+  formerly Share link) and **Support** (greyed: nothing behind it yet); when the labels do
+  not fit, the leftmost lose theirs first (`ForumButtons`).
+- 2026-11-20 — TRIAL, not yet decided: the sidebar over the page, the forum menu and the
+  user menu as frosted glass, their background at 60 % opacity and what is behind blurred
+  as they come in (Android 12+).
+  All of it is `SidebarGlass.kt`; `SidebarGlass.ON = false` turns it off.
 - 2026-11-20 — Private conversations live only on the group's inbox (idejo 0.3.21,
   callisto-rpg/Idejo#381: a forum hosts none, its discovery has no `private_messages`, so
   ForumConversations, the user card's own **Private Message** and the Private messages

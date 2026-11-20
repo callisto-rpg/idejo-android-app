@@ -48,7 +48,7 @@ class LogoNewsTest {
         }
         rule
             .onNodeWithContentDescription(
-                "Garden club menu, you were mentioned in another of your forums",
+                "Garden club, you were mentioned in another of your forums",
             ).assertExists()
     }
 
@@ -58,7 +58,7 @@ class LogoNewsTest {
             TopBar(listOf(Crumb.Forum("Garden club", {}, news = LogoNews.NewMessages)))
         }
         rule
-            .onNodeWithContentDescription("Garden club menu, new messages in your other forums")
+            .onNodeWithContentDescription("Garden club, new messages in your other forums")
             .assertExists()
     }
 }

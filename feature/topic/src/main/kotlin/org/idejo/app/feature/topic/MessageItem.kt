@@ -51,6 +51,7 @@ import org.idejo.app.core.designsystem.component.MessageHeader
 import org.idejo.app.core.designsystem.component.relativeTime
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.MessageTextSize
+import org.idejo.app.core.designsystem.theme.MessageWeight
 import org.idejo.app.core.designsystem.theme.onSecondaryClick
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
@@ -318,6 +319,8 @@ private fun Body(
                             ),
                         revealed = spoilers,
                         pulse = pulse,
+                        // A little lighter than other text (MessageWeight).
+                        style = IdejoTheme.typography.bodyLarge.copy(fontWeight = MessageWeight),
                         image = { MessageImage(it, message, context) },
                         emojiImage = { emoji ->
                             emoji.imageUrl?.let { url ->

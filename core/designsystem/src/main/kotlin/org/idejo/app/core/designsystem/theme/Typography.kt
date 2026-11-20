@@ -36,10 +36,13 @@ private fun fraunces(opticalSize: Float): FontFamily {
     return FontFamily(face(FontWeight.SemiBold), face(FontWeight.Bold))
 }
 
+/** A message's text: a little lighter than Rubik's regular (steward request, 2026-11-20). */
+val MessageWeight = FontWeight(350)
+
 /** Rubik, the text face, in the weights idejo uses. */
 val Rubik: FontFamily =
     FontFamily(
-        listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold).map {
+        listOf(MessageWeight, FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold).map {
             Font(
                 R.font.rubik,
                 it,

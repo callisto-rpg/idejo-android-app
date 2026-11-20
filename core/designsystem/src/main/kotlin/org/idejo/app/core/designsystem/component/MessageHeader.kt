@@ -4,6 +4,7 @@
 package org.idejo.app.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,10 +16,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.designsystem.theme.MessageTextSize
 
 /**
- * The line above a message (TV-02): the author's picture, display name in their role's
- * colour (made readable, TH-05), user tag, role, and the time at the right.
+ * The line above a message (TV-02): the author's picture, display name (in Fraunces; in
+ * their role's colour, made readable, TH-05, while [ROLE_COLOURED_NAMES] is on), user tag,
+ * role, and the time at the right.
  */
 @Composable
 fun MessageHeader(
@@ -46,15 +49,25 @@ fun MessageHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                displayName,
-                nameModifier.weight(1f, fill = false),
-                color = IdejoTheme.colors.roleName(roleColor),
-                style = IdejoTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // As big as the message's text, at the member's size inside messages (ST-22).
+            Box(Modifier.weight(1f, fill = false)) {
+                MessageTextSize {
+                    Text(
+                        displayName,
+                        nameModifier,
+                        color =
+                            if (ROLE_COLOURED_NAMES) {
+                                IdejoTheme.colors.roleName(roleColor)
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        // The title face, as tall as the message's text (17 sp).
+                        style = IdejoTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
             if (!userTag.isNullOrBlank()) {
                 Text(userTag, color = soft, style = IdejoTheme.typography.labelMedium, maxLines = 1)
             }
@@ -71,3 +84,9 @@ fun MessageHeader(
         )
     }
 }
+
+/**
+ * Names in their role's colour (TH-05). Off for now (steward request, 2026-11-20): names are
+ * in the text colour. Turn it back on to colour them again.
+ */
+private const val ROLE_COLOURED_NAMES = false

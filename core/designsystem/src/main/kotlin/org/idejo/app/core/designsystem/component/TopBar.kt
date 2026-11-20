@@ -171,7 +171,8 @@ private fun Separator() {
 
 @Composable
 private fun ForumCrumb(crumb: Crumb.Forum) {
-    val menu = stringResource(R.string.top_bar_forum_menu, crumb.name)
+    // A tap goes home (or opens the sidebar there); the forum menu is a pull down.
+    val menu = crumb.name
     val label =
         when {
             crumb.news == LogoNews.Mention -> stringResource(R.string.top_bar_news_mention, menu)

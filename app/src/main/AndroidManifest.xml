@@ -9,6 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- No backup until SY-02 decides what may be backed up (never tokens or keys). -->
     <application
+        android:enableOnBackInvokedCallback="true"
         android:name=".IdejoApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"

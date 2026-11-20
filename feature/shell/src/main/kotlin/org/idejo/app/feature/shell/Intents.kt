@@ -13,7 +13,10 @@ import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.net.toUri
 
-/** **Share link** (SH-11) and a topic's **Share** (SH-37): the system's share sheet. */
+/**
+ * The forum menu's **Invite** (SH-11) and a topic's **Share** (SH-37): the system's share
+ * sheet.
+ */
 internal fun Context.shareText(text: String) {
     val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
     startActivity(Intent.createChooser(send, null))

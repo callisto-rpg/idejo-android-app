@@ -127,14 +127,40 @@ class LogoMenuTest {
                     "sidebar"
             })
         }
-        rule.onNodeWithText("Sidebar").performClick()
+        rule.onNodeWithText("Followed topics").performClick()
         assertEquals(listOf("sidebar"), done)
+    }
+
+    @Test
+    fun `SH-11 the forum's name opens home, Support is greyed`() {
+        rule.setContent {
+            LogoMenu(
+                "Garden club",
+                "garden.example.org",
+                { done += "home" },
+                {},
+                {},
+            )
+        }
+        rule.onNodeWithText("Garden club").performClick()
+        assertEquals(listOf("home"), done)
+        rule.onNodeWithText("Support").assertIsNotEnabled()
+        rule.onNodeWithText("Home").assertDoesNotExist()
+    }
+
+    @Test
+    fun `SH-11 when the labels do not fit, the leftmost lose theirs first`() {
+        val extra = listOf(100, 50, 60)
+        assertEquals(3, labelled(bare = 48, extra, room = 400))
+        assertEquals(2, labelled(bare = 48, extra, room = 260))
+        assertEquals(1, labelled(bare = 48, extra, room = 210))
+        assertEquals(0, labelled(bare = 48, extra, room = 150))
     }
 
     @Test
     fun `SH-30 docked, the forum menu has no Sidebar`() {
         rule.setContent { LogoMenu("Garden club", "garden.example.org", {}, {}, {}) }
-        rule.onNodeWithText("Sidebar").assertDoesNotExist()
+        rule.onNodeWithText("Followed topics").assertDoesNotExist()
     }
 
     @Test

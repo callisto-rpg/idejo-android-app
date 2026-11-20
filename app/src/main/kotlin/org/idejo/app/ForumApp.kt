@@ -13,8 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +68,7 @@ import org.idejo.app.feature.topic.TopicRoute
  * (SessionManager opens a new session each time).
  */
 @Composable
+@Suppress("LongMethod") // The forum's back stack and its pages, in one place.
 fun ForumApp(
     session: ForumSession,
     modifier: Modifier = Modifier,
@@ -78,10 +81,12 @@ fun ForumApp(
     // DL-03: the forum's own links open here, other forums' there, the rest in a Custom Tab.
     val link = rememberLinkOpener(session, navigation)
     val onTop = rememberLastPlace(session.origin, navigation)
+    // Each way home from the frame (the forum menu, the sidebar) opens it on Categories.
+    var homeCalls by rememberSaveable { mutableIntStateOf(0) }
     ForumFrame(
         // A dialog (a user card) keeps the page under it in the breadcrumbs.
         place = entry?.place() ?: navigation.previousBackStackEntry?.place() ?: Place.Home,
-        onNavigate = { navigation.go(it) },
+        onNavigate = { place -> navigation.go(place.also { if (it == Place.Home) homeCalls++ }) },
         onSignIn = signIn,
         modifier = modifier,
     ) {
@@ -94,6 +99,7 @@ fun ForumApp(
                         onCategory = { navigation.go(Place.Category(it)) },
                         onTopic = topic,
                         onTag = tag,
+                        categoriesCalls = homeCalls,
                     )
                 }
             }
