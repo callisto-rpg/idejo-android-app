@@ -69,7 +69,13 @@ internal fun FrameBlock(
                     host,
                 )
             if (loaded) {
-                SandboxedFrame(src, title, context.onLink, Modifier.fillMaxWidth().then(size))
+                SandboxedFrame(
+                    src,
+                    title,
+                    context.origin,
+                    context.onLink,
+                    Modifier.fillMaxWidth().then(size),
+                )
             } else {
                 Text(title, style = IdejoTheme.typography.titleSmall)
                 Text(
@@ -96,13 +102,14 @@ internal fun FrameBlock(
 /**
  * The page in a WebView, locked down (TV-26; JavaScript on for players, steward decision,
  * 2026-11-14): no JavaScript bridge, no file or content access, no new windows, third-party
- * cookies off. Whatever the member follows from it opens outside the app, never in it.
+ * cookies off; the forum's address as its Referer. Whatever the member follows from it opens outside the app, never in it.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun SandboxedFrame(
     src: String,
     title: String,
+    origin: String,
     onLink: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -122,7 +129,10 @@ private fun SandboxedFrame(
                 }
                 CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
                 webViewClient = OutsideLinks { open(it) }
-                loadUrl(src)
+                // Players need to know who embeds them: YouTube refuses an embed without a
+                // Referer (error 153). The forum's address, where the web shows it too.
+                val referer = origin.trimEnd('/').takeIf { it.startsWith("https://") }
+                loadUrl(src, referer?.let { mapOf("Referer" to "$it/") }.orEmpty())
             }
         },
         modifier = modifier.clip(RoundedCornerShape(8.dp)),
