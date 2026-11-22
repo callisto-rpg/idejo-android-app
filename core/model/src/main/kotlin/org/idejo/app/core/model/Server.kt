@@ -66,7 +66,8 @@ data class PluginInfo(
     val name: String? = null,
     val description: String? = null,
     val argument: String? = null,
-    val block: Boolean = false,
+    /** The block it draws (`video`, `iframe`, `button`, `card`, `collapse`, `forum`). */
+    val block: String? = null,
     /** What the Help page says of it (IX-08). */
     val help: String? = null,
 )
