@@ -43,6 +43,12 @@ class AppChoices
 
         suspend fun pushOff(off: Boolean) = store.update { it.copy(pushOff = off) }
 
+        /** idejo ID mode's private messages from the inbox, pushed (on by default). */
+        val privatePush: Flow<Boolean>
+            get() = store.state.map { it.privatePush }.distinctUntilChanged()
+
+        suspend fun privatePush(on: Boolean) = store.update { it.copy(privatePush = on) }
+
         /** Text size, haptics and reduced motion (ST-22). */
         val display: Flow<AppDisplay>
             get() =

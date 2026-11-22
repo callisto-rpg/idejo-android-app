@@ -56,7 +56,10 @@ class IdejoPushService : PushService() {
         scope.launch {
             val record = sessions.state.first().record(instance) ?: return@launch
             val forum = PushForum(instance, record.name, logo(instance, record.discovery.logoUrl))
-            notifier.show(forum, message.content, onScreen = foreground.inForeground)
+            // On screen, the live bubbles stand for the open forum's pushes only: a private
+            // message from the inbox shows while another forum is open.
+            val onScreen = foreground.inForeground && sessions.active?.origin == instance
+            notifier.show(forum, message.content, onScreen = onScreen)
         }
     }
 

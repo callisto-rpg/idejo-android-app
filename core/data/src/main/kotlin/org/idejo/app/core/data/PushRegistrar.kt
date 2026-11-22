@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -133,6 +134,54 @@ class PushRegistrar(
                     }
                 }
         }
+        // idejo ID mode: the inbox (its private messages) whatever is open.
+        scope.launch {
+            sessions.state
+                .map { state ->
+                    val inbox = state.inbox?.takeIf { state.mode == AppMode.IdejoId }
+                    InboxPush(
+                        inbox?.origin?.takeIf { inbox.sealedToken != null && !inbox.signedOut },
+                        on = state.privatePush && !state.pushOff,
+                        pushOff = state.pushOff,
+                    )
+                }.distinctUntilChanged()
+                .collectLatest { inbox(it) }
+        }
+    }
+
+    /** What the inbox's push depends on: its origin while signed in, and the switches. */
+    private data class InboxPush(
+        val origin: String?,
+        val on: Boolean,
+        val pushOff: Boolean,
+    )
+
+    /**
+     * idejo ID mode's inbox, registered while **Private messages** is on (by default) and
+     * push is; switched off alone, its registration ends (push turned off ends it already).
+     */
+    private suspend fun inbox(push: InboxPush) {
+        val origin = push.origin ?: return
+        when {
+            push.on -> {
+                val record = sessions.state.first().record(origin) ?: return
+                if (UNIFIED_PUSH !in record.discovery.features) return
+                val server = call(origin) { server() }?.getOrNull() ?: return
+                if (server.settings.push != true) return
+                if (distributor.choice() != DistributorChoice.Ready) return
+                distributor.register(origin, record.name, server.settings.pushVapidKey)
+            }
+
+            !push.pushOff -> {
+                lock.withLock {
+                    sessions.state.first().record(origin)?.push?.let { old ->
+                        call(origin) { deletePushRegistration(old.registrationId) }
+                    }
+                    sessions.updateForum(origin) { it.copy(push = null) }
+                    distributor.unregister(origin)
+                }
+            }
+        }
     }
 
     /** The distributors to choose from (ST-20), and the one in use. */
@@ -236,11 +285,7 @@ class PushRegistrar(
         auth: String,
     ) = lock.withLock {
         val record = sessions.state.first().record(instance)
-        val open = sessions.active?.takeIf { it.origin == instance }
-        if (record?.sealedToken == null ||
-            open?.access?.value?.let { it != Access.SignedIn } == true ||
-            pushOff()
-        ) {
+        if (record == null || !mayRegister(instance)) {
             distributor.unregister(instance)
             return@withLock
         }
@@ -274,6 +319,21 @@ class PushRegistrar(
             null -> {
                 Unit
             }
+        }
+    }
+
+    /**
+     * Whether [instance] may take pushes now: held with its token, signed in where open,
+     * push on, and for the inbox **Private messages** on.
+     */
+    private suspend fun mayRegister(instance: String): Boolean {
+        val state = sessions.state.first()
+        val open = sessions.active?.takeIf { it.origin == instance }
+        return when {
+            state.pushOff -> false
+            state.record(instance)?.sealedToken == null -> false
+            open != null && open.access.value != Access.SignedIn -> false
+            else -> state.inbox?.origin != instance || state.privatePush
         }
     }
 
