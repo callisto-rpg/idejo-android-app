@@ -89,7 +89,11 @@ dependencies {
     robolectricAndroid(libs.robolectric.android.all)
 }
 
-val robolectricDir = layout.buildDirectory.dir("robolectric").get().asFile
+val robolectricDir =
+    layout.buildDirectory
+        .dir("robolectric")
+        .get()
+        .asFile
 
 val robolectricJars =
     tasks.register<Sync>("robolectricJars") {
