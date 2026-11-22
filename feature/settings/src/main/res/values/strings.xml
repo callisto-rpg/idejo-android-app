@@ -155,6 +155,9 @@ SPDX-License-Identifier: Apache-2.0
     <string name="app_push_enable">Enable push notifications</string>
     <string name="app_push_on">Push notifications are on, through %1$s.</string>
     <string name="app_push_turn_off">Turn off push notifications</string>
+    <string name="app_push_private">Private messages</string>
+    <string name="app_push_private_helper">Your conversations on %1$s, also while another forum is open.</string>
+    <string name="app_push_inbox">your inbox</string>
     <string name="app_sunup_title">Install a push service?</string>
     <string name="app_sunup_text">This device has neither Google Play services nor microG, and no UnifiedPush distributor. Sunup is a free app that delivers the app’s notifications. Once it is installed, come back here.</string>
     <string name="app_sunup_install">Install Sunup</string>

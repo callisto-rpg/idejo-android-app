@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import org.idejo.app.core.data.AppMode
 import org.idejo.app.core.data.CACHE_LIMITS_MB
 import org.idejo.app.core.data.MessageText
 import org.idejo.app.feature.settings.parts.RadioGroupRow
@@ -81,6 +82,18 @@ private fun Push(
                 options = state.distributors.map { it to (names[it] ?: it) },
                 selected = distributor,
                 onSelect = { onEvent(AppSettingsEvent.UseDistributor(it)) },
+            )
+        }
+        if (state.mode == AppMode.IdejoId) {
+            SwitchRow(
+                label = stringResource(R.string.app_push_private),
+                checked = state.privatePush,
+                onCheckedChange = { onEvent(AppSettingsEvent.SetPrivatePush(it)) },
+                helper =
+                    stringResource(
+                        R.string.app_push_private_helper,
+                        state.inboxName ?: stringResource(R.string.app_push_inbox),
+                    ),
             )
         }
         OutlinedButton(
