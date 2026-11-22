@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
@@ -31,8 +32,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -41,6 +45,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.idejo.app.core.designsystem.R
@@ -119,7 +124,8 @@ fun Breadcrumbs(
 /**
  * The forum's top bar (SH-01): the sidebar button, the breadcrumbs, **Unread** with its
  * count and colour, and the member's [account] picture. With a [scrollBehavior] it hides on
- * scroll down and returns on scroll up.
+ * scroll down and returns on scroll up. [pullHint], on the forum's home page, says in its
+ * middle that a pull down brings the forum menu (SH-10).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,35 +135,102 @@ fun TopBar(
     onSidebarClick: (() -> Unit)? = null,
     unread: Unread? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
+    pullHint: PullHint? = null,
     account: @Composable () -> Unit = {},
 ) {
     val background = MaterialTheme.colorScheme.background
     Column(modifier) {
-        TopAppBar(
-            title = { Breadcrumbs(crumbs) },
-            navigationIcon = {
-                if (onSidebarClick != null) {
-                    IconButton(onClick = onSidebarClick) {
-                        Icon(
-                            painterResource(R.drawable.ic_menu),
-                            stringResource(R.string.top_bar_sidebar),
-                        )
-                    }
-                }
-            },
-            actions = {
-                if (unread != null) UnreadButton(unread)
-                Box(Modifier.padding(end = 8.dp)) { account() }
-            },
-            expandedHeight = 56.dp,
-            colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = background,
-                    scrolledContainerColor = background,
-                ),
-            scrollBehavior = scrollBehavior,
-        )
+        Box {
+            Bar(crumbs, onSidebarClick, unread, scrollBehavior, background, account)
+            if (pullHint != null) PullHintLabel(pullHint, Modifier.matchParentSize())
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun Bar(
+    crumbs: List<Crumb>,
+    onSidebarClick: (() -> Unit)?,
+    unread: Unread?,
+    scrollBehavior: TopAppBarScrollBehavior?,
+    background: Color,
+    account: @Composable () -> Unit,
+) {
+    TopAppBar(
+        title = { Breadcrumbs(crumbs) },
+        navigationIcon = {
+            if (onSidebarClick != null) {
+                IconButton(onClick = onSidebarClick) {
+                    Icon(
+                        painterResource(R.drawable.ic_menu),
+                        stringResource(R.string.top_bar_sidebar),
+                    )
+                }
+            }
+        },
+        actions = {
+            if (unread != null) UnreadButton(unread)
+            Box(Modifier.padding(end = 8.dp)) { account() }
+        },
+        expandedHeight = 56.dp,
+        colors =
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = background,
+                scrolledContainerColor = background,
+            ),
+        scrollBehavior = scrollBehavior,
+    )
+}
+
+/**
+ * What the home page's top bar says of the forum menu (SH-10): [text], or [short] where it
+ * does not fit between the forum's logo and the member's picture.
+ */
+@Immutable
+data class PullHint(
+    val text: String,
+    val short: String,
+)
+
+/**
+ * The [hint] over a v, 30 % larger than small labels and at half strength, centred across
+ * the bar near its foot; clipped with the bar as it hides. TalkBack skips it: the forum
+ * menu has its button (the sidebar's idejo button, AX-04).
+ */
+@Composable
+private fun PullHintLabel(
+    hint: PullHint,
+    modifier: Modifier = Modifier,
+) {
+    val base = IdejoTheme.typography.labelSmall
+    val style = base.copy(fontSize = base.fontSize * PULL_HINT_SCALE)
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(
+        modifier.clipToBounds().clearAndSetSemantics {},
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        val room =
+            constraints.maxWidth - with(LocalDensity.current) { (PULL_HINT_SIDE * 2).roundToPx() }
+        val fits = measurer.measure(hint.text, style, maxLines = 1).size.width <= room
+        Column(
+            Modifier.alpha(PULL_HINT_ALPHA),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                if (fits) hint.text else hint.short,
+                style = style,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+            Icon(
+                painterResource(R.drawable.ic_pull_down),
+                contentDescription = null,
+                Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 
@@ -299,6 +372,13 @@ private fun UnreadButton(unread: Unread) {
  * 0.3.10): white for new messages in their followed topics, red when one mentions them.
  */
 enum class LogoNews { NewMessages, Mention }
+
+/** The pull hint's strength and size over small labels (steward requests, 2026-11-22/23). */
+private const val PULL_HINT_ALPHA = 0.5f
+private const val PULL_HINT_SCALE = 1.3f
+
+/** The room kept each side of the pull hint: the forum's logo, the member's picture. */
+private val PULL_HINT_SIDE = 72.dp
 
 /** The room each side of a crumb: the forum logo's, 34 dp in its 48 dp target (SH-02). */
 private val CRUMB_GAP = 7.dp
