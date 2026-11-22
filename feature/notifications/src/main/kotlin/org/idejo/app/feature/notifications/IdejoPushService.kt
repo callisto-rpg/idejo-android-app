@@ -6,6 +6,7 @@ package org.idejo.app.feature.notifications
 import coil3.SingletonImageLoader
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.idejo.app.core.data.AppScope
@@ -50,10 +51,13 @@ class IdejoPushService : PushService() {
     ) {
         // A push the connector could not decrypt was not for these keys: nothing to show.
         if (!message.decrypted) return
-        val session = sessions.active?.takeIf { it.origin == instance } ?: return
-        val record = session.record.value
-        val forum = PushForum(instance, record.name, logo(instance, record.discovery.logoUrl))
-        notifier.show(forum, message.content, onScreen = foreground.inForeground)
+        // Any forum held, open or not: a push often starts the app, before any session is
+        // restored, or comes from another forum than the one last open (or the inbox).
+        scope.launch {
+            val record = sessions.state.first().record(instance) ?: return@launch
+            val forum = PushForum(instance, record.name, logo(instance, record.discovery.logoUrl))
+            notifier.show(forum, message.content, onScreen = foreground.inForeground)
+        }
     }
 
     override fun onRegistrationFailed(

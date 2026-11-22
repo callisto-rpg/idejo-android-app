@@ -225,7 +225,9 @@ class PushRegistrar(
 
     /**
      * The distributor's endpoint for [instance] (a new one, or the same again): sent to the
-     * forum unless it already has it with these keys; a replaced one is ended first.
+     * forum unless it already has it with these keys; a replaced one is ended first. Any
+     * forum held with its token, open or not: the distributor may change an endpoint while
+     * the app is closed (FCM renews its tokens).
      */
     suspend fun onEndpoint(
         instance: String,
@@ -233,39 +235,44 @@ class PushRegistrar(
         publicKey: String,
         auth: String,
     ) = lock.withLock {
-        val session = sessions.active?.takeIf { it.origin == instance }
-        if (session == null || session.access.value != Access.SignedIn ||
+        val record = sessions.state.first().record(instance)
+        val open = sessions.active?.takeIf { it.origin == instance }
+        if (record?.sealedToken == null ||
+            open?.access?.value?.let { it != Access.SignedIn } == true ||
             pushOff()
         ) {
             distributor.unregister(instance)
             return@withLock
         }
         val vapid =
-            session
-                .call { server() }
-                .getOrNull()
+            call(instance) { server() }
+                ?.getOrNull()
                 ?.settings
                 ?.pushVapidKey
-        val kept = session.record.value.push
+        val kept = record.push
         if (kept != null && kept.endpoint == endpoint && kept.publicKey == publicKey) {
             if (kept.vapidKey != vapid) {
                 sessions.updateForum(instance) { it.copy(push = kept.copy(vapidKey = vapid)) }
             }
-            mutableStatus.value = PushStatus.Registered
+            status(instance, PushStatus.Registered)
             return@withLock
         }
-        kept?.let { old -> session.call { deletePushRegistration(old.registrationId) } }
+        kept?.let { old -> call(instance) { deletePushRegistration(old.registrationId) } }
         val subscription = UnifiedPushSubscription(endpoint, publicKey, auth, deviceName)
-        when (val result = session.call { registerPush(subscription) }) {
+        when (val result = call(instance) { registerPush(subscription) }) {
             is ApiResult.Success -> {
                 val push = PushRecord(result.value.id, endpoint, publicKey, vapid)
                 sessions.updateForum(instance) { it.copy(push = push) }
-                mutableStatus.value = PushStatus.Registered
+                status(instance, PushStatus.Registered)
             }
 
             is ApiResult.Failure -> {
                 sessions.updateForum(instance) { it.copy(push = null) }
-                mutableStatus.value = PushStatus.Failed(problem = result.problem)
+                status(instance, PushStatus.Failed(problem = result.problem))
+            }
+
+            null -> {
+                Unit
             }
         }
     }
@@ -273,16 +280,31 @@ class PushRegistrar(
     /** The distributor dropped [instance] (removed, or its server gone): the forum's too. */
     suspend fun onUnregistered(instance: String) =
         lock.withLock {
-            val session = sessions.active?.takeIf { it.origin == instance }
-            session?.record?.value?.push?.let { old ->
-                session.call { deletePushRegistration(old.registrationId) }
+            sessions.state.first().record(instance)?.push?.let { old ->
+                call(instance) { deletePushRegistration(old.registrationId) }
             }
             sessions.updateForum(instance) { it.copy(push = null) }
-            if (session != null) {
-                mutableStatus.value =
-                    if (pushOff()) PushStatus.Off else PushStatus.ChooseDistributor
-            }
+            status(instance, if (pushOff()) PushStatus.Off else PushStatus.ChooseDistributor)
         }
+
+    /**
+     * [request] to the forum at [instance]: through its session when it is open (a refusal
+     * signs it out there), else with its own token; null when the app holds none.
+     */
+    private suspend fun <T> call(
+        instance: String,
+        request: suspend org.idejo.app.core.api.ForumApi.() -> ApiResult<T>,
+    ): ApiResult<T>? =
+        sessions.active?.takeIf { it.origin == instance }?.call(request)
+            ?: sessions.signedIn(instance, request)
+
+    /** The status shown is the open forum's. */
+    private fun status(
+        instance: String,
+        status: PushStatus,
+    ) {
+        if (sessions.active?.origin == instance) mutableStatus.value = status
+    }
 
     /** The distributor could not register [instance], for [reason]. */
     fun onFailed(
