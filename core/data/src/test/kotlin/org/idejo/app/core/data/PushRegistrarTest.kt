@@ -306,4 +306,48 @@ class PushRegistrarTest {
             assertEquals(listOf(session.origin), distributor.unregistered.toList())
             assertNull(session.record.value.push)
         }
+
+    @Test
+    fun `NT-02 a new endpoint while the app is closed still reaches the forum`() =
+        runBlocking {
+            val session = signedIn()
+            registrar.onEndpoint(
+                session.origin,
+                "https://fcm.googleapis.com/fcm/send/a",
+                "BPUB",
+                "AUTH",
+            )
+            val first = requireNotNull(session.record.value.push).registrationId
+
+            // Started by the distributor: the same records, no session restored yet.
+            val cold =
+                SessionManager(store, TokenVault(AesGcmBox { key }), http, scope, Dispatchers.IO) {
+                    ForumAddress.forLocalTesting(it.toHttpUrl())
+                }
+            val woken = PushRegistrar(cold, distributor, "Pixel 8", scope)
+            assertNull(cold.active)
+            woken.onEndpoint(
+                session.origin,
+                "https://fcm.googleapis.com/fcm/send/b",
+                "BPUB2",
+                "AUTH2",
+            )
+
+            assertTrue(distributor.unregistered.isEmpty())
+            assertEquals("https://fcm.googleapis.com/fcm/send/b", pushes.last().endpoint)
+            assertTrue(
+                fake.requests.any {
+                    it.method == "DELETE" &&
+                        it.url.encodedPath.endsWith("/me/push/unifiedpush/$first")
+                },
+            )
+            assertEquals(
+                "https://fcm.googleapis.com/fcm/send/b",
+                store
+                    .current()
+                    .record(session.origin)
+                    ?.push
+                    ?.endpoint,
+            )
+        }
 }
