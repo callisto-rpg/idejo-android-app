@@ -43,10 +43,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,6 +67,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -81,7 +86,9 @@ import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.Crumb
 import org.idejo.app.core.designsystem.component.ForumLogo
+import org.idejo.app.core.designsystem.component.LocalTourTargets
 import org.idejo.app.core.designsystem.component.TopBar
+import org.idejo.app.core.designsystem.component.TourTargets
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
@@ -94,13 +101,14 @@ private enum class Overlay { None, Sidebar, LogoMenu, UserMenu }
 
 /**
  * The frame of every page of a forum (spec §6): the top bar with the logo, breadcrumbs and
- * the member's picture (SH-01, SH-02; **Unread** is a tab of the home page), and the
- * full-screen sidebar (SH-30), logo menu (SH-10) and user menu (SH-20) over it. [place] is
+ * the member's picture (SH-01, SH-02; **Unread** is a tab of the home page), the full-screen
+ * sidebar (SH-30) over it, and the forum menu (SH-10) and the user menu (SH-20) under the bar,
+ * both the same way ([MenuPanel]). [place] is
  * the page shown; [onNavigate] goes elsewhere; [onSignIn] starts the forum's sign-in
  * (SI-05, SI-09).
  */
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("LongMethod") // The frame and its layers, over the page, in one place.
+@Suppress("LongMethod", "CyclomaticComplexMethod") // The frame and its layers in one place.
 @Composable
 fun ForumFrame(
     place: Place,
@@ -113,6 +121,7 @@ fun ForumFrame(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val warnings by viewModel.warnings.collectAsStateWithLifecycle()
     val bubbles by viewModel.bubbles.collectAsStateWithLifecycle()
+    val tour by viewModel.tour.collectAsStateWithLifecycle()
     val shell = state ?: return
     val context = LocalContext.current
     var overlay by rememberSaveable { mutableStateOf(Overlay.None) }
@@ -133,121 +142,203 @@ fun ForumFrame(
     val logo = logoOf(shell)
     val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
-    // The menus' glass: what is behind them blurs as they come in (SidebarGlass).
-    val menuIn by animateFloatAsState(
-        if (overlay == Overlay.LogoMenu || overlay == Overlay.UserMenu) 1f else 0f,
-        if (IdejoTheme.reducedMotion) snap() else spring(),
-        label = "menu glass",
-    )
-    Box(modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().glassBehind { menuIn }) {
-            SidebarFrame(
-                wide = wide,
-                fold = fold,
-                open = overlay == Overlay.Sidebar,
-                onOpen = { overlay = Overlay.Sidebar },
-                onClose = { overlay = Overlay.None },
-                topBar = {
-                    var account by remember { mutableStateOf(Rect.Zero) }
-                    var bar by remember { mutableStateOf(Offset.Zero) }
-                    TopBar(
-                        crumbs =
-                            crumbs(shell, place, go, logo, {
-                                if (!docked) overlay = Overlay.Sidebar
-                            }) { wholeTitle = it },
-                        modifier =
-                            Modifier
-                                .onGloballyPositioned { bar = it.positionInRoot() }
-                                .pullDown { at ->
-                                    // From the member's picture, their menu; else the forum's.
-                                    overlay =
-                                        if (account.contains(at + bar)) {
-                                            Overlay.UserMenu
-                                        } else {
-                                            Overlay.LogoMenu
-                                        }
-                                },
-                        scrollBehavior = scroll,
-                    ) {
-                        Account(
-                            shell,
-                            onSignIn,
-                            onOpen = { overlay = Overlay.UserMenu },
+    // The menus under the top bar follow the finger as the sidebar does (Sliding).
+    val scope = rememberCoroutineScope()
+    val reduced by rememberUpdatedState(IdejoTheme.reducedMotion)
+    val forumMenu =
+        remember {
+            Sliding(scope, { reduced }, { overlay = Overlay.LogoMenu }, {
+                if (overlay == Overlay.LogoMenu) overlay = Overlay.None
+            })
+        }
+    val userMenu =
+        remember {
+            Sliding(scope, { reduced }, { overlay = Overlay.UserMenu }, {
+                if (overlay == Overlay.UserMenu) overlay = Overlay.None
+            })
+        }
+    val menuOpen = overlay == Overlay.LogoMenu
+    val menuShown =
+        overlay == Overlay.LogoMenu ||
+            overlay == Overlay.UserMenu ||
+            forumMenu.showing ||
+            userMenu.showing
+    LaunchedEffect(menuOpen) { if (menuOpen) viewModel.logoMenuOpened() }
+    // The top bar and its breadcrumbs stay in view while the forum menu is.
+    LaunchedEffect(menuShown) { if (menuShown) scroll.state.heightOffset = 0f }
+    var frameTop by remember { mutableFloatStateOf(0f) }
+    var barBottom by remember { mutableFloatStateOf(0f) }
+
+    // The onboarding tour (IX-18): over everything, once the warnings are read.
+    val tourTargets = remember { TourTargets() }
+    val onTourTopic = (place as? Place.Topic)?.id == tour.onboarding?.topicId
+    val step =
+        tourStep(tour, onTourTopic, docked || overlay == Overlay.Sidebar)
+            .takeIf { shell.signedIn && warnings.warnings.isEmpty() }
+    // The last card points at All categories, at the top of the sidebar.
+    LaunchedEffect(tour.finished) { if (tour.finished && !docked) overlay = Overlay.Sidebar }
+    // Pulling down the forum menu ends it, as Close does.
+    LaunchedEffect(tour.finished, forumMenu.showing) {
+        if (tour.finished && forumMenu.showing) viewModel.dismissTour()
+    }
+    // Going elsewhere (All categories) ends it, as Close does.
+    LaunchedEffect(place, tour.finished) {
+        if (tour.finished &&
+            !onTourTopic
+        ) {
+            viewModel.dismissTour()
+        }
+    }
+
+    CompositionLocalProvider(LocalTourTargets provides tourTargets.takeIf { step != null }) {
+        Box(modifier.fillMaxSize().onGloballyPositioned { frameTop = it.positionInRoot().y }) {
+            Box(Modifier.fillMaxSize()) {
+                SidebarFrame(
+                    wide = wide,
+                    fold = fold,
+                    open = overlay == Overlay.Sidebar,
+                    onOpen = { overlay = Overlay.Sidebar },
+                    onClose = { overlay = Overlay.None },
+                    onPull = { if (tour.finished) viewModel.dismissTour() },
+                    topBar = {
+                        var account by remember { mutableStateOf(Rect.Zero) }
+                        var bar by remember { mutableStateOf(Offset.Zero) }
+                        TopBar(
+                            crumbs =
+                                crumbs(shell, place, go, logo, {
+                                    if (!docked) overlay = Overlay.Sidebar
+                                }) { wholeTitle = it },
                             modifier =
-                                Modifier.onGloballyPositioned {
-                                    account = it.boundsInRoot()
-                                },
-                        )
-                    }
-                },
-                sidebar = { docked ->
-                    SidebarPage(shell, logo, sidebarActions(viewModel, context, go), docked) {
-                        overlay = Overlay.LogoMenu
-                    }
-                },
-                modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
-                page = {
-                    Column(Modifier.fillMaxSize()) {
-                        // A saved copy on screen while the forum cannot be reached (OF-02).
-                        OfflineBar(shell.savedCopy)
-                        // In the page's flow, so it never covers the composer (NT-07).
-                        PushBar(
-                            offered = shell.pushBarOffered,
-                            bubble = shell.tutorialBubbles == TutorialBubbles.All,
-                            place = place,
-                            onDismiss = viewModel::dismissPushBar,
-                        )
-                        Box(Modifier.weight(1f)) { content() }
-                    }
-                },
+                                Modifier
+                                    .onGloballyPositioned {
+                                        bar = it.positionInRoot()
+                                        barBottom = it.boundsInRoot().bottom
+                                    }.pullDown(forumMenu, userMenu) { at ->
+                                        // From the member's picture, their menu.
+                                        account.contains(at + bar)
+                                    },
+                            scrollBehavior = scroll,
+                        ) {
+                            Account(
+                                shell,
+                                onSignIn,
+                                onOpen = { overlay = Overlay.UserMenu },
+                                modifier =
+                                    Modifier.onGloballyPositioned {
+                                        account = it.boundsInRoot()
+                                    },
+                            )
+                        }
+                    },
+                    sidebar = { docked ->
+                        SidebarPage(shell, logo, sidebarActions(viewModel, context, go), docked) {
+                            overlay = Overlay.LogoMenu
+                        }
+                    },
+                    modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
+                    pageGlass = { maxOf(forumMenu.fraction, userMenu.fraction) },
+                    page = {
+                        Column(Modifier.fillMaxSize()) {
+                            // A saved copy on screen while the forum cannot be reached (OF-02).
+                            OfflineBar(shell.savedCopy)
+                            // In the page's flow, so it never covers the composer (NT-07).
+                            PushBar(
+                                offered = shell.pushBarOffered,
+                                bubble = shell.tutorialBubbles == TutorialBubbles.All,
+                                place = place,
+                                onDismiss = viewModel::dismissPushBar,
+                            )
+                            Box(Modifier.weight(1f)) { content() }
+                        }
+                    },
+                )
+            }
+
+            // Over the page, under the menus (NT-01).
+            LiveBubbleStack(
+                bubbles,
+                onOpen = { go(viewModel.open(it)) },
+                onDismiss = viewModel::dismiss,
+                modifier =
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .safeDrawingPadding()
+                        .padding(start = 12.dp, end = 12.dp, top = BUBBLES_TOP),
             )
-        }
 
-        // Over the page, under the menus (NT-01).
-        LiveBubbleStack(
-            bubbles,
-            onOpen = { go(viewModel.open(it)) },
-            onDismiss = viewModel::dismiss,
-            modifier =
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .safeDrawingPadding()
-                    .padding(start = 12.dp, end = 12.dp, top = BUBBLES_TOP),
-        )
-
-        Slide(overlay == Overlay.LogoMenu, horizontal = false) {
-            LaunchedEffect(Unit) { viewModel.logoMenuOpened() }
-            LogoMenu(
-                name = shell.name,
-                address = shell.address,
-                // Home, on Categories: any way home starts there.
-                onHome = { go(Place.Home) },
-                onShare = { context.shareText(shell.record.origin) },
+            val menuTop =
+                with(LocalDensity.current) { (barBottom - frameTop).coerceAtLeast(0f).toDp() }
+            MenuPanel(
+                forumMenu,
+                open = menuOpen,
+                top = menuTop,
+                tag = FORUM_MENU,
                 onClose = { overlay = Overlay.None },
-                logo = logo,
-                // The sidebar's button lives here, not in the top bar (SH-30); docked, none.
-                onSidebar = if (docked) null else ({ overlay = Overlay.Sidebar }),
-                chatService =
-                    shell.record.discovery.community
-                        ?.chatUrl != null,
-                group = shell.group.takeIf { shell.idejoId },
-                actions = logoMenuActions(viewModel, context, go),
-            )
-        }
+            ) {
+                LogoMenu(
+                    name = shell.name,
+                    address = shell.address,
+                    // Home, on Categories: any way home starts there.
+                    onHome = { go(Place.Home) },
+                    onShare = { context.shareText(shell.record.origin) },
+                    logo = logo,
+                    // The sidebar's button lives here, not in the top bar (SH-30); docked, none.
+                    onSidebar = if (docked) null else ({ overlay = Overlay.Sidebar }),
+                    chatService =
+                        shell.record.discovery.community
+                            ?.chatUrl != null,
+                    group = shell.group.takeIf { shell.idejoId },
+                    actions = logoMenuActions(viewModel, context, go),
+                )
+            }
 
-        Slide(overlay == Overlay.UserMenu, horizontal = false) {
-            val actions = userMenuActions(viewModel, shell, onSignIn, go, context::openPage)
-            UserMenuPage(shell, actions, logo) { overlay = Overlay.None }
-        }
+            MenuPanel(
+                userMenu,
+                open = overlay == Overlay.UserMenu,
+                top = menuTop,
+                tag = USER_MENU,
+                onClose = { overlay = Overlay.None },
+            ) {
+                val actions = userMenuActions(viewModel, shell, onSignIn, go, context::openPage)
+                UserMenuPage(shell, actions, logo)
+            }
 
-        wholeTitle?.let { WholeTitle(it) { wholeTitle = null } }
+            wholeTitle?.let { WholeTitle(it) { wholeTitle = null } }
 
-        // Over any page, as the web's (TV-11).
-        if (shell.signedIn && warnings.warnings.isNotEmpty()) {
-            WarningCard(warnings, warningActions(viewModel, go))
+            // Over any page, as the web's (TV-11).
+            if (shell.signedIn && warnings.warnings.isNotEmpty()) {
+                WarningCard(warnings, warningActions(viewModel, go))
+            }
+
+            step?.let {
+                TourOverlay(
+                    step = it,
+                    tour = tour,
+                    name = shell.me?.displayName.orEmpty(),
+                    allLabel = stringResource(allLabel(shell.record.linksRolled)),
+                    targets = tourTargets,
+                    actions =
+                        TourActions(
+                            onSwipe = { overlay = Overlay.Sidebar },
+                            onOpenTopic = {
+                                tour.onboarding?.let { o ->
+                                    go(Place.Topic(o.topicId))
+                                }
+                            },
+                            onClose = {
+                                viewModel.dismissTour()
+                                overlay = Overlay.None
+                            },
+                        ),
+                )
+            }
         }
     }
 }
+
+/** What the sidebar's top link reads: **All** rolled up, else **All categories**. */
+private fun allLabel(rolled: Boolean): Int =
+    if (rolled) R.string.sidebar_all else R.string.sidebar_all_categories
 
 /** The warning card's actions (TV-11). */
 private fun warningActions(
@@ -311,7 +402,6 @@ private fun UserMenuPage(
     shell: ShellState,
     actions: UserMenuActions,
     logo: String?,
-    onClose: () -> Unit,
 ) {
     val me = shell.me
     UserMenu(
@@ -324,7 +414,6 @@ private fun UserMenuPage(
         themeMode = shell.record.themeMode,
         tutorialBubbles = shell.tutorialBubbles,
         actions = actions,
-        onClose = onClose,
         avatar = { MemberAvatar(shell, 72.dp) },
         logo = logo,
         profileAndAccount = shell.signedIn && me != null,
@@ -344,7 +433,7 @@ private fun SidebarPage(
     onMenu: () -> Unit,
 ) {
     Surface(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().glassEdge(enabled = !docked),
         // Over the page, frosted glass while the trial lasts (SidebarGlass).
         color = glassBackground(opaque = docked),
         contentColor = MaterialTheme.colorScheme.onBackground,
@@ -420,15 +509,22 @@ private fun WholeTitle(
 }
 
 /**
- * A pull down that starts on this (the top bar, SH-01) calls [onPull] with where it started:
- * seen before the bar's own drag, which hides and shows it, so the pull always wins.
+ * A pull down that starts on this (the top bar, SH-01): seen before the bar's own drag, which
+ * hides and shows it, so the pull always wins. From the member's picture ([fromAccount], with
+ * where it started) their menu ([userMenu]) comes down with the finger, elsewhere the forum
+ * menu ([forumMenu]), until it lets go.
  */
-private fun Modifier.pullDown(onPull: (Offset) -> Unit): Modifier =
-    pointerInput(Unit) {
-        val far = PULL.toPx()
+private fun Modifier.pullDown(
+    forumMenu: Sliding,
+    userMenu: Sliding,
+    fromAccount: (Offset) -> Boolean,
+): Modifier =
+    pointerInput(forumMenu, userMenu) {
+        val slop = viewConfiguration.touchSlop
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
             var moved = Offset.Zero
+            var pulled = false
             // Watched until let go, pulled down, or dragged sideways.
             var watching = true
             while (watching) {
@@ -437,18 +533,25 @@ private fun Modifier.pullDown(onPull: (Offset) -> Unit): Modifier =
                         .changes
                         .firstOrNull { it.id == down.id }
                 moved += change?.positionChange() ?: Offset.Zero
-                val pulled = moved.y > far && moved.y > abs(moved.x)
-                if (pulled) {
-                    change?.consume()
-                    onPull(down.position)
-                }
-                watching = change?.pressed == true && !pulled && abs(moved.x) <= far
+                pulled = moved.y > slop && moved.y > abs(moved.x)
+                if (pulled) change?.consume()
+                watching = change?.pressed == true && !pulled && abs(moved.x) <= slop
             }
+            if (!pulled) return@awaitEachGesture
+            val menu = if (fromAccount(down.position)) userMenu else forumMenu
+            menu.drag(moved.y)
+            while (true) {
+                val change =
+                    awaitPointerEvent(PointerEventPass.Initial)
+                        .changes
+                        .firstOrNull { it.id == down.id }
+                if (change == null || !change.pressed) break
+                menu.drag(change.positionChange().y)
+                change.consume()
+            }
+            menu.release()
         }
     }
-
-/** How far down a pull goes before it opens a menu. */
-private val PULL = 24.dp
 
 /** The height of the sidebar head's forum logo and idejo button, the same. */
 private val HEAD_LOGO = 34.dp

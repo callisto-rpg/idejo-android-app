@@ -75,3 +75,36 @@ val detekt =
 tasks.named("check") {
     dependsOn(ktlintCheck, detekt)
 }
+
+// Robolectric's Android 14 (sdk=34 in each module's robolectric.properties), resolved by
+// Gradle, cached and retried, rather than fetched by Robolectric itself at test time, which
+// CI's runners failed to download from Maven Central (2026-11-22). Every test runs
+// Robolectric offline against it.
+val robolectricAndroid =
+    configurations.create("robolectricAndroid") {
+        isTransitive = false
+    }
+
+dependencies {
+    robolectricAndroid(libs.robolectric.android.all)
+}
+
+val robolectricDir =
+    layout.buildDirectory
+        .dir("robolectric")
+        .get()
+        .asFile
+
+val robolectricJars =
+    tasks.register<Sync>("robolectricJars") {
+        from(robolectricAndroid)
+        into(robolectricDir)
+    }
+
+subprojects {
+    tasks.withType<Test>().configureEach {
+        dependsOn(robolectricJars)
+        systemProperty("robolectric.offline", "true")
+        systemProperty("robolectric.dependency.dir", robolectricDir.absolutePath)
+    }
+}

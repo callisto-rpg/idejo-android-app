@@ -157,7 +157,7 @@ class ConnectForumsViewModel
                 viewModelScope.launch {
                     for (forum in forums) {
                         mutableState.update { it.copy(connecting = forum.url) }
-                        if (group.connect(forum, tabs::show)) {
+                        if (group.connect(forum, tabs::show) != null) {
                             mutableState.update { state ->
                                 state.copy(
                                     forums =

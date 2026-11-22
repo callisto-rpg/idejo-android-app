@@ -18,7 +18,6 @@ import org.idejo.app.core.model.EverywhereRequest
 import org.idejo.app.core.model.EverywhereResult
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifSettings
-import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.MePatch
@@ -297,10 +296,8 @@ internal interface IdejoService {
     @POST("me/welcome")
     suspend fun welcome(): Me
 
-    @POST("me/intro")
-    suspend fun intro(
-        @Body body: IntroClose,
-    ): Me
+    @POST("me/onboarded")
+    suspend fun onboarded(): Me
 
     @PUT("me/roles/{id}")
     suspend fun addRole(

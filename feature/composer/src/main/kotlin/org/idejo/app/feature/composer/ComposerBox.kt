@@ -59,6 +59,8 @@ import kotlinx.coroutines.delay
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.StatusBubble
+import org.idejo.app.core.designsystem.component.TourTargets
+import org.idejo.app.core.designsystem.component.tourTarget
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
@@ -178,7 +180,11 @@ fun ComposerBox(
         }
     val pick: (Suggestion) -> Unit = { item -> suggesting.at?.let { commanding.picked(it, item) } }
     Column(
-        modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier
+            .fillMaxWidth()
+            // What the onboarding tour points at (IX-18).
+            .tourTarget(TourTargets.COMPOSER)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Head(state.status, author, origin)

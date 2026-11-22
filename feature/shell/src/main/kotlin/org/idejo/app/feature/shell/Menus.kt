@@ -98,7 +98,8 @@ interface UserMenuActions {
  * The user menu (SH-20 to SH-25): the member's picture, name, tag and roles; **Theme**,
  * **Tutorial bubbles**, **App settings**, **Accounts**, **Admin** for administrators and
  * **Sign out**; **Profile and account** first, for a member signed in. A visitor gets
- * **Sign in** and **Sign up** instead.
+ * **Sign in** and **Sign up** instead. It is the content of [MenuPanel], as the forum menu
+ * is, which scrolls it when it is taller than the screen.
  */
 @Suppress("LongParameterList") // The menu's state, as the web's menu shows it.
 @Composable
@@ -110,7 +111,6 @@ fun UserMenu(
     themeMode: ThemeMode,
     tutorialBubbles: TutorialBubbles,
     actions: UserMenuActions,
-    onClose: () -> Unit,
     modifier: Modifier = Modifier,
     avatar: @Composable () -> Unit = {},
     logo: String? = null,
@@ -122,7 +122,7 @@ fun UserMenu(
         Accounts(forumName, member, actions, onBack = { accounts = false }, modifier, logo)
         return
     }
-    MenuPage(onClose, modifier) {
+    MenuColumn(modifier) {
         MemberHead(member, avatar)
         if (member == null) {
             Item(R.drawable.ic_chevron, stringResource(R.string.user_menu_sign_in), actions::signIn)
@@ -237,7 +237,11 @@ private fun Accounts(
 ) {
     var confirm by remember { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(onBack = onBack)
-    MenuPage(onBack, modifier, close = stringResource(R.string.user_menu_back)) {
+    MenuColumn(modifier) {
+        // Back to the user menu; system back too (AX-04).
+        TextButton(onClick = onBack, Modifier.padding(start = 4.dp, top = 4.dp)) {
+            Text(stringResource(R.string.user_menu_back))
+        }
         Heading(stringResource(R.string.user_menu_accounts))
         Row(
             Modifier.padding(16.dp),
@@ -406,62 +410,12 @@ internal fun UnavailableItem(
 /** Material's opacity for content that is disabled. */
 internal const val DISABLED_ALPHA = 0.38f
 
-/**
- * A menu filling the screen (SH-10, SH-20): a close button at the top, its content
- * scrolling; a swipe up past the end closes it, as system back does.
- */
+/** A menu's contents in [MenuPanel] (SH-10, SH-20): scrolling when taller than the panel. */
 @Composable
-internal fun MenuPage(
-    onClose: () -> Unit,
+internal fun MenuColumn(
     modifier: Modifier = Modifier,
-    close: String = stringResource(R.string.close),
     content: @Composable ColumnScope.() -> Unit,
-) {
-    val threshold = with(LocalDensity.current) { SWIPE_TO_CLOSE.toPx() }
-    val swipe =
-        remember(onClose, threshold) {
-            object : NestedScrollConnection {
-                var pulled by mutableFloatStateOf(0f)
-
-                override fun onPostScroll(
-                    consumed: Offset,
-                    available: Offset,
-                    source: NestedScrollSource,
-                ): Offset {
-                    if (source != NestedScrollSource.UserInput) return Offset.Zero
-                    pulled = if (available.y < 0) pulled + available.y else 0f
-                    if (pulled < -threshold) {
-                        pulled = 0f
-                        onClose()
-                    }
-                    return Offset.Zero
-                }
-            }
-        }
-    // Frosted glass while the trial lasts (SidebarGlass).
-    Surface(
-        modifier.fillMaxSize(),
-        color = glassBackground(),
-        contentColor = MaterialTheme.colorScheme.onBackground,
-    ) {
-        Column(Modifier.safeDrawingPadding()) {
-            Row(Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.End) {
-                IconButton(onClick = onClose) {
-                    Icon(
-                        painterResource(org.idejo.app.core.designsystem.R.drawable.ic_close),
-                        close,
-                    )
-                }
-            }
-            Column(
-                Modifier
-                    .nestedScroll(swipe)
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 24.dp),
-                content = content,
-            )
-        }
-    }
-}
-
-private val SWIPE_TO_CLOSE = 96.dp
+) = Column(
+    modifier.verticalScroll(rememberScrollState()).padding(bottom = 8.dp),
+    content = content,
+)

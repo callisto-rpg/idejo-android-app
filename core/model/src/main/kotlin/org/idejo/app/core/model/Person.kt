@@ -63,8 +63,6 @@ data class Me(
     val verified: Boolean = false,
     /** The welcome card (About, Rules, roles) was seen (BR-07). */
     val welcomed: Boolean = false,
-    /** The getting-started card is due (BR-11, IX-07); false from older servers. */
-    @SerialName("intro_due") val introDue: Boolean = false,
     /**
      * "Automatic punctuation" (ST-02). This and the member's other choices below are null
      * where the server does not send them (an older idejo): Profile and account hides their
@@ -87,6 +85,20 @@ data class Me(
      * offered (ST-07, IX-17); false elsewhere and from older servers.
      */
     val everywhere: Boolean = false,
+    /**
+     * The onboarding tour (IX-18): the onboarding topic and the presentation question while
+     * the member is on it; null once finished, and from servers without it.
+     */
+    val onboarding: Onboarding? = null,
+)
+
+/** `GET /me`'s `onboarding` (IX-18): where the tour leads and what it asks. */
+@Serializable
+data class Onboarding(
+    @SerialName("topic_id") val topicId: String,
+    @SerialName("topic_title") val topicTitle: String,
+    /** The new user presentation question, asked once the first message is sent. */
+    val question: String,
 )
 
 /** `POST /me/everywhere` (ST-07, IX-17): the inbox's [sections], saved on every forum. */
@@ -119,10 +131,4 @@ data class MePatch(
     @SerialName("controls_on_mobile") val controlsOnMobile: Boolean? = null,
     @SerialName("controls_on_desktop") val controlsOnDesktop: Boolean? = null,
     @SerialName("accepts_private_messages") val acceptsPrivateMessages: Boolean? = null,
-)
-
-/** `POST /me/intro`: Getting started closed, for good with [hide] (BR-11, IX-07). */
-@Serializable
-data class IntroClose(
-    val hide: Boolean = false,
 )

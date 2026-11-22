@@ -221,7 +221,7 @@ Specified in section 21; until then the right swipe does nothing.
 | BR-08 | **Help**: the keys, the signs and every `!` command of this forum (`commands` and `plugins` from `GET /server`, IX-08), and **Formatting text** | Must |
 | BR-09 | User card (tap a name): picture, name, tag, roles, bio's first 200 characters, **Private Message**, **Ignore** | Must |
 | BR-10 | Pull to refresh on every list; cursor paging with endless scroll | Must |
-| BR-11 | The **Getting started** card after a sign-in, once the welcome card is done, while `GET /me` says `intro_due`, with **Close** and **Close and hide this in the future** (`POST /me/intro`, `hide`) (IX-07) | Should |
+| BR-11 | Removed (steward request, 2026-11-22): there is no **Getting started** card, on the web or in the app. | — |
 
 ## 9. Topic page
 
@@ -457,7 +457,7 @@ falls back as stated.
 | IX-04 | Discovery says whether the forum uses a chat service (`community.chat_url`, `community.inbox_url`), and the inbox's API can start a conversation with an idejo ID subject (the web's `/chat/new?with=`); `GET /users/{id}` gives a linked member's subject to that end | PC-02, IB-07 | **Private Message** opens the web's link in a Custom Tab |
 | IX-05 | Presence on the topic channel (idejo TP-16) | RS-03 | Not shown |
 | IX-06 | Inbox mode serves API v1 for its own pages (`/me/communities`, `/conversations`, settings) — to confirm on idejo 0.3.x | SI-06, IB-06 | — (blocking for M4) |
-| IX-07 | `GET /me` says `intro_due`; `POST /me/intro` (`hide`) closes the getting-started card as the web's `POST /intro` (callisto-rpg/Idejo#360) | BR-11 | No Getting started card |
+| IX-07 | Removed with BR-11 (steward request, 2026-11-22): idejo keeps `intro_due` (always false) and `POST /me/intro` (no effect) for older apps; the app reads neither | BR-11 | — |
 | IX-08 | `GET /server` lists `commands` (name, detail, help) as the Help page words them, and each plugin's `help` (callisto-rpg/Idejo#361) | BR-08 | Help without its list of commands |
 | IX-09 | `GET /topics/{id}/messages` counts the messages before and after the window, `earlier` and `later`, the opening message left out (callisto-rpg/Idejo#362) | TV-05 | Earlier and later links without a number |
 | IX-10 | A tag may belong to several categories; `GET /tags` gives each tag its `category_ids` (empty: every category), as the web groups Filter by tag (callisto-rpg/Idejo#363) | BR-04 | One list of tags, without categories |
@@ -468,6 +468,7 @@ falls back as stated.
 | IX-15 | `GET /me` gives `graphical_composer`, `controls_on_mobile` and `controls_on_desktop`, and `PATCH /me` changes them (callisto-rpg/Idejo#372) | CO-10, CO-11, MA-01, ST | The graphical composer on (new accounts' default); message controls on a tap |
 | IX-16 | `GET /server` gives `push_vapid_key`, the forum's VAPID public key (base64url, 87 characters) while push is on (callisto-rpg/Idejo#373) | NT-02, NT-06 | Distributors that need no VAPID key (ntfy…) work; the embedded FCM distributor cannot register, so the `play` build behaves as `foss` |
 | IX-17 | On a group's inbox, `GET /me` says `everywhere` (a member linked to its provider), and `POST /me/everywhere` `{sections}` saves the inbox's Profile and account sections on every forum the member joined, as the web's **Save for all forums**, answering `{saved, missed}` (callisto-rpg/Idejo#375) | ST-07 | The inbox's settings apply to the inbox only |
+| IX-18 | `GET /me` gives `onboarding` (`topic_id`, `topic_title`, `question`) while the member is on the onboarding tour and may post in the onboarding topic, else null; `POST /me/onboarded` finishes the tour (idejo's onboarding, steward request, 2026-11-22) | BR-07 | No tour |
 
 ## 23. Non-functional requirements
 

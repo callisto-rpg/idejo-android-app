@@ -5,7 +5,10 @@ SPDX-License-Identifier: CC-BY-4.0
 -->
 <!-- The idejo button (idejoButton1.svg): the sidebar's button to the forum menu (SH-30), drawn
      in its own gold, as tall as the forum's logo beside it. -->
+<!-- The logo whole, as drawn: drawn once, small, so its long path is accepted. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="VectorPath"
     android:width="50.73dp"
     android:height="24dp"
     android:viewportWidth="97.940272"

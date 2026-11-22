@@ -52,6 +52,14 @@ class MeRepository internal constructor(
     suspend fun removePicture(dark: Boolean): ApiResult<Me> =
         session.call { removePicture(dark) }.also(::publish)
 
+    /** The onboarding tour finished (IX-18); the answer, `onboarding` null, is published. */
+    suspend fun onboarded(): ApiResult<Me> = session.call { onboarded() }.also(::publish)
+
+    /** An answer about the member another call brought (`POST /me/welcome`), published. */
+    internal fun accept(me: Me) {
+        mutableState.value = me
+    }
+
     private fun publish(result: ApiResult<Me>) {
         if (result is ApiResult.Success) mutableState.value = result.value
     }

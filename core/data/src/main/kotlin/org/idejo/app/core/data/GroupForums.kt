@@ -118,14 +118,15 @@ class GroupForums(
 
     /**
      * **Join** (SI-08): the forum's own sign-in page, as [connect]; signing in there with the
-     * idejo ID makes the member one of its members. The list is read again after.
+     * idejo ID makes the member one of its members. The list is read again after. Returns
+     * the forum's origin once its token is kept, for the app to open it; else null.
      */
     suspend fun join(
         forum: DirectoryForum,
         openTab: suspend (HttpUrl) -> Boolean,
-    ): Boolean {
+    ): String? {
         val joined = GroupForum(forum.name, forum.url, forum.logoUrl)
-        return connect(joined, openTab).also { if (it) refresh() }
+        return connect(joined, openTab).also { if (it != null) refresh() }
     }
 
     private suspend fun directoryUrl(): HttpUrl? =
@@ -154,16 +155,16 @@ class GroupForums(
     }
 
     /**
-     * Connects [forum] (SI-06): its sign-in page is handed to [openTab]; true once the token
-     * is kept, false when the member closed the page, refused, or the forum could not be
+     * Connects [forum] (SI-06): its sign-in page is handed to [openTab]; its origin once the
+     * token is kept, null when the member closed the page, refused, or the forum could not be
      * reached. The next forum waits for this one's end.
      */
     suspend fun connect(
         forum: GroupForum,
         openTab: suspend (HttpUrl) -> Boolean,
-    ): Boolean {
-        val address = addressOf(forum.url) ?: return false
-        val found = discovery.discover(address) as? DiscoveryResult.Found ?: return false
+    ): String? {
+        val address = addressOf(forum.url) ?: return null
+        val found = discovery.discover(address) as? DiscoveryResult.Found ?: return null
         val origin = found.address.toString()
         return coroutineScope {
             // Listening before the page opens: its answer may come at once.
@@ -176,13 +177,13 @@ class GroupForums(
                 outcome.cancel()
                 signIn.cancelIfWaiting()
                 signIn.dismiss()
-                return@coroutineScope false
+                return@coroutineScope null
             }
             val signedIn = outcome.await().signedIn
             // A failure shows as "Not connected" in the list, not as a dialog.
             signIn.dismiss()
             if (signedIn) marked(forum)
-            signedIn
+            origin.takeIf { signedIn }
         }
     }
 

@@ -4,14 +4,7 @@
 package org.idejo.app.feature.shell
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -104,6 +98,7 @@ internal fun currentFold(): Fold? {
  * sidebar on the left, the page on the right; in tabletop posture the page above.
  * [sidebar] is told whether it is docked beside the page.
  */
+@Suppress("LongMethod") // The frame in each window shape, and the sidebar over it.
 @Composable
 internal fun SidebarFrame(
     wide: Boolean,
@@ -114,6 +109,10 @@ internal fun SidebarFrame(
     topBar: @Composable () -> Unit,
     sidebar: @Composable (docked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    /** How far the forum menu over the page has come in (0 to 1): the page blurs as much. */
+    pageGlass: () -> Float = { 0f },
+    /** A finger started moving the sidebar (the tour's last card goes, IX-18). */
+    onPull: () -> Unit = {},
     page: @Composable () -> Unit,
 ) = Box(Modifier.fillMaxSize()) {
     // Kept across a change of width (a fold opened): the page keeps its state.
@@ -129,42 +128,44 @@ internal fun SidebarFrame(
         LocalWindowInfo.current.containerSize.width
             .toFloat()
     val pulling = rememberPulling(sliding)
+    val pulled by rememberUpdatedState(onPull)
+    LaunchedEffect(sliding.dragging) { if (sliding.dragging) pulled() }
     Scaffold(
-        modifier.glassBehind(enabled = !wide && fold == null) {
-            if (sliding.width > 0f) sliding.shown.value / sliding.width else 0f
-        },
+        modifier.glassBehind(enabled = !wide && fold == null) { sliding.fraction },
         topBar = topBar,
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
-        if (fold != null) {
-            if (fold.vertical) {
-                Book(fold, shownSidebar, Modifier.padding(padding), shownPage)
+        Box(Modifier.fillMaxSize().glassBehind(share = pageGlass)) {
+            if (fold != null) {
+                if (fold.vertical) {
+                    Book(fold, shownSidebar, Modifier.padding(padding), shownPage)
+                } else {
+                    Tabletop(fold, shownSidebar, Modifier.padding(padding), shownPage)
+                }
+            } else if (wide) {
+                Row(Modifier.padding(padding).fillMaxSize()) {
+                    Box(
+                        Modifier.width(SIDEBAR_WIDTH).fillMaxHeight().testTag(DOCKED),
+                    ) { shownSidebar(true) }
+                    VerticalDivider()
+                    Box(Modifier.weight(1f).fillMaxHeight()) { shownPage() }
+                }
             } else {
-                Tabletop(fold, shownSidebar, Modifier.padding(padding), shownPage)
-            }
-        } else if (wide) {
-            Row(Modifier.padding(padding).fillMaxSize()) {
                 Box(
-                    Modifier.width(SIDEBAR_WIDTH).fillMaxHeight().testTag(DOCKED),
-                ) { shownSidebar(true) }
-                VerticalDivider()
-                Box(Modifier.weight(1f).fillMaxHeight()) { shownPage() }
+                    Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+                        .testTag(PAGE)
+                        .nestedScroll(pulling)
+                        .reveal(sliding),
+                ) { shownPage() }
             }
-        } else {
-            Box(
-                Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .testTag(PAGE)
-                    .nestedScroll(pulling)
-                    .reveal(sliding),
-            ) { shownPage() }
         }
     }
     if (!wide && fold == null) {
         BackHandler(enabled = open, onBack = onClose)
         BackGestureOpens(open, sliding) { opened() }
-        LaunchedEffect(open, sliding.width) { sliding.settle(open) }
+        LaunchedEffect(open, sliding.width, sliding.dragging) { sliding.settle(open) }
         if (sliding.shown.value > 0f) {
             Box(
                 Modifier
@@ -188,7 +189,28 @@ internal class Sliding(
     private val onClose: () -> Unit,
 ) {
     val shown = Animatable(0f)
-    var width = 0f
+
+    /**
+     * How far it goes, in px: 0 until measured, and then a drag is not held back. State, so
+     * what reads [fraction] (the page's blur) hears when it is measured.
+     */
+    var width by mutableFloatStateOf(0f)
+
+    /** A finger is moving it: what it shows is the finger's, not [settle]'s. */
+    var dragging by mutableStateOf(false)
+        private set
+
+    /** Any of it on screen, or a finger on it. */
+    val showing: Boolean get() = dragging || shown.value > 0f
+
+    /** How much of it is drawn, from 0 to 1 (0 until measured). */
+    val fraction: Float
+        get() {
+            // Both read every time: a reader that saw width 0 must still hear the slide.
+            val at = shown.value
+            val most = width
+            return if (most > 0f) at / most else 0f
+        }
 
     /** Drawn at [progress] (0 to 1) of the way, as a back gesture moves. */
     fun peek(progress: Float) {
@@ -203,8 +225,10 @@ internal class Sliding(
      * held where it is while the finger rests. Opening and closing are the same drag.
      */
     fun drag(delta: Float) {
+        dragging = true
         if (abs(delta) >= JITTER) heading = sign(delta)
-        scope.launch { shown.snapTo((shown.value + delta).coerceIn(0f, width)) }
+        val most = if (width > 0f) width else Float.MAX_VALUE
+        scope.launch { shown.snapTo((shown.value + delta).coerceIn(0f, most)) }
     }
 
     /**
@@ -214,11 +238,13 @@ internal class Sliding(
     fun release() {
         val open = if (heading == 0f) shown.value > width / 2 else heading > 0f
         heading = 0f
+        dragging = false
         if (open) onOpen() else onClose()
         settle(open)
     }
 
     fun settle(open: Boolean) {
+        if (dragging) return
         val target = if (open) width else 0f
         scope.launch { if (reduced()) shown.snapTo(target) else shown.animateTo(target) }
     }
@@ -318,29 +344,6 @@ internal const val DOCKED = "sidebar-docked"
 
 private val EXPANDED = 840.dp
 private val SIDEBAR_WIDTH = 320.dp
-
-/** A full-screen page sliding in from the left (the sidebar) or down from the top bar. */
-@Composable
-internal fun Slide(
-    visible: Boolean,
-    horizontal: Boolean,
-    content: @Composable () -> Unit,
-) {
-    val reduced = IdejoTheme.reducedMotion
-    val enter: EnterTransition =
-        when {
-            reduced -> EnterTransition.None
-            horizontal -> slideInHorizontally { -it }
-            else -> slideInVertically { -it }
-        }
-    val exit: ExitTransition =
-        when {
-            reduced -> ExitTransition.None
-            horizontal -> slideOutHorizontally { -it }
-            else -> slideOutVertically { -it }
-        }
-    AnimatedVisibility(visible, enter = enter, exit = exit) { content() }
-}
 
 /**
  * Drags move the sidebar with the finger (SH-30): across the page to open it (a category,

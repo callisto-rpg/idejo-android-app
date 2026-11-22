@@ -60,7 +60,9 @@ import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.designsystem.component.CategoryMark
 import org.idejo.app.core.designsystem.component.CategoryMarkSize
 import org.idejo.app.core.designsystem.component.Dot
+import org.idejo.app.core.designsystem.component.TourTargets
 import org.idejo.app.core.designsystem.component.dot
+import org.idejo.app.core.designsystem.component.tourTarget
 import org.idejo.app.core.designsystem.component.unreadLevel
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.onSecondaryClick
@@ -198,6 +200,7 @@ private fun AllCategories(
             Modifier
                 .clip(RoundedCornerShape(10.dp))
                 .combinedClickable(role = Role.Button) { actions.open(Place.Home) }
+                .tourTarget(TourTargets.ALL)
                 .heightIn(min = TARGET)
                 .padding(horizontal = 8.dp, vertical = 12.dp)
                 .semantics { heading() },
@@ -337,7 +340,11 @@ private fun TopicRow(
             Box(Modifier.size(DOT_SPACE), contentAlignment = Alignment.Center) {
                 topic.dot()?.let { Dot(it) }
             }
-            GlowingName(topic.title, glow, Modifier.weight(1f))
+            GlowingName(
+                topic.title,
+                glow,
+                Modifier.weight(1f).tourTarget(TourTargets.topic(topic.id)),
+            )
             if (followed) {
                 IconButton(
                     onClick = { actions.follow(topic, false) },

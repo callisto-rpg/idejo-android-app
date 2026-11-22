@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +74,8 @@ interface LogoMenuActions : YourForumsActions {
  * **Support** (greyed, not offered yet). In idejo ID mode ([group]),
  * **Your forums** (SH-12), the inbox's shortcuts (SH-13) and **Add a forum** by address or from
  * the directory (SH-14); in single-forum mode, **Add a forum** explains that the app holds this
- * forum only and offers idejo ID mode (MD-03).
+ * forum only and offers idejo ID mode (MD-03). It is the content of [MenuPanel], which
+ * scrolls it when it is taller than the screen.
  */
 @Composable
 fun LogoMenu(
@@ -80,7 +83,6 @@ fun LogoMenu(
     address: String,
     onHome: () -> Unit,
     onShare: () -> Unit,
-    onClose: () -> Unit,
     modifier: Modifier = Modifier,
     logo: String? = null,
     group: GroupMenu? = null,
@@ -88,7 +90,7 @@ fun LogoMenu(
     onSidebar: (() -> Unit)? = null,
     chatService: Boolean = false,
 ) {
-    MenuPage(onClose, modifier) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 8.dp)) {
         Heading(stringResource(R.string.logo_menu_this_forum))
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

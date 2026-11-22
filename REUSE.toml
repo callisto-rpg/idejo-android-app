@@ -32,6 +32,13 @@ precedence = "override"
 SPDX-FileCopyrightText = "Mariano Pictet"
 SPDX-License-Identifier = "CC-BY-4.0"
 
+# The launcher icon's layers, from the steward's AndroidIcon1.png (2026-11-22).
+[[annotations]]
+path = "app/src/main/res/drawable-nodpi/ic_launcher_*.png"
+precedence = "override"
+SPDX-FileCopyrightText = "Mariano Pictet"
+SPDX-License-Identifier = "CC-BY-4.0"
+
 # JSON payloads for the API tests (JSON has no comments).
 [[annotations]]
 path = "**/src/test/resources/payloads/**"

@@ -3,20 +3,28 @@
 
 package org.idejo.app.feature.shell
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.idejo.app.core.data.LiveBubble
 import org.idejo.app.core.data.NotificationKind
+import org.idejo.app.core.data.OnboardingTour
 import org.idejo.app.core.data.SidebarCategory
 import org.idejo.app.core.data.SidebarSection
 import org.idejo.app.core.data.SidebarState
@@ -25,13 +33,17 @@ import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.data.WarningsState
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.Crumb
+import org.idejo.app.core.designsystem.component.LocalTourTargets
 import org.idejo.app.core.designsystem.component.LogoNews
 import org.idejo.app.core.designsystem.component.TopBar
+import org.idejo.app.core.designsystem.component.TourTargets
+import org.idejo.app.core.designsystem.component.tourTarget
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Category
 import org.idejo.app.core.model.CategoryGroup
 import org.idejo.app.core.model.MentionState
+import org.idejo.app.core.model.Onboarding
 import org.idejo.app.core.model.Role
 import org.idejo.app.core.model.Topic
 import org.idejo.app.core.model.Warning
@@ -82,7 +94,6 @@ class ShellScreenshotTest {
                 "garden.example.org",
                 {},
                 {},
-                {},
                 actions = RecordedActions(mutableListOf()),
                 chatService = true,
             )
@@ -114,7 +125,6 @@ class ShellScreenshotTest {
             LogoMenu(
                 "Garden club",
                 "garden.example.org",
-                {},
                 {},
                 {},
                 group =
@@ -161,7 +171,6 @@ class ShellScreenshotTest {
                 themeMode = ThemeMode.System,
                 tutorialBubbles = TutorialBubbles.Simple,
                 actions = NoActions,
-                onClose = {},
                 avatar = {
                     Avatar(
                         "Ada Lovelace",
@@ -183,7 +192,6 @@ class ShellScreenshotTest {
                 themeMode = ThemeMode.Dark,
                 tutorialBubbles = TutorialBubbles.All,
                 actions = NoActions,
-                onClose = {},
             )
         }
 
@@ -252,6 +260,46 @@ class ShellScreenshotTest {
                 modifier = Modifier.padding(12.dp),
             )
         }
+
+    @Test
+    fun `IX-18 the onboarding tour`() {
+        val welcome = Onboarding("t_1", "Welcome", "Now tell us a bit about yourself")
+        val on = OnboardingTour.State(onboarding = welcome)
+        listOf(
+            TourStep.Swipe to on,
+            TourStep.OpenTopic to on,
+            TourStep.SayHi to on,
+            TourStep.Present to on.copy(open = true),
+            TourStep.Finished to on.copy(finished = true),
+        ).forEach { (step, tour) ->
+            snapshots("Tour${step.name}") { TourScene(step, tour) }
+        }
+    }
+
+    @Composable
+    private fun TourScene(
+        step: TourStep,
+        tour: OnboardingTour.State,
+    ) {
+        val targets = remember { TourTargets() }
+        CompositionLocalProvider(LocalTourTargets provides targets) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("All categories", Modifier.tourTarget(TourTargets.ALL))
+                Text("Garden", style = IdejoTheme.typography.titleMedium)
+                Text(
+                    "Welcome",
+                    Modifier.padding(start = 16.dp).tourTarget(TourTargets.topic("t_1")),
+                )
+                Text("Tomatoes", Modifier.padding(start = 16.dp))
+                Spacer(Modifier.weight(1f))
+                Surface(
+                    Modifier.fillMaxWidth().height(96.dp).tourTarget(TourTargets.COMPOSER),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                ) { Text("Hi, I'm Ada", Modifier.padding(16.dp)) }
+            }
+            TourOverlay(step, tour, "Ada", "All categories", targets, TourActions({}, {}, {}))
+        }
+    }
 
     private fun snapshots(
         name: String,

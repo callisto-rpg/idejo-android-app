@@ -54,7 +54,7 @@ fun HelpScreen(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         PageTitle(stringResource(R.string.help_title))
-        Sending(brief = false)
+        Sending()
         Signs()
         Commands(server)
         HelpSection(stringResource(R.string.help_spoilers)) {
@@ -68,21 +68,19 @@ fun HelpScreen(
     }
 }
 
-/** **Sending**: Enter, a new line, and finishing a message; [brief] in Getting started. */
+/** **Sending**: Enter, a new line, and finishing a message. */
 @Composable
-internal fun Sending(brief: Boolean) {
+private fun Sending() {
     HelpSection(stringResource(R.string.help_sending)) {
-        if (!brief) Paragraph(stringResource(R.string.help_sending_intro))
+        Paragraph(stringResource(R.string.help_sending_intro))
         Entry("Enter", stringResource(R.string.help_enter))
-        if (!brief) {
-            Entry(
-                stringResource(R.string.help_new_line_keys),
-                stringResource(R.string.help_new_line),
-            )
-        }
+        Entry(
+            stringResource(R.string.help_new_line_keys),
+            stringResource(R.string.help_new_line),
+        )
         Entry(
             stringResource(R.string.help_finish_keys),
-            stringResource(if (brief) R.string.help_finish_brief else R.string.help_finish),
+            stringResource(R.string.help_finish),
         )
     }
 }

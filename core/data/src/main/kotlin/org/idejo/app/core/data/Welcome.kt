@@ -17,13 +17,10 @@ import org.idejo.app.core.api.getOrNull
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.Server
 
-/** The cards a member meets over the forum (BR-07, BR-11). */
+/** The cards a member meets over the forum (BR-07). */
 enum class MemberCard {
     /** **Welcome to …**: About, Rules and the self-select roles, until **Continue**. */
     Welcome,
-
-    /** **Getting started**, after a sign-in once welcomed, until closed. */
-    GettingStarted,
 }
 
 /** What Rules & Roles and the cards show: the server's About, Rules and roles, and the member. */
@@ -44,7 +41,6 @@ data class WelcomeState(
             when {
                 me == null -> null
                 !me.welcomed -> MemberCard.Welcome
-                me.introDue -> MemberCard.GettingStarted
                 else -> null
             }
 
@@ -67,10 +63,9 @@ data class WelcomeState(
 }
 
 /**
- * Rules & Roles and the welcome and getting-started cards for [session]'s forum (BR-07,
- * BR-11): `GET /server` and `GET /me`, roles taken and left one by one (`PUT`/`DELETE
- * /me/roles/{id}`), the welcome card marked seen (`POST /me/welcome`) and Getting started
- * closed (`POST /me/intro`).
+ * Rules & Roles and the welcome card for [session]'s forum (BR-07): `GET /server` and
+ * `GET /me`, roles taken and left one by one (`PUT`/`DELETE /me/roles/{id}`), and the
+ * welcome card marked seen (`POST /me/welcome`).
  */
 class Welcome(
     private val session: ForumSession,
@@ -114,14 +109,6 @@ class Welcome(
     /** **Continue** on the welcome card. */
     fun continueWelcome() = scope.launch { saveRoles() }
 
-    /** **Close**, or with [hide] **Close and hide this in the future**. */
-    fun closeIntro(hide: Boolean) {
-        scope.launch {
-            mutableState.update { it.copy(saving = true, problem = null) }
-            done(session.call { intro(hide) })
-        }
-    }
-
     private suspend fun saveRoles() {
         val state = state.value
         mutableState.update { it.copy(saving = true, problem = null) }
@@ -132,7 +119,10 @@ class Welcome(
             val result = session.call { role(id, taken) }
             if (result is ApiResult.Failure) return done(result)
         }
-        done(session.call { welcome() }, saved = true)
+        val welcomed = session.call { welcome() }
+        // The shell's copy too: the onboarding tour starts once the card is closed (IX-18).
+        welcomed.getOrNull()?.let(session.me::accept)
+        done(welcomed, saved = true)
     }
 
     private fun done(

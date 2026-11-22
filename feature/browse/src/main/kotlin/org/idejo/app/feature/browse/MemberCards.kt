@@ -31,8 +31,8 @@ import org.idejo.app.core.data.WelcomeState
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 
 /**
- * The cards over the forum, as the web's: **Welcome to …** on a new member's first visit
- * until **Continue** (BR-07), then **Getting started** after a sign-in until closed (BR-11).
+ * The card over the forum, as the web's: **Welcome to …** on a new member's first visit
+ * until **Continue** (BR-07).
  */
 @Composable
 fun MemberCards(
@@ -44,7 +44,6 @@ fun MemberCards(
         state = state,
         forumName = viewModel.forumName,
         rules = RulesActions(viewModel::tick, viewModel::continueWelcome, onLink),
-        onCloseIntro = viewModel::closeIntro,
     )
 }
 
@@ -54,7 +53,6 @@ fun MemberCards(
     state: WelcomeState,
     forumName: String,
     rules: RulesActions,
-    onCloseIntro: (hide: Boolean) -> Unit,
 ) {
     val card = state.card ?: return
     // Nothing closes the cards but their buttons, as on the web.
@@ -66,7 +64,7 @@ fun MemberCards(
                 dismissOnClickOutside = false,
                 usePlatformDefaultWidth = false,
             ),
-    ) { MemberCardContent(card, state, forumName, rules, onCloseIntro) }
+    ) { MemberCardContent(card, state, forumName, rules) }
 }
 
 /** What [card] shows, without its dialog. */
@@ -76,17 +74,12 @@ internal fun MemberCardContent(
     state: WelcomeState,
     forumName: String,
     rules: RulesActions,
-    onCloseIntro: (hide: Boolean) -> Unit,
 ) {
     Card {
         when (card) {
             MemberCard.Welcome -> {
                 CardTitle(stringResource(R.string.welcome_title, forumName))
                 RulesContent(state, rules, stringResource(R.string.welcome_continue), page = false)
-            }
-
-            MemberCard.GettingStarted -> {
-                GettingStarted(state.saving, onCloseIntro)
             }
         }
     }
@@ -109,27 +102,4 @@ private fun Card(content: @Composable () -> Unit) {
 @Composable
 private fun CardTitle(text: String) {
     Text(text, Modifier.semantics { heading() }, style = IdejoTheme.typography.headlineSmall)
-}
-
-/** **Getting started**: how sending works, in brief, and the sidebar. */
-@Composable
-internal fun GettingStarted(
-    closing: Boolean,
-    onClose: (hide: Boolean) -> Unit,
-) = Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-    CardTitle(stringResource(R.string.intro_title))
-    Sending(brief = true)
-    HelpSection(stringResource(R.string.intro_sidebar)) {
-        listOf(
-            R.string.intro_sidebar_follow,
-            R.string.intro_sidebar_unfollow,
-            R.string.intro_sidebar_swipe,
-        ).forEach { Text("• " + stringResource(it), style = IdejoTheme.typography.bodyMedium) }
-    }
-    Button(onClick = { onClose(false) }, enabled = !closing) {
-        Text(stringResource(R.string.intro_close))
-    }
-    TextButton(onClick = { onClose(true) }, enabled = !closing) {
-        Text(stringResource(R.string.intro_hide))
-    }
 }
