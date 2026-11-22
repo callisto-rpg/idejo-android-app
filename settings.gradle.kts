@@ -14,6 +14,17 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        // Robolectric's Android jar (140 MB) from Google's mirror of Maven Central: Maven
+        // Central answers 429 to busy CI runners for it, and Gradle does not fall through
+        // to another repository on a 429.
+        exclusiveContent {
+            forRepository {
+                maven("https://maven-central.storage-download.googleapis.com/maven2/") {
+                    name = "MavenCentralGoogleMirror"
+                }
+            }
+            filter { includeModule("org.robolectric", "android-all-instrumented") }
+        }
         mavenCentral()
     }
 }
