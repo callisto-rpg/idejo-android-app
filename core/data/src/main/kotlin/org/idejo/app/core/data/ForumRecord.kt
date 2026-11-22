@@ -147,6 +147,11 @@ data class AppState(
     val inboxTab: String? = null,
     /** Push turned off on this device (App settings, NT-06): no forum registers. */
     val pushOff: Boolean = false,
+    /**
+     * idejo ID mode: the inbox's pushes, its private messages, while any forum is open (on
+     * by default; App settings, NT-06).
+     */
+    val privatePush: Boolean = true,
 ) {
     fun forum(origin: String?): ForumRecord? = forums.firstOrNull { it.origin == origin }
 

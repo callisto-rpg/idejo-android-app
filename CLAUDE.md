@@ -409,7 +409,7 @@ Docker image) are added with them.
   through its own sign-in page in a Custom Tab, one at a time (`GroupForums`; the idejo ID
   session makes each one tap). One session is open at a time, the inbox's (`Launch.Inbox`)
   or a forum's; Back on a forum's first page leads to the inbox. Single-forum mode is
-  unchanged. Push registers the open forum only, until push for every connected forum.
+  unchanged. Push registers the open forum, and the inbox (below, 2026-11-22).
 - 2026-11-19 — In idejo ID mode a forum with a chat service (IX-04, callisto-rpg/Idejo#374:
   discovery's `community.chat_url` and `inbox_url`, user cards' `idejo_id`, the inbox's
   `POST /conversations` `{subject}`) shows **Private Message** as the web does, by the idejo
@@ -527,6 +527,14 @@ Docker image) are added with them.
   On, it names the distributor, lists the others and has **Turn off**
   (`AppState.pushOff`: every forum's registration deleted, `UnifiedPush.removeDistributor`,
   no forum registers until enabled again).
+- 2026-11-22 — Private messages are pushed in idejo ID mode (steward request): the inbox is
+  registered for push whatever is open (`PushRegistrar`, from `AppState`), while App
+  settings → Notifications' **Private messages** is on, as it is by default
+  (`AppState.privatePush`); off, its registration ends. idejo pushes them under its own
+  `private` choice (Push notifications, on by default). On screen, the live bubbles stand
+  for the open forum's pushes only, so a private message shows in any other forum. Pushes
+  and new endpoints work for any forum held, open or not (`IdejoPushService`,
+  `PushRegistrar.onEndpoint`, with the forum's own token).
 - 2026-11-22 — On a forum's home page the top bar says, in its middle, "pull down for idejo
   menu" over a v (`TopBar`'s `pullHint`, `ic_pull_down` from Material Symbols Rounded), small
   and at 50 % opacity; TalkBack skips it (the forum menu has its button). The tour's

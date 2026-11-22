@@ -350,4 +350,38 @@ class PushRegistrarTest {
                     ?.endpoint,
             )
         }
+
+    @Test
+    fun `NT-02 idejo ID mode registers the inbox for its private messages, on by default`() =
+        runBlocking {
+            registrar
+            val found = DiscoveryClient(http).discover(fake.address) as DiscoveryResult.Found
+            val grant =
+                TokenGrant(fake.tokenFor(FakePeople.Ada), tokenId = "tok_1", user = FakePeople.Ada)
+            sessions.signedInToInbox(found, grant)
+            val inbox = requireNotNull(store.current().inbox).origin
+
+            eventually { distributor.registered.any { it.first == inbox } }
+            registrar.onEndpoint(inbox, "https://fcm.googleapis.com/fcm/send/i", "BPUB", "AUTH")
+            val id = requireNotNull(store.current().inbox?.push).registrationId
+
+            // Private messages off: the inbox's registration ends, and a late endpoint goes back.
+            AppChoices(store).privatePush(false)
+            eventually { inbox in distributor.unregistered }
+            assertNull(store.current().inbox?.push)
+            assertTrue(
+                fake.requests.any {
+                    it.method == "DELETE" && it.url.encodedPath.endsWith("/me/push/unifiedpush/$id")
+                },
+            )
+            distributor.unregistered.clear()
+            registrar.onEndpoint(inbox, "https://fcm.googleapis.com/fcm/send/j", "B2", "A2")
+            assertEquals(listOf(inbox), distributor.unregistered.toList())
+            assertNull(store.current().inbox?.push)
+
+            // On again: registered again.
+            distributor.registered.clear()
+            AppChoices(store).privatePush(true)
+            eventually { distributor.registered.any { it.first == inbox } }
+        }
 }

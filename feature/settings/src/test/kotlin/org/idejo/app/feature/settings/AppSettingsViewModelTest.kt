@@ -117,6 +117,16 @@ class AppSettingsViewModelTest {
     }
 
     @Test
+    fun `NT-02 private messages from the inbox are pushed by default, and can be turned off`() {
+        val vm = viewModel()
+        assertTrue(vm.state.value.privatePush)
+        vm.onEvent(AppSettingsEvent.SetPrivatePush(false))
+        assertFalse(vm.state.until { !it.privatePush }.privatePush)
+        vm.onEvent(AppSettingsEvent.SetPrivatePush(true))
+        assertTrue(vm.state.until { it.privatePush }.privatePush)
+    }
+
+    @Test
     fun `NT-06 no distributor at all offers Sunup, and its answer is kept`() {
         val vm = viewModel()
         vm.onEvent(AppSettingsEvent.AnswerSunup(install = true))

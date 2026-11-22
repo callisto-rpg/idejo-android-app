@@ -30,6 +30,8 @@ data class AppSettingsUiState(
     val distributor: String? = null,
     /** Push turned off on this device (NT-06). */
     val pushOff: Boolean = false,
+    /** idejo ID mode: the inbox's private messages pushed (on by default). */
+    val privatePush: Boolean = true,
     /** **Enable** found no distributor: Sunup is offered (NT-06). */
     val offerSunup: Boolean = false,
     /** Sunup's store page was opened: enabling is tried again on returning. */
@@ -70,6 +72,11 @@ sealed interface AppSettingsEvent {
 
     /** **Turn off** push on this device: every forum's registration ends (NT-06). */
     data object DisablePush : AppSettingsEvent
+
+    /** idejo ID mode's **Private messages**: the inbox's pushes on or off. */
+    data class SetPrivatePush(
+        val on: Boolean,
+    ) : AppSettingsEvent
 
     /** Sunup offered: its store page opened ([install]), or **Not now**. */
     data class AnswerSunup(
@@ -141,6 +148,11 @@ class AppSettingsViewModel
                 choices.pushOff.collect { off -> mutableState.update { it.copy(pushOff = off) } }
             }
             viewModelScope.launch {
+                choices.privatePush.collect { on ->
+                    mutableState.update { it.copy(privatePush = on) }
+                }
+            }
+            viewModelScope.launch {
                 sessions.state.collect { app ->
                     mutableState.update {
                         it.copy(
@@ -170,6 +182,10 @@ class AppSettingsViewModel
                         registrar.disable()
                         distributors()
                     }
+                }
+
+                is AppSettingsEvent.SetPrivatePush -> {
+                    viewModelScope.launch { choices.privatePush(event.on) }
                 }
 
                 is AppSettingsEvent.AnswerSunup -> {
