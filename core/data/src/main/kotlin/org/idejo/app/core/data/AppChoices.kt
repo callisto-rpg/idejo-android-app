@@ -37,6 +37,12 @@ class AppChoices
             store.update { it.copy(pushBarDismissedAt = now) }
         }
 
+        /** Push turned off on this device (App settings, NT-06), for every forum. */
+        val pushOff: Flow<Boolean>
+            get() = store.state.map { it.pushOff }.distinctUntilChanged()
+
+        suspend fun pushOff(off: Boolean) = store.update { it.copy(pushOff = off) }
+
         /** Text size, haptics and reduced motion (ST-22). */
         val display: Flow<AppDisplay>
             get() =

@@ -3,6 +3,7 @@
 
 package org.idejo.app.feature.settings
 
+import android.app.Activity
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,6 +28,12 @@ data class AppSettingsUiState(
     val distributors: List<String> = emptyList(),
     /** The one in use, by package; null when none is chosen. */
     val distributor: String? = null,
+    /** Push turned off on this device (NT-06). */
+    val pushOff: Boolean = false,
+    /** **Enable** found no distributor: Sunup is offered (NT-06). */
+    val offerSunup: Boolean = false,
+    /** Sunup's store page was opened: enabling is tried again on returning. */
+    val awaitingSunup: Boolean = false,
     val messageText: MessageText = MessageText.Default,
     val haptics: Boolean = true,
     val reduceMotion: Boolean = false,
@@ -43,7 +50,10 @@ data class AppSettingsUiState(
     val inboxName: String? = null,
     /** The forum open, kept by default. */
     val current: String? = null,
-)
+) {
+    /** Push is on, through [distributor]. */
+    val pushOn: Boolean get() = !pushOff && distributor != null
+}
 
 /** A forum the app holds, for **Mode** (MD-04). */
 @Immutable
@@ -56,6 +66,14 @@ data class HeldForum(
 sealed interface AppSettingsEvent {
     data class UseDistributor(
         val distributor: String,
+    ) : AppSettingsEvent
+
+    /** **Turn off** push on this device: every forum's registration ends (NT-06). */
+    data object DisablePush : AppSettingsEvent
+
+    /** Sunup offered: its store page opened ([install]), or **Not now**. */
+    data class AnswerSunup(
+        val install: Boolean,
     ) : AppSettingsEvent
 
     data class SetMessageText(
@@ -120,6 +138,9 @@ class AppSettingsViewModel
             }
             measure()
             viewModelScope.launch {
+                choices.pushOff.collect { off -> mutableState.update { it.copy(pushOff = off) } }
+            }
+            viewModelScope.launch {
                 sessions.state.collect { app ->
                     mutableState.update {
                         it.copy(
@@ -141,6 +162,20 @@ class AppSettingsViewModel
                 is AppSettingsEvent.UseDistributor -> {
                     registrar.use(event.distributor)
                     distributors()
+                }
+
+                AppSettingsEvent.DisablePush -> {
+                    viewModelScope.launch {
+                        choices.pushOff(true)
+                        registrar.disable()
+                        distributors()
+                    }
+                }
+
+                is AppSettingsEvent.AnswerSunup -> {
+                    mutableState.update {
+                        it.copy(offerSunup = false, awaitingSunup = event.install)
+                    }
                 }
 
                 is AppSettingsEvent.SetMessageText -> {
@@ -165,6 +200,22 @@ class AppSettingsViewModel
 
                 is AppSettingsEvent.LeaveIdejoId -> {
                     viewModelScope.launch { sessions.leaveIdejoId(event.keep) }
+                }
+            }
+        }
+
+        /**
+         * **Enable push notifications** (NT-06), after Android's notification permission:
+         * push back on, through the distributor there is or the default one (an installed
+         * one before the embedded FCM); none at all, Sunup is offered.
+         */
+        fun enablePush(activity: Activity) {
+            mutableState.update { it.copy(awaitingSunup = false) }
+            viewModelScope.launch {
+                choices.pushOff(false)
+                registrar.enable(activity) { found ->
+                    distributors()
+                    if (!found) mutableState.update { it.copy(offerSunup = true) }
                 }
             }
         }

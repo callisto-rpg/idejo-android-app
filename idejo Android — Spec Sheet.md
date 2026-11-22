@@ -52,7 +52,7 @@ use the web (the app links there).
 | Editor | Follows the member's "Use the graphical composer" setting: on, WYSIWYG like the web's; off, plain text with inline styling and the Markdown signs kept |
 | Large screens | Adaptive: left sidebar permanent from the *expanded* width class (≥ 840 dp); right sidebar too when there is room |
 | Distribution | Google Play, F-Droid and signed APKs on GitHub releases |
-| Push | UnifiedPush everywhere; the Play build embeds the FCM-based UnifiedPush distributor so push works without a distributor app |
+| Push | UnifiedPush everywhere; the app embeds UnifiedPush's FCM distributor (no Firebase SDK) so push works without a distributor app wherever Google Play services or microG are |
 | Moderation | After member parity (milestone M6); administration stays on the web |
 | Offline | Room cache for reading recently opened topics, the sidebar and Unread, plus offline drafts sent on reconnect |
 | Links | Verified Android App Links for forums added in the app (needs idejo change IX-03) |
@@ -351,7 +351,7 @@ The home of idejo ID mode, matching my.idejo.org's pages, in the inbox's own col
 | NT-03 | Payloads are decrypted (RFC 8291 `aes128gcm`) with the keys registered; the declarative JSON gives title, body, `navigate`, `tag` and `lang`; `tag` replaces the earlier notification with the same tag per forum; `app_badge` sets the launcher badge where supported | Must |
 | NT-04 | Tapping a notification opens `navigate` in the app (DL-02), in that forum | Must |
 | NT-05 | Notification channels per forum and per kind (replies, mentions, role mentions, followed, private, warnings), so Android's own settings can silence any of them; the forum's name and logo as the notification's group | Must |
-| NT-06 | `play` build: the embedded FCM distributor is the default when no other distributor is installed; `foss` build: with no distributor, settings explain how to install one (e.g. ntfy) and the app works without push | Must |
+| NT-06 | One build: App settings' **Enable push notifications** (one tap: Android 13's permission, then the distributor in use or the default one, an installed distributor before the embedded FCM one); with neither a distributor nor Google Play services or microG, it offers to install Sunup and tries again on returning; **Not now** leaves push off and the app works without it. Settings show which distributor is in use, with **Turn off** | Must |
 | NT-07 | Android 13+: notification permission asked only after the member has posted or followed a topic, with the web banner's wording and **Not now** (remembered on the server as the banner's dismissal is, or locally) | Must |
 | NT-08 | Push settings screen as the web's: state on this device, the five switches (`PATCH /me/notification-settings`), the devices with **Remove**, **Send test notification** (`POST /me/push/test`) | Must |
 | NT-09 | No polling and no persistent background connection; outside the foreground everything arrives by push | Must |
@@ -416,7 +416,7 @@ The home of idejo ID mode, matching my.idejo.org's pages, in the inbox's own col
 | --- | --- | --- |
 | SY-01 | https and wss only; no cleartext traffic (network security config); system trust store only | Must |
 | SY-02 | Tokens and push keys encrypted with a Keystore key (SI-04); excluded from Android backups and device transfer | Must |
-| SY-03 | No analytics, crash reporting or third-party SDKs in any build; the `play` build's only Google component is the FCM distributor | Must |
+| SY-03 | No analytics, crash reporting or third-party SDKs; the only Google component is UnifiedPush's FCM distributor, free software that talks to Google Play services or microG when present | Must |
 | SY-04 | Each forum's data, tokens and cache are kept apart; a request is only ever sent with the token of its own host | Must |
 | SY-05 | WebViews only for tap-to-load embeds (TV-26), never for sign-in (Custom Tabs only) | Must |
 | SY-06 | Screenshots allowed (it is a forum); private conversations hidden in the recent-apps preview | Should |
@@ -466,7 +466,7 @@ falls back as stated.
 | IX-13 | `GET /topics/{id}` gives `my_last_message_id`: the reader's last message in the topic, not deleted, null without one (callisto-rpg/Idejo#369) | SH-04 | **My last message** is left out |
 | IX-14 | A category gives `mark_colour`, the colour the web draws its mark in (its `colour`, else one of eight tints from its id); idejo's category icons are CC-BY-4.0 drawings the app bundles (callisto-rpg/Idejo#370) | TH-05 | Tiles without a colour take the forum's; icons as initials |
 | IX-15 | `GET /me` gives `graphical_composer`, `controls_on_mobile` and `controls_on_desktop`, and `PATCH /me` changes them (callisto-rpg/Idejo#372) | CO-10, CO-11, MA-01, ST | The graphical composer on (new accounts' default); message controls on a tap |
-| IX-16 | `GET /server` gives `push_vapid_key`, the forum's VAPID public key (base64url, 87 characters) while push is on (callisto-rpg/Idejo#373) | NT-02, NT-06 | Distributors that need no VAPID key (ntfy…) work; the embedded FCM distributor cannot register, so the `play` build behaves as `foss` |
+| IX-16 | `GET /server` gives `push_vapid_key`, the forum's VAPID public key (base64url, 87 characters) while push is on (callisto-rpg/Idejo#373) | NT-02, NT-06 | Distributors that need no VAPID key (ntfy…) work; the embedded FCM distributor cannot register |
 | IX-17 | On a group's inbox, `GET /me` says `everywhere` (a member linked to its provider), and `POST /me/everywhere` `{sections}` saves the inbox's Profile and account sections on every forum the member joined, as the web's **Save for all forums**, answering `{saved, missed}` (callisto-rpg/Idejo#375) | ST-07 | The inbox's settings apply to the inbox only |
 | IX-18 | `GET /me` gives `onboarding` (`topic_id`, `topic_title`, `question`) while the member is on the onboarding tour and may post in the onboarding topic, else null; `POST /me/onboarded` finishes the tour (idejo's onboarding, steward request, 2026-11-22) | BR-07 | No tour |
 
@@ -484,7 +484,7 @@ Cited as "app NF-xx".
 | NF-06 | Compatibility | Android 8.0 (API 26) to the latest; phones, tablets, foldables, Chromebooks; tested on API 26, 30 and latest |
 | NF-07 | Durability | No typed text is ever lost: drafts on disk before the next frame after a change |
 | NF-08 | Quality | Every requirement ID has tests named after it; the composer's behaviour is tested against a fake server reproducing the API guide's examples, and against a real idejo in CI end-to-end |
-| NF-09 | Reproducible | F-Droid reproducible build of the `foss` flavour |
+| NF-09 | Reproducible | F-Droid reproducible build |
 
 ## 24. Proposed tech stack
 
@@ -501,13 +501,13 @@ Cited as "app NF-xx".
 | Images | Coil 3 with disk cache | Compose-first, Apache-2.0 |
 | Markdown | commonmark-java (BSD-2) with GFM extensions and idejo's extensions, rendered to Compose | No HTML, matches idejo's dialect |
 | Sign-in | AndroidX Browser (Custom Tabs) | Required by the API guide |
-| Push | UnifiedPush connector (Apache-2.0); embedded FCM distributor in `play` only | NT-02, NT-06 |
-| Builds | Gradle with version catalog, flavours `foss` and `play`, R8, baseline profiles | F-Droid and Play |
+| Push | UnifiedPush connector and its embedded FCM distributor (both Apache-2.0) | NT-02, NT-06 |
+| Builds | Gradle with version catalog, one build (no flavours), R8, baseline profiles | F-Droid, Play and GitHub |
 | Tests | JUnit, Turbine, MockWebServer, Compose UI tests, Roborazzi screenshots, an end-to-end job against idejo's Docker image | NF-08 |
 | Quality | ktlint, detekt, Android Lint, REUSE lint, licence check | — |
 
 Every dependency must be under a licence compatible with Apache-2.0 and accepted by
-F-Droid (no proprietary code in `foss`).
+F-Droid (no proprietary code).
 
 ## 25. Licensing and contributions
 

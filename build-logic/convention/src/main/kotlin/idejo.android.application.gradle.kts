@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// The app module: org.idejo.app for both flavours, ".debug" for debug builds.
+// The app module: org.idejo.app, ".debug" for debug builds.
 plugins {
     id("com.android.application")
 }

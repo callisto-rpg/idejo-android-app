@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // The licence check of every dependency shipped (CLAUDE.md → Stack, spec §24): Apache-2.0,
-// MIT, BSD-style only; anything else fails `check`. The foss flavour never takes anything
-// proprietary; the play flavour's FCM distributor (M3) will be allowed by name, there only.
+// MIT, BSD-style only; anything else fails `check`. Nothing proprietary: the one build goes
+// to Google Play, F-Droid and GitHub.
 plugins {
     id("app.cash.licensee")
 }

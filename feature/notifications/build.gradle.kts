@@ -19,6 +19,9 @@ dependencies {
     implementation(project(":core:api"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.unifiedpush.connector)
+    // NT-06: UnifiedPush's FCM distributor, in every build: no Firebase SDK, nothing
+    // proprietary (Apache-2.0); it works where Google Play services or microG are.
+    implementation(libs.unifiedpush.fcm)
     implementation(libs.coil.compose)
 
     testImplementation(project(":core:testing"))

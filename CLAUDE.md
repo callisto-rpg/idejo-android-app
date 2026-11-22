@@ -65,19 +65,19 @@ embed the web app in a WebView.
 - commonmark-java + GFM extensions + our idejo extensions (`core/markdown`), rendered to
   Compose; no HTML ever.
 - AndroidX Browser (Custom Tabs) for sign-in, admin, account deletion and outside links.
-- UnifiedPush connector; the embedded FCM distributor **only** in the `play` flavour.
+- UnifiedPush connector and its embedded FCM distributor (no Firebase SDK), in the one build.
 - Tests: JUnit, Turbine, MockWebServer, Compose UI tests, Roborazzi; end-to-end against
   idejo's Docker image (`ghcr.io/callisto-rpg/idejo`).
 
 No new dependency without a licence check: Apache-2.0, MIT, BSD or similar, accepted by
-F-Droid, and nothing proprietary in `foss`. No analytics, crash reporters, ads or tracking
-SDKs in any flavour (SY-03).
+F-Droid, and nothing proprietary. No analytics, crash reporters, ads or tracking SDKs
+(SY-03).
 
 ## Architecture
 
 ```
 app/                     Application, MainActivity, OAuth callback activity, navigation host,
-                         App Links, push receiver, flavours (foss/ and play/ source sets)
+                         App Links (one build for Play, F-Droid and GitHub: no flavours)
 core/model/              Kotlin data classes for API resources (pure JVM)
 core/api/                Retrofit services per forum, discovery, OAuth (PKCE), error mapping
                          to ApiError(code, message, details) (pure JVM)
@@ -225,19 +225,18 @@ sources and are credited in `NOTICE` and `REUSE.toml`. Contributions under idejo
 ## Commands
 
 ```sh
-./gradlew assembleFossDebug                 # build the F-Droid/GitHub flavour
-./gradlew assemblePlayDebug                 # build the Play flavour
-./gradlew assembleFossRelease               # release build with R8 (unsigned)
-./gradlew installFossDebug                  # install on a connected device or emulator
-./gradlew test                              # unit tests: every module, both flavours
+./gradlew assembleDebug                     # build the app (one build for every store)
+./gradlew assembleRelease                   # release build with R8 (unsigned)
+./gradlew installDebug                      # install on a connected device or emulator
+./gradlew test                              # unit tests: every module
 ./gradlew :core:testing:test                # the API guide's flows against FakeIdejo
 ./gradlew verifyRoborazziDebug              # screenshot tests (recordRoborazziDebug to update)
 ./gradlew ktlintCheck detekt                # style and static analysis (whole repository)
 ./gradlew ktlintFormat                      # fix what ktlint can fix
-./gradlew lint lintPlayDebug                # Android Lint: every module, and the play flavour
+./gradlew lint                              # Android Lint: every module
 ./gradlew licensee                          # licences of every dependency, every variant
 reuse lint                                  # licence headers (REUSE)
-./gradlew check                             # all of the above but reuse and lintPlayDebug
+./gradlew check                             # all of the above but reuse
 ```
 
 Needs JDK 17 and the Android SDK (`ANDROID_HOME`, or `sdk.dir` in `local.properties`).
@@ -384,7 +383,7 @@ Docker image) are added with them.
 - 2026-11-18 — Push (NT-02 to NT-06) is UnifiedPush's connector 3.x, which keeps the Web
   Push keys in the Keystore and decrypts the pushes itself; one registration per forum,
   its `instance` the forum's origin, ended when the forum is signed out of. The embedded
-  FCM distributor (`play` only) signs with the forum's VAPID key, which idejo now gives in
+  FCM distributor signs with the forum's VAPID key, which idejo now gives in
   `GET /server`'s `push_vapid_key` (IX-16, callisto-rpg/Idejo#373; steward choice over a
   push gateway). Each forum is a group of notification channels, one per kind; while the
   app is on screen the live bubbles stand for the pushes (only the test push shows). A
@@ -398,7 +397,7 @@ Docker image) are added with them.
   Refused twice, Android no longer asks: **Enable** then opens its notification settings.
 - 2026-11-18 — App settings (ST-20 to ST-22) are kept on the device for every forum
   (`AppState`, `AppChoices`). The push service is chosen from UnifiedPush's list of
-  distributors (Play's embedded FCM among them, as "Google Play services"), not the
+  distributors (the embedded FCM among them, as "Google Play services"), not the
   connector's picker, which shows only external ones. Text size scales message bodies over
   Android's font size (`MessageTextSize`); haptics off silences Compose's feedback; reduce
   motion adds to Android's animation setting (`IdejoTheme(display = …)`). The cache limit
@@ -515,6 +514,19 @@ Docker image) are added with them.
   the i, gold, on the same `#fdfcf6`): the picture is the icon's visible 72 dp, centred in the
   108 dp foreground with the i carried down through the bleed
   (`drawable-nodpi/ic_launcher_foreground.png`); the monochrome icon is its shape in white.
+- 2026-11-22 — One build for Google Play, F-Droid and GitHub (steward request): no `foss` and
+  `play` flavours. Every build embeds UnifiedPush's FCM distributor
+  (`org.unifiedpush.android:embedded-fcm-distributor`, Apache-2.0, no Firebase SDK; the
+  `foss-embedded-fcm-distributor` the steward named is deprecated into it). It uses Google
+  Play services or microG where present, signed with the forum's VAPID key (IX-16), so no
+  gateway and no Firebase config; the connector lists it only there and prefers an installed
+  distributor. App settings → Notifications (NT-06): off, **Enable push notifications**
+  (Android 13's permission, then `tryUseCurrentOrDefaultDistributor`); nothing at all, a
+  dialog offers Sunup (`market://`, else UnifiedPush's list of distributors) and enabling
+  is tried again on returning; **Not now** leaves push off (the app does not poll, NT-09).
+  On, it names the distributor, lists the others and has **Turn off**
+  (`AppState.pushOff`: every forum's registration deleted, `UnifiedPush.removeDistributor`,
+  no forum registers until enabled again).
 
 ## Milestones (spec §26)
 
@@ -605,7 +617,7 @@ The app needs idejo with callisto-rpg/Idejo#357 (the socket), #358 (inline links
 window's counts), #363 (tags' categories), #364 (banners), #368 (roles' slugs), #369 (the
 reader's last message), #370 (category icons, `mark_colour`), #371 (followed topics),
 #372 (the composer and controls choices; the app falls back without it), #373 (the push
-VAPID key; without it the `play` build's FCM cannot register), #374 (the chat service,
+VAPID key; without it the embedded FCM distributor cannot register), #374 (the chat service,
 IX-04; without it Private Message stays the forum's own) and #375 (Save for all forums,
 IX-17, idejo 0.3.19; without it the button does not show) (Steward decisions,
 2026-11-14 to 2026-11-18).

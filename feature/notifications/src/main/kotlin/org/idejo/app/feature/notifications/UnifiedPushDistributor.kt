@@ -3,6 +3,7 @@
 
 package org.idejo.app.feature.notifications
 
+import android.app.Activity
 import android.content.Context
 import org.idejo.app.core.data.DistributorChoice
 import org.idejo.app.core.data.PushDistributor
@@ -10,10 +11,11 @@ import org.unifiedpush.android.connector.UnifiedPush
 import org.unifiedpush.android.connector.data.ResolvedDistributor
 
 /**
- * UnifiedPush's connector (NT-02, NT-06): the distributor chosen, or the one there is. In
- * the Play build the embedded FCM distributor is one of them, the only one when no other is
- * installed; the foss build has none of its own. The connector keeps the Web Push keys in
- * the Android Keystore and decrypts the pushes (RFC 8291) itself.
+ * UnifiedPush's connector (NT-02, NT-06): the distributor chosen, or the one there is. The
+ * app embeds UnifiedPush's FCM distributor (no Firebase SDK: it talks to Google Play
+ * services or microG itself), listed only where one of those is; an installed distributor
+ * comes first. The connector keeps the Web Push keys in the Android Keystore and decrypts
+ * the pushes (RFC 8291) itself.
  */
 class UnifiedPushDistributor(
     private val context: Context,
@@ -61,4 +63,11 @@ class UnifiedPushDistributor(
     override fun use(distributor: String) {
         UnifiedPush.saveDistributor(context, distributor)
     }
+
+    override fun useDefault(
+        activity: Activity,
+        done: (Boolean) -> Unit,
+    ) = UnifiedPush.tryUseCurrentOrDefaultDistributor(activity, done)
+
+    override fun removeAll() = UnifiedPush.removeDistributor(context)
 }

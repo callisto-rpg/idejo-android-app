@@ -3,6 +3,7 @@
 
 package org.idejo.app.core.data
 
+import android.app.Activity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -23,13 +25,13 @@ import org.idejo.app.core.model.UnifiedPushSubscription
 
 /** Which UnifiedPush distributor takes this device's pushes (NT-06, ST-20). */
 enum class DistributorChoice {
-    /** One is chosen, or the only one there is (Play's embedded FCM included). */
+    /** One is chosen, or the only one there is (the embedded FCM distributor included). */
     Ready,
 
     /** Several are installed and none is chosen: the member picks one (ST-20). */
     ToSelect,
 
-    /** None is installed (the foss build without ntfy or the like). */
+    /** None: no distributor app, and no Google Play services or microG for FCM. */
     NoneAvailable,
 }
 
@@ -49,7 +51,7 @@ interface PushDistributor {
 
     fun unregister(instance: String)
 
-    /** The distributors installed, by package; the app's own for Play's embedded FCM. */
+    /** The distributors installed, by package; the app's own for its embedded FCM. */
     fun installed(): List<String> = emptyList()
 
     /** The distributor in use, by package; null when none is chosen. */
@@ -57,6 +59,19 @@ interface PushDistributor {
 
     /** Uses [distributor] from now on (ST-20); the one before ends its registrations. */
     fun use(distributor: String) = Unit
+
+    /**
+     * NT-06, one tap: the distributor in use, else the default one, an installed one (ntfy,
+     * Sunup…) before the app's own FCM; Android may ask the member to choose, hence
+     * [activity]. [done] says whether there is one.
+     */
+    fun useDefault(
+        activity: Activity,
+        done: (Boolean) -> Unit,
+    ) = done(false)
+
+    /** Push turned off: every registration ends and the distributor is forgotten. */
+    fun removeAll() = Unit
 }
 
 /** How push stands on this device for the forum open (NT-06, NT-08). */
@@ -88,6 +103,7 @@ sealed interface PushStatus {
  * forum is signed out of. Nothing polls (NT-09): outside the foreground, pushes are all.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("TooManyFunctions") // One per thing push does or hears.
 class PushRegistrar(
     private val sessions: SessionManager,
     private val distributor: PushDistributor,
@@ -140,8 +156,45 @@ class PushRegistrar(
         }
     }
 
+    /**
+     * **Enable push notifications** (NT-06): the distributor there is, or the default one;
+     * the forum open registers through it. [done] is false when there is none at all.
+     */
+    fun enable(
+        activity: Activity,
+        done: (Boolean) -> Unit,
+    ) {
+        distributor.useDefault(activity) { found ->
+            if (found) retry()
+            done(found)
+        }
+    }
+
+    /**
+     * Push turned off on this device (the flag is set first): every forum's registration
+     * ends, on the forum and with the distributor.
+     */
+    suspend fun disable() =
+        lock.withLock {
+            val state = sessions.state.first()
+            (state.forums + listOfNotNull(state.inbox)).forEach { record ->
+                val push = record.push ?: return@forEach
+                sessions.signedIn(record.origin) { deletePushRegistration(push.registrationId) }
+                sessions.updateForum(record.origin) { it.copy(push = null) }
+            }
+            distributor.removeAll()
+            mutableStatus.value = PushStatus.Off
+        }
+
+    /** Push turned off on this device (App settings, NT-06). */
+    private suspend fun pushOff() = sessions.state.first().pushOff
+
     /** NT-02: the forum's push, if it has any, through the distributor there is. */
     private suspend fun ensure(session: ForumSession) {
+        if (pushOff()) {
+            mutableStatus.value = PushStatus.Off
+            return
+        }
         val record = session.record.value
         if (UNIFIED_PUSH !in record.discovery.features) {
             mutableStatus.value = PushStatus.Off
@@ -181,7 +234,9 @@ class PushRegistrar(
         auth: String,
     ) = lock.withLock {
         val session = sessions.active?.takeIf { it.origin == instance }
-        if (session == null || session.access.value != Access.SignedIn) {
+        if (session == null || session.access.value != Access.SignedIn ||
+            pushOff()
+        ) {
             distributor.unregister(instance)
             return@withLock
         }
@@ -223,7 +278,10 @@ class PushRegistrar(
                 session.call { deletePushRegistration(old.registrationId) }
             }
             sessions.updateForum(instance) { it.copy(push = null) }
-            if (session != null) mutableStatus.value = PushStatus.ChooseDistributor
+            if (session != null) {
+                mutableStatus.value =
+                    if (pushOff()) PushStatus.Off else PushStatus.ChooseDistributor
+            }
         }
 
     /** The distributor could not register [instance], for [reason]. */
