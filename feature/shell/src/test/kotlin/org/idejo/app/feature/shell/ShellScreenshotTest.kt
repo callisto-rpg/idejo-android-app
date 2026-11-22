@@ -36,6 +36,7 @@ import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.Crumb
 import org.idejo.app.core.designsystem.component.LocalTourTargets
 import org.idejo.app.core.designsystem.component.LogoNews
+import org.idejo.app.core.designsystem.component.PullHint
 import org.idejo.app.core.designsystem.component.TopBar
 import org.idejo.app.core.designsystem.component.TourTargets
 import org.idejo.app.core.designsystem.component.tourTarget
@@ -103,12 +104,22 @@ class ShellScreenshotTest {
 
     @Test
     fun `SH-10 the home page's top bar says the forum menu is a pull down`() {
-        snapshots("TopBarHome") {
-            TopBar(
-                listOf(Crumb.Forum("Garden club", {})),
-                pullHint = stringResource(R.string.top_bar_pull_hint),
-            )
-        }
+        snapshots("TopBarHome") { HomeBar() }
+        // Too narrow for the whole: "idejo menu" only.
+        snapshots("TopBarHomeNarrow") { HomeBar(Modifier.width(250.dp)) }
+    }
+
+    @Composable
+    private fun HomeBar(modifier: Modifier = Modifier) {
+        TopBar(
+            listOf(Crumb.Forum("Garden club", {})),
+            modifier,
+            pullHint =
+                PullHint(
+                    stringResource(R.string.top_bar_pull_hint),
+                    stringResource(R.string.top_bar_pull_hint_short),
+                ),
+        )
     }
 
     @Test

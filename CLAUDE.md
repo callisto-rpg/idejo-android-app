@@ -535,9 +535,11 @@ Docker image) are added with them.
   for the open forum's pushes only, so a private message shows in any other forum. Pushes
   and new endpoints work for any forum held, open or not (`IdejoPushService`,
   `PushRegistrar.onEndpoint`, with the forum's own token).
-- 2026-11-22 — On a forum's home page the top bar says, in its middle, "pull down for idejo
-  menu" over a v (`TopBar`'s `pullHint`, `ic_pull_down` from Material Symbols Rounded), small
-  and at 50 % opacity; TalkBack skips it (the forum menu has its button). The tour's
+- 2026-11-22 — On a forum's home page the top bar says "pull down for idejo menu" over a v,
+  centred across the bar near its foot (`TopBar`'s `PullHint`, `ic_pull_down` from Material
+  Symbols Rounded), small labels' size + 30 % at 50 % opacity; where it does not fit between
+  the logo and the member's picture (72 dp each side), "idejo menu" only (2026-11-23).
+  TalkBack skips it (the forum menu has its button). The tour's
   screenshots are taken with reduced motion, so the glow and the hand are still.
 
 ## Milestones (spec §26)

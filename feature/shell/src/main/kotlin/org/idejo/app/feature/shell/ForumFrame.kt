@@ -87,6 +87,7 @@ import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.Crumb
 import org.idejo.app.core.designsystem.component.ForumLogo
 import org.idejo.app.core.designsystem.component.LocalTourTargets
+import org.idejo.app.core.designsystem.component.PullHint
 import org.idejo.app.core.designsystem.component.TopBar
 import org.idejo.app.core.designsystem.component.TourTargets
 import org.idejo.app.core.designsystem.theme.IdejoTheme
@@ -220,8 +221,10 @@ fun ForumFrame(
                             scrollBehavior = scroll,
                             // The home page says the forum menu is a pull down (SH-10).
                             pullHint =
-                                stringResource(R.string.top_bar_pull_hint)
-                                    .takeIf { place == Place.Home },
+                                PullHint(
+                                    stringResource(R.string.top_bar_pull_hint),
+                                    stringResource(R.string.top_bar_pull_hint_short),
+                                ).takeIf { place == Place.Home },
                         ) {
                             Account(
                                 shell,

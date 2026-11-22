@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -43,6 +45,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.idejo.app.core.designsystem.R
@@ -132,14 +135,14 @@ fun TopBar(
     onSidebarClick: (() -> Unit)? = null,
     unread: Unread? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
-    pullHint: String? = null,
+    pullHint: PullHint? = null,
     account: @Composable () -> Unit = {},
 ) {
     val background = MaterialTheme.colorScheme.background
     Column(modifier) {
         Box {
             Bar(crumbs, onSidebarClick, unread, scrollBehavior, background, account)
-            if (pullHint != null) PullHint(pullHint, Modifier.matchParentSize())
+            if (pullHint != null) PullHintLabel(pullHint, Modifier.matchParentSize())
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
@@ -182,23 +185,42 @@ private fun Bar(
 }
 
 /**
- * "pull down for idejo menu" over a v, small and at half strength, in the bar's middle;
- * clipped with the bar as it hides. TalkBack skips it: the forum menu has its button (the
- * sidebar's idejo button, AX-04).
+ * What the home page's top bar says of the forum menu (SH-10): [text], or [short] where it
+ * does not fit between the forum's logo and the member's picture.
+ */
+@Immutable
+data class PullHint(
+    val text: String,
+    val short: String,
+)
+
+/**
+ * The [hint] over a v, 30 % larger than small labels and at half strength, centred across
+ * the bar near its foot; clipped with the bar as it hides. TalkBack skips it: the forum
+ * menu has its button (the sidebar's idejo button, AX-04).
  */
 @Composable
-private fun PullHint(
-    text: String,
+private fun PullHintLabel(
+    hint: PullHint,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.clipToBounds().clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+    val base = IdejoTheme.typography.labelSmall
+    val style = base.copy(fontSize = base.fontSize * PULL_HINT_SCALE)
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(
+        modifier.clipToBounds().clearAndSetSemantics {},
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        val room =
+            constraints.maxWidth - with(LocalDensity.current) { (PULL_HINT_SIDE * 2).roundToPx() }
+        val fits = measurer.measure(hint.text, style, maxLines = 1).size.width <= room
         Column(
             Modifier.alpha(PULL_HINT_ALPHA),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text,
-                style = IdejoTheme.typography.labelSmall,
+                if (fits) hint.text else hint.short,
+                style = style,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
@@ -351,8 +373,12 @@ private fun UnreadButton(unread: Unread) {
  */
 enum class LogoNews { NewMessages, Mention }
 
-/** The pull hint's strength (steward request, 2026-11-22). */
+/** The pull hint's strength and size over small labels (steward requests, 2026-11-22/23). */
 private const val PULL_HINT_ALPHA = 0.5f
+private const val PULL_HINT_SCALE = 1.3f
+
+/** The room kept each side of the pull hint: the forum's logo, the member's picture. */
+private val PULL_HINT_SIDE = 72.dp
 
 /** The room each side of a crumb: the forum logo's, 34 dp in its 48 dp target (SH-02). */
 private val CRUMB_GAP = 7.dp
