@@ -52,6 +52,30 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v6.4.1
+      # Robolectric's Android jar (build.gradle.kts): Maven Central answers 429 to busy
+      # runners, so it keeps a cache of its own, fetched with retries only when missing and
+      # saved at once (whatever the tests do next). Its key follows its version in
+      # gradle/libs.versions.toml.
+      - name: Robolectric's Android jar (cached)
+        id: robolectric
+        uses: actions/cache/restore@v4
+        with:
+          path: build/robolectric
+          key: robolectric-android-all-14-robolectric-10818077-i7
+      - name: Robolectric's Android jar (fetched, with retries)
+        if: steps.robolectric.outputs.cache-hit != 'true'
+        run: |
+          for wait in 0 60 120 240; do
+            sleep "$wait"
+            ./gradlew robolectricJars && exit 0
+          done
+          exit 1
+      - name: Robolectric's Android jar (kept)
+        if: steps.robolectric.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/robolectric
+          key: robolectric-android-all-14-robolectric-10818077-i7
       - name: Unit tests (every module, both flavours)
         run: ./gradlew test
       - name: Screenshots (Roborazzi)
