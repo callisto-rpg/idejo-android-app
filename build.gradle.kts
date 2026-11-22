@@ -77,9 +77,10 @@ tasks.named("check") {
 }
 
 // Robolectric's Android 14 (sdk=34 in each module's robolectric.properties), resolved by
-// Gradle, cached and retried, rather than fetched by Robolectric itself at test time, which
-// CI's runners failed to download from Maven Central (2026-11-22). Every test runs
-// Robolectric offline against it.
+// Gradle rather than fetched by Robolectric itself at test time, and only while it is not in
+// build/robolectric already: Maven Central answers CI's runners 429 for it (2026-11-22), so
+// CI keeps that folder in a cache of its own (ci.yml). Every test runs Robolectric offline
+// against it.
 val robolectricAndroid =
     configurations.create("robolectricAndroid") {
         isTransitive = false
@@ -95,6 +96,12 @@ val robolectricDir =
         .get()
         .asFile
 
+val robolectricJar =
+    File(
+        robolectricDir,
+        "android-all-instrumented-${libs.robolectric.android.all.get().version}.jar",
+    )
+
 val robolectricJars =
     tasks.register<Sync>("robolectricJars") {
         from(robolectricAndroid)
@@ -103,7 +110,7 @@ val robolectricJars =
 
 subprojects {
     tasks.withType<Test>().configureEach {
-        dependsOn(robolectricJars)
+        if (!robolectricJar.exists()) dependsOn(robolectricJars)
         systemProperty("robolectric.offline", "true")
         systemProperty("robolectric.dependency.dir", robolectricDir.absolutePath)
     }
