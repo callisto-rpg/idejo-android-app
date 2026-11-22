@@ -124,6 +124,9 @@ class ForumSession internal constructor(
     /** The signed-in member (`GET /me`), one copy for every screen of this forum (ST-02). */
     val me: MeRepository = MeRepository(this)
 
+    /** The onboarding tour (IX-18): the shell draws it, the composer moves it on. */
+    val tour: OnboardingTour = OnboardingTour(me, scope)
+
     val name: String get() = mutableRecord.value.name
     val origin: String get() = mutableRecord.value.origin
 

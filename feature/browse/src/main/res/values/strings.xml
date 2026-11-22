@@ -60,14 +60,6 @@
     <string name="welcome_title">Welcome to %1$s</string>
     <string name="welcome_continue">Continue</string>
 
-    <!-- Getting started (BR-11). -->
-    <string name="intro_title">Getting started</string>
-    <string name="intro_sidebar">The sidebar</string>
-    <string name="intro_sidebar_follow">Topics you write in are followed automatically and appear in the sidebar.</string>
-    <string name="intro_sidebar_unfollow">To stop following a topic, tap the ×.</string>
-    <string name="intro_sidebar_swipe">Swipe right to reveal the sidebar.</string>
-    <string name="intro_close">Close</string>
-    <string name="intro_hide">Close and hide this in the future</string>
 
     <!-- Help (BR-08). -->
     <string name="help_title">Help</string>
@@ -77,7 +69,6 @@
     <string name="help_new_line_keys">Shift + Enter, or New line</string>
     <string name="help_new_line">A new line in the box. Nothing is sent.</string>
     <string name="help_finish_keys">Ctrl + Enter, or Enter ×3</string>
-    <string name="help_finish_brief">Finishes your current message and starts a new one.</string>
     <string name="help_finish">Finishes your current message and starts a new one. If nobody has replied to your message yet, there will be a longer delay before you are allowed to create a new message.</string>
     <string name="help_signs">Links and suggestions</string>
     <string name="help_signs_intro">At the start of a word, these signs open a list of suggestions while you type: tap one.</string>

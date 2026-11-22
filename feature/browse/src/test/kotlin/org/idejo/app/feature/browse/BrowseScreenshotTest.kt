@@ -139,19 +139,6 @@ class BrowseScreenshotTest {
                 WELCOME,
                 "Garden club",
                 RulesActions({}, {}, {}),
-                {},
-            )
-        }
-
-    @Test
-    fun `BR-11 Getting started`() =
-        snapshots("GettingStarted") {
-            MemberCardContent(
-                MemberCard.GettingStarted,
-                WELCOME,
-                "Garden club",
-                RulesActions({}, {}, {}),
-                {},
             )
         }
 

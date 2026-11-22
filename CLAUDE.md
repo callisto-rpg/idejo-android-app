@@ -483,6 +483,38 @@ Docker image) are added with them.
   (SH-36) for the forum (logo) menu: idejo ID mode keeps SH-13's Chats; single-forum mode on
   a forum with a chat service (`community.chat_url`) shows it greyed with **Connect**
   (`UnavailableItem`, `LogoMenu`'s `chatService`), which is **Sign in with idejo ID**.
+- 2026-11-22 — The forum menu (SH-10) comes down under the top bar, which stays in view with
+  its breadcrumbs (`MenuPanel`), with no close button. It is as tall as its contents,
+  at most the rest of the screen (where they scroll), so the page shows, blurred, below a
+  short one; at its foot the sidebar's glass line and a pill. It moves as the sidebar does
+  (`Sliding`): a pull down on the top bar brings it with the finger, a drag up on it (or on
+  its contents once they cannot scroll) takes it back, and letting go, the way the finger
+  last moved decides. A tap below it, or back, closes it.
+- 2026-11-22 — The user menu (SH-20) behaves and looks as the forum menu (steward request): the
+  same `MenuPanel` under the top bar, with its own `Sliding`; a pull down from the member's
+  picture brings it with the finger, a tap on the picture opens it, and it has no close button.
+  **Accounts** opens in it, with **Back** at its top.
+- 2026-11-22 — The Getting started card (BR-11, IX-07) is gone, on the web and in the app:
+  only the welcome card (BR-07) shows over the forum. idejo still answers `intro_due` (false)
+  and `POST /me/intro` for older apps; the app reads neither.
+- 2026-11-22 — The onboarding tour (steward request; IX-18, idejo's `GET /me` `onboarding` and
+  `POST /me/onboarded`), as the web's with the app's gestures, over the whole frame: the page
+  under its background colour at 50 % but for the step's target, glowing, a card with an
+  arrow at it, every other touch stopped (`TourOverlay` in feature/shell). Steps
+  (`tourStep`): **Swipe to open the sidebar** (a hand swiping right; the drag opens it),
+  **Open the {topic} topic** (its row in the sidebar), **Type “Hi, I’m {name}” then press
+  Enter** and, once sent, the question **and type Enter×3** (the composer; a lone Enter shows
+  "Hit Enter three times in quick succession" for 2 s), then "You've completed your first
+  message!…" at **All categories** with **Close** (2026-11-22, steward); that last card stops
+  no touch, and pulling down the forum menu or moving the sidebar ends it, as Close does.
+  `OnboardingTour` (core/data, `ForumSession.tour`) holds the state; the composer reports to
+  it (features never depend on each other); targets mark themselves with `Modifier.tourTarget`
+  (core/designsystem, `LocalTourTargets`). The tour is finished on the server when the message
+  closes; the last card stays until it ends.
+- 2026-11-22 — The launcher icon is now the steward's `AndroidIcon1.png` (the quote marks and
+  the i, gold, on the same `#fdfcf6`): the picture is the icon's visible 72 dp, centred in the
+  108 dp foreground with the i carried down through the bleed
+  (`drawable-nodpi/ic_launcher_foreground.png`); the monochrome icon is its shape in white.
 
 ## Milestones (spec §26)
 
@@ -531,7 +563,7 @@ the joined forums read again at launch and hourly (SI-07: `GroupForums.start`, w
 **Find more forums** (SI-08: the
 group's directory at discovery's `community.directory_url`, `DirectoryClient` in core/api,
 `FindForumsRoute`), whose **Join** is the forum's own app sign-in, not the web's
-`/users/oidc`; the inbox (IB-01 to IB-03: `InboxRoute` with **Forums**, **Topics** and
+`/users/oidc`, and once joined opens the forum in the app (`GroupForums.join` answers its origin); the inbox (IB-01 to IB-03: `InboxRoute` with **Forums**, **Topics** and
 **Chats** tabs; `InboxTopics` in core/data reads every connected forum with its own token,
 `SessionManager.signedIn`, as IB-04 says; a topic tapped opens in its forum through
 `PendingLinks`); live (IB-05: `InboxSockets`, one socket per connected forum while the

@@ -39,7 +39,6 @@ class LogoMenuTest {
                 "garden.example.org",
                 {},
                 {},
-                {},
                 group = group,
                 actions = RecordedActions(done),
             )
@@ -122,7 +121,7 @@ class LogoMenuTest {
     @Test
     fun `SH-30 the sidebar opens from the forum menu, not the top bar`() {
         rule.setContent {
-            LogoMenu("Garden club", "garden.example.org", {}, {}, {}, onSidebar = {
+            LogoMenu("Garden club", "garden.example.org", {}, {}, onSidebar = {
                 done +=
                     "sidebar"
             })
@@ -138,7 +137,6 @@ class LogoMenuTest {
                 "Garden club",
                 "garden.example.org",
                 { done += "home" },
-                {},
                 {},
             )
         }
@@ -159,7 +157,7 @@ class LogoMenuTest {
 
     @Test
     fun `SH-30 docked, the forum menu has no Sidebar`() {
-        rule.setContent { LogoMenu("Garden club", "garden.example.org", {}, {}, {}) }
+        rule.setContent { LogoMenu("Garden club", "garden.example.org", {}, {}) }
         rule.onNodeWithText("Followed topics").assertDoesNotExist()
     }
 
@@ -169,7 +167,6 @@ class LogoMenuTest {
             LogoMenu(
                 "Garden club",
                 "garden.example.org",
-                {},
                 {},
                 {},
                 actions = RecordedActions(done),
@@ -190,7 +187,6 @@ class LogoMenuTest {
             LogoMenu(
                 "Garden club",
                 "garden.example.org",
-                {},
                 {},
                 {},
                 actions = RecordedActions(done),

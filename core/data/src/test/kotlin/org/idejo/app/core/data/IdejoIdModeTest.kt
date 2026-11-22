@@ -28,6 +28,7 @@ import org.idejo.app.core.testing.FakeSettings
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -293,7 +294,7 @@ class IdejoIdModeTest {
                         coordinator.complete(requireNotNull(fake.authorize(url, FakePeople.Ada)))
                         true
                     }
-                assertTrue(done)
+                assertEquals(fake.address.toString(), done)
             }
             assertEquals(
                 listOf(garden, bees).map { it.address.host + ":" + it.address.origin.port },
@@ -312,7 +313,7 @@ class IdejoIdModeTest {
                     coordinator.cancelIfWaiting()
                     true
                 }
-            assertFalse(done)
+            assertNull(done)
             assertEquals(listOf(false, false), joined().map { it.connected })
             assertEquals(SignInState.Idle, coordinator.state.value)
         }
@@ -437,7 +438,7 @@ class IdejoIdModeTest {
         }
 
     @Test
-    fun `SI-08 Join signs in to the forum, which is then held and listed`() =
+    fun `SI-08 Join signs in to the forum, which is then held and listed, its origin answered`() =
         runBlocking {
             inbox.directory = listOf(listed(garden, 12))
             signInToInbox()
@@ -449,7 +450,7 @@ class IdejoIdModeTest {
                     coordinator.complete(requireNotNull(garden.authorize(url, FakePeople.Ada)))
                     true
                 }
-            assertTrue(joined)
+            assertEquals(garden.address.toString(), joined)
             assertEquals(listOf("Garden club"), held.forums.map { it.name })
             assertEquals(listOf(true), group.joined.value.map { it.connected })
             assertTrue(launch is Launch.Inbox)

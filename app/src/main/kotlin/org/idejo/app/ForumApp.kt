@@ -64,7 +64,7 @@ import org.idejo.app.feature.topic.TopicRoute
 
 /**
  * The open forum: its pages in the frame (spec §6), one back stack per forum, and the cards
- * over them (BR-07, BR-11). A new back stack ([navigation]) for each forum and each sign-in
+ * over them (BR-07). A new back stack ([navigation]) for each forum and each sign-in
  * (SessionManager opens a new session each time).
  */
 @Composable

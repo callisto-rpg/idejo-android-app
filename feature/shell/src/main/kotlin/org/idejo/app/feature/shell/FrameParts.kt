@@ -164,7 +164,8 @@ internal fun crumbs(
             listOfNotNull(
                 forum,
                 category?.let { categoryCrumb(it, go) },
-                category?.let { Crumb.Page(it.title) },
+                // "[logo] > [tile] Name": the name belongs to its tile, not a page below it.
+                category?.let { Crumb.Page(it.title, names = true) },
             )
         }
 

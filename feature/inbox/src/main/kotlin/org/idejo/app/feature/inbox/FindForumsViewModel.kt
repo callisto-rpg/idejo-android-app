@@ -146,8 +146,10 @@ class FindForumsViewModel
             if (state.value.joining != null) return
             viewModelScope.launch {
                 mutableState.update { it.copy(joining = forum.host) }
-                group.join(forum, tabs::show)
+                val joined = group.join(forum, tabs::show)
                 mutableState.update { it.copy(joining = null) }
+                // Joined: the forum opens here, in the app, as Open does.
+                joined?.let { sessions.enter(it) }
             }
         }
 

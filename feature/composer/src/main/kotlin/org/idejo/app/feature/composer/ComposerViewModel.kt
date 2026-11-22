@@ -7,11 +7,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -19,6 +23,7 @@ import org.idejo.app.core.api.GifSearch
 import org.idejo.app.core.data.Access
 import org.idejo.app.core.data.AppChoices
 import org.idejo.app.core.data.Drafts
+import org.idejo.app.core.data.OnboardingTour
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.TutorialBubbles
 import org.idejo.app.core.model.Me
@@ -97,8 +102,46 @@ class ComposerViewModel
                 // reaches this composer at once (ST-02).
                 viewModelScope.launch { forum.me.load() }
             }
+            if (composer != null && session != null) follow(composer, session.tour)
+        }
+
+        /**
+         * The onboarding tour (IX-18): this composer tells it whether the member's message
+         * is open, when it was completed, and when an Enter came alone.
+         */
+        private fun follow(
+            composer: Composer,
+            tour: OnboardingTour,
+        ) {
+            viewModelScope.launch {
+                composer.state
+                    .map { (it.openMessageId != null) to it.committedId }
+                    .distinctUntilChanged()
+                    .collect { (open, completed) ->
+                        if (completed != null) {
+                            tour.closed(topicId)
+                        } else {
+                            tour.composer(topicId, open)
+                        }
+                    }
+            }
+            viewModelScope.launch {
+                composer.state
+                    .map { it.lastEnterAt }
+                    .distinctUntilChanged()
+                    .collectLatest { at ->
+                        // Only an Enter after the first message was sent ("three times").
+                        if (at == null || !tour.state.value.open) return@collectLatest
+                        delay(ENTER_RUN_MILLIS + LONE_ENTER_GRACE)
+                        val now = composer.state.value
+                        if (now.lastEnterAt == at && now.enterRun > 0) tour.enteredOnce(topicId)
+                    }
+            }
         }
     }
+
+/** Past the three Enters' time, how long before an Enter counts as alone (IX-18). */
+private const val LONE_ENTER_GRACE = 150L
 
 private const val FORWARDED = "forwarded"
 

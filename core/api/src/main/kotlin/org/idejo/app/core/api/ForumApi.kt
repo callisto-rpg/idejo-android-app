@@ -26,7 +26,6 @@ import org.idejo.app.core.model.EverywhereRequest
 import org.idejo.app.core.model.EverywhereResult
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifSettings
-import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.Me
 import org.idejo.app.core.model.MePatch
 import org.idejo.app.core.model.Message
@@ -297,8 +296,8 @@ class ForumApi(
     /** The welcome card (About, Rules, roles) seen (BR-07). */
     suspend fun welcome(): ApiResult<Me> = call { welcome() }
 
-    /** Getting started closed: until the next sign-in, or with [hide] for good (BR-11). */
-    suspend fun intro(hide: Boolean): ApiResult<Me> = call { intro(IntroClose(hide)) }
+    /** The onboarding tour finished (IX-18): `onboarding` is null from then on. */
+    suspend fun onboarded(): ApiResult<Me> = call { onboarded() }
 
     /** A self-select role taken or left (BR-07). */
     suspend fun role(

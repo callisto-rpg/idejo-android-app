@@ -6,7 +6,10 @@ package org.idejo.app.feature.shell
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -16,8 +19,8 @@ import androidx.compose.ui.unit.dp
  * frosted glass. Their background lets [SidebarGlass.ALPHA] of what is behind through, and
  * that is blurred as they come in (Android 12 and later; older ones only see through). To
  * revert, set [ON] to false, or delete this file and its uses: [glassBehind] in
- * SidebarFrame and ForumFrame, [glassBackground] in ForumFrame's SidebarPage and in
- * MenuPage.
+ * SidebarFrame, [glassBackground] and [glassEdge] in ForumFrame's SidebarPage
+ * and in MenuPanel.
  */
 internal object SidebarGlass {
     const val ON = true
@@ -27,6 +30,9 @@ internal object SidebarGlass {
 
     /** How blurred what is behind is, once the sidebar or menu is fully in. */
     val BLUR = 16.dp
+
+    /** The glass's lit right edge. */
+    val EDGE = 1.dp
 }
 
 /**
@@ -53,3 +59,49 @@ internal fun Modifier.glassBehind(
             renderEffect = if (radius > 0f) BlurEffect(radius, radius) else null
         }
     }
+
+/**
+ * A pane's open edge as the rim of a glass panel: a thin line in the text's colour, brighter
+ * where it starts and fading along, as light catches it. The sidebar's is its right edge,
+ * from the top down; the forum menu's its [bottom] edge, from the left. Only on glass
+ * ([enabled]).
+ */
+@Composable
+internal fun Modifier.glassEdge(
+    enabled: Boolean = true,
+    bottom: Boolean = false,
+): Modifier {
+    if (!SidebarGlass.ON || !enabled) return this
+    val light = MaterialTheme.colorScheme.onBackground
+    val colours =
+        listOf(
+            light.copy(alpha = EDGE_TOP),
+            light.copy(alpha = EDGE_MIDDLE),
+            light.copy(alpha = EDGE_BOTTOM),
+        )
+    return drawWithContent {
+        drawContent()
+        val width = SidebarGlass.EDGE.toPx()
+        if (bottom) {
+            val y = size.height - width / 2
+            drawLine(
+                Brush.horizontalGradient(colours),
+                Offset(0f, y),
+                Offset(size.width, y),
+                strokeWidth = width,
+            )
+        } else {
+            val x = size.width - width / 2
+            drawLine(
+                Brush.verticalGradient(colours),
+                Offset(x, 0f),
+                Offset(x, size.height),
+                strokeWidth = width,
+            )
+        }
+    }
+}
+
+private const val EDGE_TOP = 0.35f
+private const val EDGE_MIDDLE = 0.18f
+private const val EDGE_BOTTOM = 0.08f

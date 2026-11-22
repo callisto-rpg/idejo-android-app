@@ -78,6 +78,8 @@ sealed interface Crumb {
         val title: String,
         val onClick: (() -> Unit)? = null,
         val onLongClick: (() -> Unit)? = null,
+        /** The name of the crumb before it (a category's page): no separator between them. */
+        val names: Boolean = false,
     ) : Crumb
 }
 
@@ -104,7 +106,7 @@ fun Breadcrumbs(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         crumbs.forEachIndexed { index, crumb ->
-            if (index > 0) Separator()
+            if (index > 0 && !(crumb is Crumb.Page && crumb.names)) Separator()
             when (crumb) {
                 is Crumb.Forum -> ForumCrumb(crumb)
                 is Crumb.Category -> CategoryCrumb(crumb)
@@ -215,14 +217,21 @@ private fun ForumCrumb(crumb: Crumb.Forum) {
 
 @Composable
 private fun CategoryCrumb(crumb: Crumb.Category) {
+    // The tile with the logo's margin each side (CRUMB_GAP), 48 dp tall.
     Box(
         Modifier
-            .minimumInteractiveComponentSize()
+            .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(10.dp))
             .combinedClickable(role = Role.Button, onClick = crumb.onClick),
         contentAlignment = Alignment.Center,
     ) {
-        CategoryMark(crumb.name, crumb.color, size = CategoryMarkSize.Breadcrumb, icon = crumb.icon)
+        CategoryMark(
+            crumb.name,
+            crumb.color,
+            Modifier.padding(horizontal = CRUMB_GAP),
+            size = CategoryMarkSize.Breadcrumb,
+            icon = crumb.icon,
+        )
     }
 }
 
@@ -249,7 +258,7 @@ private fun PageCrumb(
             .heightIn(min = 48.dp)
             .then(clickable)
             .semantics { heading() }
-            .padding(horizontal = 4.dp, vertical = 12.dp),
+            .padding(horizontal = CRUMB_GAP, vertical = 12.dp),
         style = IdejoTheme.typography.titleMedium,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -290,3 +299,6 @@ private fun UnreadButton(unread: Unread) {
  * 0.3.10): white for new messages in their followed topics, red when one mentions them.
  */
 enum class LogoNews { NewMessages, Mention }
+
+/** The room each side of a crumb: the forum logo's, 34 dp in its 48 dp target (SH-02). */
+private val CRUMB_GAP = 7.dp

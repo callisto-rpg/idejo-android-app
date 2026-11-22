@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -68,7 +69,15 @@ fun SpoilerCover(
                     textAlign = TextAlign.Center,
                 )
             }
-            FilledTonalButton(onClick = onReveal) {
+            // The web's Reveal spoiler: the card colour at 80 %, over the blurred body.
+            FilledTonalButton(
+                onClick = onReveal,
+                colors =
+                    ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = BUTTON),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+            ) {
                 Text(stringResource(R.string.reveal_spoiler))
             }
         }
@@ -77,4 +86,7 @@ fun SpoilerCover(
 
 private const val COVERED = 0.5f
 private const val VEIL = 0.92f
-private val BLUR = 4.dp
+private const val BUTTON = 0.8f
+
+/** As the web's default stylesheet (`--spoiler-blur`). */
+private val BLUR = 32.dp

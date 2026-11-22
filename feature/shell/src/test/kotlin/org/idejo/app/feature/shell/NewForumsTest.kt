@@ -48,7 +48,6 @@ class NewForumsTest {
                 "garden.example.org",
                 {},
                 {},
-                {},
                 group =
                     GroupMenu(
                         listOf(
@@ -79,7 +78,6 @@ class NewForumsTest {
             LogoMenu(
                 "Garden club",
                 "garden.example.org",
-                {},
                 {},
                 {},
                 actions = RecordedActions(done),

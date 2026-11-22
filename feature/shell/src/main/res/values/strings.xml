@@ -124,4 +124,14 @@ SPDX-License-Identifier: Apache-2.0
     <string name="push_bar_bubble">This can always be\nturned off and on\nin user settings</string>
     <string name="push_bar_dismiss">Dismiss</string>
     <string name="offline_saved_copy">Offline — showing saved copy from %1$s. What needs the forum waits until it answers.</string>
+    <!-- The onboarding tour (IX-18). A key's name is a format argument, drawn as a key. -->
+    <string name="tour_swipe">Swipe to open the sidebar</string>
+    <string name="tour_open_topic">Open the %1$s topic</string>
+    <string name="tour_open_topic_button">Open %1$s</string>
+    <string name="tour_say_hi">Type “Hi, I’m %1$s” then press %2$s</string>
+    <string name="tour_present">Your message was sent. Everyone can see it, but you can still append it. %1$s and type %2$s×3.</string>
+    <string name="tour_three_enters">Hit %1$s three times in quick succession</string>
+    <string name="tour_finished">You’ve completed your first message! You can edit it any time.\nDrag down the top bar to switch between forums, or tap “%1$s” in the sidebar to go to this forum’s home page.</string>
+    <string name="tour_close">Close</string>
+    <string name="tour_key_enter">Enter</string>
 </resources>

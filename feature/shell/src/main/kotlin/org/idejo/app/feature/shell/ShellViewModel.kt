@@ -40,6 +40,7 @@ import org.idejo.app.core.data.Launch
 import org.idejo.app.core.data.LiveBubble
 import org.idejo.app.core.data.LiveBubbles
 import org.idejo.app.core.data.NotificationKind
+import org.idejo.app.core.data.OnboardingTour
 import org.idejo.app.core.data.SessionManager
 import org.idejo.app.core.data.SidebarState
 import org.idejo.app.core.data.ThemeMode
@@ -149,6 +150,19 @@ class ShellViewModel
             warned
                 .flatMapLatest { it?.state ?: flowOf(WarningsState()) }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, WarningsState())
+
+        /** The onboarding tour (IX-18): where the new member is on it. */
+        val tour: StateFlow<OnboardingTour.State> =
+            sessions.launch
+                .flatMapLatest { launch ->
+                    (launch as? Launch.Forum)?.session?.tour?.state
+                        ?: flowOf(OnboardingTour.State())
+                }.stateIn(viewModelScope, SharingStarted.Eagerly, OnboardingTour.State())
+
+        /** **Close** on the tour's last card, or the member went on elsewhere. */
+        fun dismissTour() {
+            sessions.active?.tour?.dismiss()
+        }
 
         /** The live bubbles at the top (NT-01). */
         val bubbles: StateFlow<List<LiveBubble>> =

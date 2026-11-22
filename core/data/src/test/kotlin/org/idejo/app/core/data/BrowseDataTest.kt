@@ -231,10 +231,9 @@ class BrowseDataTest {
         }
 
     @Test
-    fun `BR-07 BR-11 the welcome card first, roles saved with Continue, then Getting started`() =
+    fun `BR-07 the welcome card first, roles saved with Continue, then no card`() =
         runBlocking {
             fake.newMember(FakePeople.Ada)
-            fake.signedInOnWeb(FakePeople.Ada)
             val welcome = Welcome(signedIn(), scope).also { it.refresh() }
 
             val first = welcome.state.until { !it.loading }
@@ -245,14 +244,8 @@ class BrowseDataTest {
 
             val next = welcome.state.until { it.saved && !it.saving }
             assertEquals(setOf("r_bees"), fake.rolesOf(FakePeople.Ada))
-            assertEquals(MemberCard.GettingStarted, next.card)
-
-            welcome.closeIntro(hide = true)
-            val closed = welcome.state.until { it.card == null && !it.saving }
-            assertEquals(setOf("r_bees"), closed.held)
-            fake.signedInOnWeb(FakePeople.Ada)
-            welcome.refresh()
-            assertNull(welcome.state.until { !it.loading && it.me?.introDue == false }.card)
+            assertNull(next.card)
+            assertEquals(setOf("r_bees"), next.held)
         }
 
     @Test

@@ -102,7 +102,8 @@ internal fun FrameBlock(
 /**
  * The page in a WebView, locked down (TV-26; JavaScript on for players, steward decision,
  * 2026-11-14): no JavaScript bridge, no file or content access, no new windows, third-party
- * cookies off; the forum's address as its Referer. Whatever the member follows from it opens outside the app, never in it.
+ * cookies off; the forum's address as its Referer. Whatever the member follows from it opens
+ * outside the app, never in it.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable

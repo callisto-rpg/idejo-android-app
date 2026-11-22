@@ -13,7 +13,7 @@ import org.idejo.app.core.data.Welcome
 import org.idejo.app.core.data.WelcomeState
 import javax.inject.Inject
 
-/** Rules & Roles (BR-07) and the cards over the forum (BR-07, BR-11). */
+/** Rules & Roles (BR-07) and the welcome card over the forum (BR-07). */
 @HiltViewModel
 class WelcomeViewModel
     @Inject
@@ -43,9 +43,5 @@ class WelcomeViewModel
 
         fun continueWelcome() {
             welcome?.continueWelcome()
-        }
-
-        fun closeIntro(hide: Boolean) {
-            welcome?.closeIntro(hide)
         }
     }

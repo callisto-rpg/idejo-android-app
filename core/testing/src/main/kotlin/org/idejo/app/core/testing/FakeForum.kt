@@ -104,9 +104,8 @@ internal class Reader(
     /** The welcome card seen (BR-07). */
     var welcomed: Boolean = false
 
-    /** Getting started due (IX-07): set by [FakeIdejo.signedInOnWeb]. */
-    var introDue: Boolean = false
-    var introHidden: Boolean = false
+    /** On the onboarding tour (IX-18): `GET /me` gives `onboarding` until finished. */
+    var touring: Boolean = false
 
     /** Self-select roles held, by id. */
     val roles: MutableSet<String> = linkedSetOf()

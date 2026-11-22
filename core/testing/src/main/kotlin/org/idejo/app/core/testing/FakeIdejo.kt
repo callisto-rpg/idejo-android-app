@@ -40,7 +40,6 @@ import org.idejo.app.core.model.EverywhereResult
 import org.idejo.app.core.model.ForwardTarget
 import org.idejo.app.core.model.GifConfig
 import org.idejo.app.core.model.GifSettings
-import org.idejo.app.core.model.IntroClose
 import org.idejo.app.core.model.LatestMessage
 import org.idejo.app.core.model.ListBody
 import org.idejo.app.core.model.Me
@@ -52,6 +51,7 @@ import org.idejo.app.core.model.MessageRef
 import org.idejo.app.core.model.MessageState
 import org.idejo.app.core.model.MessageWindow
 import org.idejo.app.core.model.NotificationSettings
+import org.idejo.app.core.model.Onboarding
 import org.idejo.app.core.model.Page
 import org.idejo.app.core.model.PasswordChange
 import org.idejo.app.core.model.PendingTopic
@@ -439,22 +439,26 @@ class FakeIdejo(
         pushUnread(person)
     }
 
-    /** [person] new here: the welcome card not seen yet, nor Getting started. */
-    fun newMember(person: Person) =
-        synchronized(lock) {
-            reader(person).welcomed = false
-            reader(person).introDue = false
-        }
+    /** [person] new here: the welcome card not seen yet. */
+    fun newMember(person: Person) = synchronized(lock) { reader(person).welcomed = false }
 
     /** [person] has seen the welcome card. */
     fun welcomed(person: Person) = synchronized(lock) { reader(person).welcomed = true }
 
-    /** [person] signed in on the web, as the app's Custom Tab does: Getting started is due. */
-    fun signedInOnWeb(person: Person) =
-        synchronized(lock) {
-            val reader = reader(person)
-            if (!reader.introHidden) reader.introDue = true
-        }
+    /** The onboarding topic (IX-18): [person] is on the tour, led to [topicId]. */
+    fun touring(
+        person: Person,
+        topicId: String,
+        question: String = "Now tell us a bit about yourself and why you joined this forum",
+    ) = synchronized(lock) {
+        onboarding = Onboarding(topicId, topics[topicId]?.topic?.title ?: "Welcome", question)
+        reader(person).touring = true
+    }
+
+    /** Whether [person] is still on the tour: `POST /me/onboarded` not called yet. */
+    fun touring(person: Person): Boolean = synchronized(lock) { reader(person).touring }
+
+    private var onboarding: Onboarding? = null
 
     /**
      * A live notification for [person] (NT-01), as idejo's user:me sends it: `mention`,
@@ -718,15 +722,8 @@ class FakeIdejo(
             Route("POST", "me/welcome") { call ->
                 member(call) { it.welcomed = true }
             },
-            Route("POST", "me/intro") { call ->
-                val hide =
-                    IdejoJson
-                        .decodeFromString<IntroClose>(call.request.body?.utf8() ?: "{}")
-                        .hide
-                member(call) { reader ->
-                    reader.introDue = false
-                    if (hide) reader.introHidden = true
-                }
+            Route("POST", "me/onboarded") { call ->
+                member(call) { it.touring = false }
             },
             Route("GET", "users/{id}") { call -> card(call.viewer, call["id"]) },
             Route("GET", "roles/{id}") { call -> roleCard(call["id"]) },
@@ -1590,7 +1587,6 @@ class FakeIdejo(
             verified = true,
             roles = settings.roles.filter { it.id in reader.roles },
             welcomed = reader.welcomed,
-            introDue = reader.introDue && reader.welcomed && !reader.introHidden,
             warningPending = reader.warnings.isNotEmpty(),
             acceptsPrivateMessages = reader.acceptsPrivate,
             autoPunctuation = reader.autoPunctuation,
@@ -1598,6 +1594,7 @@ class FakeIdejo(
             controlsOnMobile = reader.controlsOnMobile.takeIf { memberChoices },
             controlsOnDesktop = reader.controlsOnDesktop.takeIf { memberChoices },
             everywhere = everywhere != null,
+            onboarding = onboarding.takeIf { reader.touring && reader.welcomed },
         )
     }
 
