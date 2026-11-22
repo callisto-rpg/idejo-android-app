@@ -3,13 +3,16 @@
 SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
 SPDX-License-Identifier: Apache-2.0
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- No backup until SY-02 decides what may be backed up (never tokens or keys). -->
+    <!-- No backup until SY-02 decides what may be backed up (never tokens or keys). Predictive
+         back (SH-30) is Android 13's; older ones ignore it. -->
     <application
         android:enableOnBackInvokedCallback="true"
+        tools:targetApi="33"
         android:name=".IdejoApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
