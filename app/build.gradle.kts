@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// The app: Application, MainActivity, navigation host and the flavours (foss: F-Droid and
-// GitHub; play: Google Play, which adds the embedded FCM distributor in M3).
+// The app: Application, MainActivity, navigation host. One build for Google Play, F-Droid
+// and GitHub (steward decision, 2026-11-22): no flavours.
 plugins {
     id("idejo.android.application")
     id("idejo.android.compose")
@@ -32,16 +32,6 @@ android {
             )
         }
     }
-
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("foss") {
-            dimension = "distribution"
-        }
-        create("play") {
-            dimension = "distribution"
-        }
-    }
 }
 
 // The licence check's report ships in the app, for App settings → Open-source licences (ST-23).
@@ -65,9 +55,6 @@ dependencies {
         "settings",
         "moderation",
     ).forEach { implementation(project(":feature:$it")) }
-
-    // NT-06: Play's embedded FCM distributor, without the Firebase SDK; never in foss.
-    "playImplementation"(libs.unifiedpush.fcm)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.browser)

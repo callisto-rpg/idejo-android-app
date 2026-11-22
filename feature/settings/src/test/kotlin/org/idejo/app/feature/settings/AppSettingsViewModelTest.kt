@@ -20,6 +20,7 @@ import org.idejo.app.core.data.PushRegistrar
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.nio.file.Files
@@ -104,6 +105,23 @@ class AppSettingsViewModelTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `NT-06 push on through the distributor in use, and Turn off`() {
+        val vm = viewModel()
+        assertTrue(vm.state.until { it.distributor != null }.pushOn)
+        vm.onEvent(AppSettingsEvent.DisablePush)
+        val off = vm.state.until { it.pushOff }
+        assertFalse(off.pushOn)
+    }
+
+    @Test
+    fun `NT-06 no distributor at all offers Sunup, and its answer is kept`() {
+        val vm = viewModel()
+        vm.onEvent(AppSettingsEvent.AnswerSunup(install = true))
+        assertTrue(vm.state.until { it.awaitingSunup }.awaitingSunup)
+        assertFalse(vm.state.value.offerSunup)
     }
 
     @Test

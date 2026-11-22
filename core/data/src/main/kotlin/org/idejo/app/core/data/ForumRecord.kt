@@ -145,6 +145,8 @@ data class AppState(
     val reduceMotion: Boolean = false,
     /** The inbox's tab last shown (MD-05), by name. */
     val inboxTab: String? = null,
+    /** Push turned off on this device (App settings, NT-06): no forum registers. */
+    val pushOff: Boolean = false,
 ) {
     fun forum(origin: String?): ForumRecord? = forums.firstOrNull { it.origin == origin }
 

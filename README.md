@@ -19,7 +19,7 @@ Compose; Android 8.0 (API 26) and later.
 JDK 17 and the Android SDK:
 
 ```sh
-./gradlew assembleFossDebug   # F-Droid and GitHub flavour
+./gradlew assembleDebug       # one build for Play, F-Droid and GitHub
 ./gradlew check               # every check CI runs
 ```
 
