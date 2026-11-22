@@ -9,6 +9,7 @@ import android.text.format.Formatter
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -34,13 +35,14 @@ internal fun LazyListScope.deviceSections(
     names: Map<String, String>,
     onEvent: (AppSettingsEvent) -> Unit,
     onIdejoId: () -> Unit = {},
+    onEnablePush: () -> Unit = {},
 ) {
     state.mode?.let { mode ->
         item { SectionTitle(stringResource(R.string.app_mode)) }
         item { ModeChoice(mode, state, onEvent, onIdejoId) }
     }
     item { SectionTitle(stringResource(R.string.app_notifications)) }
-    item { Distributors(state, names, onEvent) }
+    item { Push(state, names, onEvent, onEnablePush) }
     item { SectionTitle(stringResource(R.string.app_links)) }
     item { LinkHandlingSection() }
     item { SectionTitle(stringResource(R.string.app_display)) }
@@ -49,22 +51,43 @@ internal fun LazyListScope.deviceSections(
     item { Storage(state, onEvent) }
 }
 
+/**
+ * Push on this device (NT-06, ST-20): on, through which distributor, with the others to
+ * choose from and **Turn off**; or off, with **Enable push notifications**.
+ */
 @Composable
-private fun Distributors(
+private fun Push(
     state: AppSettingsUiState,
     names: Map<String, String>,
     onEvent: (AppSettingsEvent) -> Unit,
+    onEnable: () -> Unit,
 ) {
     Column {
-        if (state.distributors.isEmpty()) {
-            Note(stringResource(R.string.app_no_distributor))
-        } else {
+        val distributor = state.distributor
+        if (!state.pushOn || distributor == null) {
+            Note(stringResource(R.string.app_push_off))
+            Button(onClick = onEnable, Modifier.padding(top = 8.dp)) {
+                Text(stringResource(R.string.app_push_enable))
+            }
+            return@Column
+        }
+        Text(
+            stringResource(R.string.app_push_on, names[distributor] ?: distributor),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        if (state.distributors.size > 1) {
             Note(stringResource(R.string.app_push_service))
             RadioGroupRow(
                 options = state.distributors.map { it to (names[it] ?: it) },
-                selected = state.distributor,
+                selected = distributor,
                 onSelect = { onEvent(AppSettingsEvent.UseDistributor(it)) },
             )
+        }
+        OutlinedButton(
+            onClick = { onEvent(AppSettingsEvent.DisablePush) },
+            Modifier.padding(top = 8.dp),
+        ) {
+            Text(stringResource(R.string.app_push_turn_off))
         }
     }
 }
@@ -154,7 +177,7 @@ internal fun Note(text: String) {
     )
 }
 
-/** The distributors' names as Android shows them; the app's own is Play's FCM (NT-06). */
+/** The distributors' names as Android shows them; the app's own is its FCM (NT-06). */
 internal fun Context.distributorNames(packages: List<String>): Map<String, String> =
     packages.associateWith { pkg ->
         if (pkg == packageName) {

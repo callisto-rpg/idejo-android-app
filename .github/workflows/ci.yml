@@ -19,12 +19,8 @@ concurrency:
 
 jobs:
   build:
-    name: Build and lint (${{ matrix.flavour }})
+    name: Build and lint
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        flavour: [Foss, Play]
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-java@v6.2.0
@@ -34,13 +30,11 @@ jobs:
       # Also checks that the Gradle wrapper is Gradle's own.
       - uses: gradle/actions/setup-gradle@v6.4.1
       - name: Build debug and release (R8)
-        run: ./gradlew assemble${{ matrix.flavour }}Debug assemble${{ matrix.flavour }}Release
+        run: ./gradlew assembleDebug assembleRelease
       - name: Android Lint
-        run: ./gradlew lint${{ matrix.flavour }}Debug lint${{ matrix.flavour }}Release
+        run: ./gradlew lintDebug lintRelease
       - name: Licences of the dependencies
-        run: >
-          ./gradlew licenseeAndroid${{ matrix.flavour }}Debug
-          licenseeAndroid${{ matrix.flavour }}Release
+        run: ./gradlew licenseeAndroidDebug licenseeAndroidRelease
 
   test:
     name: Unit and screenshot tests
@@ -76,7 +70,7 @@ jobs:
         with:
           path: build/robolectric
           key: robolectric-android-all-14-robolectric-10818077-i7
-      - name: Unit tests (every module, both flavours)
+      - name: Unit tests (every module)
         run: ./gradlew test
       - name: Screenshots (Roborazzi)
         run: ./gradlew verifyRoborazziDebug

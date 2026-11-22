@@ -37,9 +37,10 @@ class PushRegistrarTest {
     private val http = IdejoHttp.forLocalTesting()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+    private val store by lazy { ForumStore.create(folder.root.resolve("app.json"), scope) }
     private val sessions by lazy {
         SessionManager(
-            ForumStore.create(folder.root.resolve("app.json"), scope),
+            store,
             TokenVault(AesGcmBox { key }),
             http,
             scope,
@@ -65,6 +66,12 @@ class PushRegistrarTest {
 
         override fun unregister(instance: String) {
             unregistered += instance
+        }
+
+        @Volatile var removed = false
+
+        override fun removeAll() {
+            removed = true
         }
     }
 
@@ -258,5 +265,45 @@ class PushRegistrarTest {
                         it.url.encodedPath.endsWith("unifiedpush")
                 }
             assertEquals(2, posts)
+        }
+
+    @Test
+    fun `NT-06 push turned off ends every registration, and nothing registers again`() =
+        runBlocking {
+            val session = signedIn()
+            eventually { distributor.registered.isNotEmpty() }
+            registrar.onEndpoint(
+                session.origin,
+                "https://fcm.googleapis.com/fcm/send/x",
+                "BPUB",
+                "AUTH",
+            )
+            val id = requireNotNull(session.record.value.push).registrationId
+
+            AppChoices(store).pushOff(true)
+            registrar.disable()
+
+            assertTrue(distributor.removed)
+            assertNull(session.record.value.push)
+            assertEquals(PushStatus.Off, registrar.status.value)
+            assertTrue(
+                fake.requests.any {
+                    it.method == "DELETE" && it.url.encodedPath.endsWith("/me/push/unifiedpush/$id")
+                },
+            )
+
+            // Off, the forum is not registered again, and a late endpoint is given back.
+            distributor.registered.clear()
+            registrar.retry()
+            delay(300)
+            assertTrue(distributor.registered.isEmpty())
+            registrar.onEndpoint(
+                session.origin,
+                "https://fcm.googleapis.com/fcm/send/y",
+                "B2",
+                "A2",
+            )
+            assertEquals(listOf(session.origin), distributor.unregistered.toList())
+            assertNull(session.record.value.push)
         }
 }

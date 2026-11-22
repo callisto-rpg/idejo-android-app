@@ -27,8 +27,7 @@ asks you to sign it by posting a comment with the sentence it gives; you sign on
 - **Never copy idejo's code.** idejo is AGPL-3.0, this app is Apache-2.0: read idejo to
   understand how something behaves, then write it anew (LI-02).
 - **New dependencies** only under Apache-2.0, MIT, BSD or a similar licence accepted by
-  F-Droid; nothing proprietary in the `foss` flavour, and no analytics, crash reporting,
-  ads or tracking in any flavour. `./gradlew licensee` checks it.
+  F-Droid; nothing proprietary, and no analytics, crash reporting, ads or tracking. `./gradlew licensee` checks it.
 - A person reviews every change before it is merged. Changes touching sign-in, tokens, the
   Keystore, push decryption, WebViews or link handling get an extra review.
 - A feature that needs something idejo's API does not offer is not worked around: describe

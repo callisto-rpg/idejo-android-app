@@ -60,10 +60,16 @@ fun AppSettingsRoute(
     val licences by produceState(emptyList<Licence>()) {
         value = withContext(Dispatchers.IO) { context.shippedLicences() }
     }
-    // A distributor installed meanwhile (NT-06) shows on returning.
+    // A distributor installed meanwhile (NT-06) shows on returning; back from Sunup's store
+    // page, push is enabled again.
     LifecycleResumeEffect(viewModel) {
         viewModel.distributors()
+        if (viewModel.state.value.awaitingSunup) context.findActivity()?.let(viewModel::enablePush)
         onPauseOrDispose {}
+    }
+    val enablePush = rememberEnablePush(viewModel::enablePush)
+    if (state.offerSunup) {
+        SunupDialog { viewModel.onEvent(AppSettingsEvent.AnswerSunup(it)) }
     }
     val names = remember(state.distributors) { context.distributorNames(state.distributors) }
     AppSettingsScreen(
@@ -75,6 +81,7 @@ fun AppSettingsRoute(
         distributorNames = names,
         onEvent = viewModel::onEvent,
         onIdejoId = onIdejoId,
+        onEnablePush = enablePush,
     )
 }
 
@@ -89,9 +96,10 @@ fun AppSettingsScreen(
     distributorNames: Map<String, String> = emptyMap(),
     onEvent: (AppSettingsEvent) -> Unit = {},
     onIdejoId: () -> Unit = {},
+    onEnablePush: () -> Unit = {},
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp)) {
-        state?.let { deviceSections(it, distributorNames, onEvent, onIdejoId) }
+        state?.let { deviceSections(it, distributorNames, onEvent, onIdejoId, onEnablePush) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
