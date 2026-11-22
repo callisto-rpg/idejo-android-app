@@ -527,6 +527,10 @@ Docker image) are added with them.
   On, it names the distributor, lists the others and has **Turn off**
   (`AppState.pushOff`: every forum's registration deleted, `UnifiedPush.removeDistributor`,
   no forum registers until enabled again).
+- 2026-11-22 — On a forum's home page the top bar says, in its middle, "pull down for idejo
+  menu" over a v (`TopBar`'s `pullHint`, `ic_pull_down` from Material Symbols Rounded), small
+  and at 50 % opacity; TalkBack skips it (the forum menu has its button). The tour's
+  screenshots are taken with reduced motion, so the glow and the hand are still.
 
 ## Milestones (spec §26)
 

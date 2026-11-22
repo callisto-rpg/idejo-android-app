@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -38,6 +39,7 @@ import org.idejo.app.core.designsystem.component.LogoNews
 import org.idejo.app.core.designsystem.component.TopBar
 import org.idejo.app.core.designsystem.component.TourTargets
 import org.idejo.app.core.designsystem.component.tourTarget
+import org.idejo.app.core.designsystem.theme.DisplayChoices
 import org.idejo.app.core.designsystem.theme.ForumTheme
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Category
@@ -98,6 +100,16 @@ class ShellScreenshotTest {
                 chatService = true,
             )
         }
+
+    @Test
+    fun `SH-10 the home page's top bar says the forum menu is a pull down`() {
+        snapshots("TopBarHome") {
+            TopBar(
+                listOf(Crumb.Forum("Garden club", {})),
+                pullHint = stringResource(R.string.top_bar_pull_hint),
+            )
+        }
+    }
 
     @Test
     fun `SH-03 the logo's dot for news in the other forums`() {
@@ -272,7 +284,8 @@ class ShellScreenshotTest {
             TourStep.Present to on.copy(open = true),
             TourStep.Finished to on.copy(finished = true),
         ).forEach { (step, tour) ->
-            snapshots("Tour${step.name}") { TourScene(step, tour) }
+            // Still: the glow's pulse and the hand would be caught at any moment.
+            snapshots("Tour${step.name}", still = true) { TourScene(step, tour) }
         }
     }
 
@@ -303,12 +316,13 @@ class ShellScreenshotTest {
 
     private fun snapshots(
         name: String,
+        still: Boolean = false,
         content: @Composable () -> Unit,
     ) {
         for (dark in listOf(false, true)) {
             val mode = if (dark) "dark" else "light"
             captureRoboImage("src/test/screenshots/${name}_$mode.png", OPTIONS) {
-                IdejoTheme(GARDEN, dark) {
+                IdejoTheme(GARDEN, dark, DisplayChoices(reduceMotion = still)) {
                     Surface(color = MaterialTheme.colorScheme.background) {
                         Box(Modifier.width(390.dp).height(844.dp)) { content() }
                     }

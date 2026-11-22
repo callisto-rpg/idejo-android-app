@@ -218,6 +218,10 @@ fun ForumFrame(
                                         account.contains(at + bar)
                                     },
                             scrollBehavior = scroll,
+                            // The home page says the forum menu is a pull down (SH-10).
+                            pullHint =
+                                stringResource(R.string.top_bar_pull_hint)
+                                    .takeIf { place == Place.Home },
                         ) {
                             Account(
                                 shell,
