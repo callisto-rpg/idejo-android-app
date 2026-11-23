@@ -59,6 +59,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -267,11 +268,11 @@ private fun Messages(
                 More(topic.earlier, earlier = true, topic.loadingEarlier, actions.onEarlier)
             }
         }
-        topic.messages.forEach { message ->
+        topic.messages.forEachIndexed { index, message ->
             if (message.id == topic.unread?.messageId) {
                 item(key = "unread") { UnreadLine(topic.unread!!.count) }
             }
-            item(key = message.id) { Entry(message, context, glowing, writing) }
+            item(key = message.id) { Entry(message, context, glowing, writing, index > 0) }
         }
         if (topic.later > 0 || topic.loadingLater) {
             item(
@@ -284,6 +285,21 @@ private fun Messages(
     Following(topic, list, actions)
 }
 
+/**
+ * The web's hairline between messages: 1 px of the text's colour, almost invisible; twice as
+ * strong in the dark theme, where 9 % hardly shows (steward, 2026-11-23).
+ */
+@Composable
+private fun Hairline() {
+    HorizontalDivider(
+        thickness = Dp.Hairline,
+        color =
+            MaterialTheme.colorScheme.onSurface.copy(
+                alpha = if (IdejoTheme.dark) HAIRLINE_ALPHA_DARK else HAIRLINE_ALPHA,
+            ),
+    )
+}
+
 /** A message, glowing when it names the member (TV-07), or the composer in its place. */
 @Composable
 private fun Entry(
@@ -291,7 +307,10 @@ private fun Entry(
     context: MessageContext,
     glowing: SnapshotStateMap<String, Glow>,
     writing: TopicWriting,
+    /** Under another message: a hairline above it, as the web's (steward, 2026-11-23). */
+    below: Boolean = false,
 ) {
+    if (below) Hairline()
     val glow = glowing[message.id]
     when {
         writing.mayWrite && message.id == writing.openMessageId -> writing.box(Modifier)
@@ -366,3 +385,7 @@ internal fun lastIndex(topic: TopicState): Int =
 
 /** The red line fades after this long on screen (TV-01). */
 private const val UNREAD_LINE_MS = 4_000L
+
+/** The web's `--hairline`: the text's colour at 9 %. */
+private const val HAIRLINE_ALPHA = 0.09f
+private const val HAIRLINE_ALPHA_DARK = 0.18f

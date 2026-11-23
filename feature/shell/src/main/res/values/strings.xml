@@ -34,6 +34,7 @@ SPDX-License-Identifier: Apache-2.0
         <item quantity="other">%1$d more topics</item>
     </plurals>
     <string name="sidebar_unfollow">Unfollow %1$s</string>
+    <string name="sidebar_unfollowed">Topic unfollowed. Tap to cancel</string>
     <string name="sidebar_follow">Follow %1$s</string>
     <string name="sidebar_could_not_load">The sidebar could not be loaded.</string>
     <string name="sidebar_try_again">Try again</string>

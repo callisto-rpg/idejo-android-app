@@ -463,8 +463,8 @@ Docker image) are added with them.
   rolled up (SH-35, `ForumRecord.linksRolled = true` for a forum added from now on).
 - 2026-11-20 — The top bar (SH-01, SH-10, SH-20): a tap on the forum's logo opens its home
   page, or there the sidebar (nothing when docked); a pull down on the bar opens the forum
-  menu, from the member's picture the user menu (`pullDown` in `ForumFrame`, seen before
-  the bar's own hide-and-show drag). The forum menu's button is the sidebar's idejo button.
+  menu, from the member's picture the user menu (`pullDown` in `MenuPanel`, seen before
+  anything under the bar). The forum menu's button is the sidebar's idejo button.
 - 2026-11-20 — The forum menu's **This forum** (SH-10, SH-11): the forum's name opens the
   home page on **Categories** (any way home from the frame does: `HomeRoute`'s
   `categoriesCalls`); no **Home** entry. One line of buttons: **Followed topics** (the
@@ -541,6 +541,37 @@ Docker image) are added with them.
   the logo and the member's picture (72 dp each side), "idejo menu" only (2026-11-23).
   TalkBack skips it (the forum menu has its button). The tour's
   screenshots are taken with reduced motion, so the glow and the hand are still.
+- 2026-11-23 — A pull down takes the home page's pull hint down with the finger, and it fades
+  out within 40 dp (`PullHint.pulled`, the menus' `Sliding.shown`).
+- 2026-11-23 — The top bar is pinned (SH-01): it no longer hides on scroll.
+- 2026-11-23 — The forum menu can be pulled down wherever the member is, the group's inbox too
+  (steward request): `InboxMenuFrame` (feature/shell) wraps `InboxApp`'s pages and gives every
+  `TopBar` under it the pull (`LocalTopBarMenu`, core/designsystem; `pullDown` in `MenuPanel`),
+  and the page under the bar the forum's blur (`glassBehind`) as the menu comes in.
+  Over the inbox the menu (`InboxMenu`) has no **This forum**, only **Support** (greyed) on its
+  line, then **Your forums**, **All my topics**, **Private Conversations** and **Add a forum**.
+  Its shortcuts reach the tabs already shown through `InboxShortcuts.waiting`.
+- 2026-11-23 — The sidebar's × (SH-33) is 40 % smaller (14.4 dp) in the same 44 dp target. A tap
+  puts "Topic unfollowed. Tap to cancel" (70 % opacity) in place of the title for 3 s; it then
+  fades out, the topic is unfollowed and the rows below slide up into its place (`Unfollowing`;
+  no slide with reduced motion). A tap on the notice cancels, and nothing is sent; a sidebar
+  closed while it shows unfollows at once.
+- 2026-11-23 — Messages (TV-02) as the mobile web's: a hairline between them (1 px of the text's
+  colour at 9 %, the web's `--hairline`; 18 % in the dark theme), 14 dp of padding above each
+  and 48 dp below (was 10 and 10), the height of the message controls (MA-01), which show in
+  that space when the message is tapped, so it does not grow.
+- 2026-11-23 — Half that space below messages (TV-02): 24 dp. A tapped message's controls (48 dp)
+  take it and 24 dp more; the message grows smoothly and the ones below slide down
+  (`animateContentSize`; at once with reduced motion).
+- 2026-11-23 — The `iframe` plugin's page (TV-26) shows at once, as on the web (steward request):
+  no card or **Show page**, the frame as tall as its code asked (the web's 416 by default, 40 to
+  800), a hairline round it, **Open {host}** under it (`FrameBlock`'s `PageFrame`). Videos keep
+  their tap-to-load card. The WebView now has DOM storage on (embedded pages need it), a
+  transparent background, and passes drags it cannot scroll on to the topic (nested scroll).
+- 2026-11-23 — The frame's WebView fills its place (`MATCH_PARENT` layout params). Left to wrap
+  its content, as an `AndroidView` is by default, it took the page's height for its viewport,
+  so pages laid out against the frame (itch.io's widget) collapsed to nothing over their dark
+  body: the black box the steward saw. Checked on a Pixel 6a.
 
 ## Milestones (spec §26)
 

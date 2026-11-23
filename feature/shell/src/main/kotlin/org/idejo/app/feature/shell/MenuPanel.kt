@@ -4,6 +4,8 @@
 package org.idejo.app.feature.shell
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -31,13 +33,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -156,3 +161,44 @@ internal const val USER_MENU = "user-menu"
 
 private val PILL_WIDTH = 36.dp
 private val PILL_HEIGHT = 4.dp
+
+/**
+ * A pull down that starts on this (a top bar, SH-01), seen before anything under it, so the
+ * pull always wins: the menu [menuAt] gives for where it started (the forum menu, or from the
+ * member's picture the user menu) comes down with the finger until it lets go. [menuAt] is
+ * read when a pull starts, so it may read state.
+ */
+internal fun Modifier.pullDown(menuAt: (Offset) -> Sliding): Modifier =
+    pointerInput(Unit) {
+        val slop = viewConfiguration.touchSlop
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            var moved = Offset.Zero
+            var pulled = false
+            // Watched until let go, pulled down, or dragged sideways.
+            var watching = true
+            while (watching) {
+                val change =
+                    awaitPointerEvent(PointerEventPass.Initial)
+                        .changes
+                        .firstOrNull { it.id == down.id }
+                moved += change?.positionChange() ?: Offset.Zero
+                pulled = moved.y > slop && moved.y > abs(moved.x)
+                if (pulled) change?.consume()
+                watching = change?.pressed == true && !pulled && abs(moved.x) <= slop
+            }
+            if (!pulled) return@awaitEachGesture
+            val menu = menuAt(down.position)
+            menu.drag(moved.y)
+            while (true) {
+                val change =
+                    awaitPointerEvent(PointerEventPass.Initial)
+                        .changes
+                        .firstOrNull { it.id == down.id }
+                if (change == null || !change.pressed) break
+                menu.drag(change.positionChange().y)
+                change.consume()
+            }
+            menu.release()
+        }
+    }
