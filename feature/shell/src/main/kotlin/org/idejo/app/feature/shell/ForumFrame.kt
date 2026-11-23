@@ -14,8 +14,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -24,14 +22,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,7 +49,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.ContentScale
@@ -61,9 +57,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,7 +81,6 @@ import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
 import org.idejo.app.core.model.Topic
-import org.idejo.app.core.designsystem.R as DesignR
 
 /** Which full-screen page covers the forum. */
 private enum class Overlay { None, Sidebar, LogoMenu, UserMenu }
@@ -226,9 +219,7 @@ fun ForumFrame(
                         }
                     },
                     sidebar = { docked ->
-                        SidebarPage(shell, logo, sidebarActions(viewModel, context, go), docked) {
-                            overlay = Overlay.LogoMenu
-                        }
+                        SidebarPage(shell, logo, sidebarActions(viewModel, context, go), docked)
                     },
                     pageGlass = { maxOf(forumMenu.fraction, userMenu.fraction) },
                     page = {
@@ -424,7 +415,6 @@ private fun SidebarPage(
     logo: String?,
     actions: SidebarActions,
     docked: Boolean,
-    onMenu: () -> Unit,
 ) {
     Surface(
         Modifier.fillMaxSize().glassEdge(enabled = !docked),
@@ -433,7 +423,7 @@ private fun SidebarPage(
         contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
         Column(if (docked) Modifier else Modifier.safeDrawingPadding()) {
-            if (!docked) SidebarHead(shell.name, logo, onMenu)
+            if (!docked) SidebarHead(shell.name, logo)
             Sidebar(
                 state = shell.sidebar,
                 folded = shell.record.folded,
@@ -448,17 +438,19 @@ private fun SidebarPage(
 }
 
 /**
- * The sidebar's head over the page (SH-30): the forum's logo and name, and at the right the
- * idejo logo, which opens the forum menu. Back, or a swipe to the left, closes the sidebar.
+ * The sidebar's head over the page (SH-30): the forum's logo and name (no idejo button,
+ * steward request, 2026-11-23). Back, or a swipe to the left, closes the sidebar.
  */
 @Composable
 private fun SidebarHead(
     name: String,
     logo: String?,
-    onMenu: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = TARGET + 8.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -469,18 +461,6 @@ private fun SidebarHead(
             style = IdejoTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
-        // The idejo button, as tall as the forum's logo, in a 48 dp target (AX).
-        val button = painterResource(R.drawable.ic_idejo)
-        Image(
-            button,
-            stringResource(DesignR.string.top_bar_forum_menu, name),
-            Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(role = Role.Button, onClick = onMenu)
-                .padding(horizontal = 4.dp, vertical = (TARGET - HEAD_LOGO) / 2)
-                .height(HEAD_LOGO)
-                .aspectRatio(button.intrinsicSize.width / button.intrinsicSize.height),
         )
     }
 }
@@ -502,7 +482,7 @@ private fun WholeTitle(
     }
 }
 
-/** The height of the sidebar head's forum logo and idejo button, the same. */
+/** The height of the sidebar head's forum logo. */
 private val HEAD_LOGO = 34.dp
 
 /** The least height of a touch target (AX). */

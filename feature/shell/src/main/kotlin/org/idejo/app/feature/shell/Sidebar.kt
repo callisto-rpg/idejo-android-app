@@ -128,7 +128,7 @@ fun Sidebar(
         state.sections.forEach { section ->
             section.group?.let { group ->
                 item(key = "group:${group.id}") {
-                    Box(sliding(motion)) { GroupHeading(group.name) }
+                    Box(Modifier.sliding(this, motion)) { GroupHeading(group.name) }
                 }
             }
             section.categories.forEach { entry ->
@@ -168,7 +168,9 @@ private fun LazyListScope.category(
 ) {
     val id = entry.category.id
     item(key = "category:$id") {
-        Box(sliding(motion)) { CategoryRow(entry, folded, showFold = signedIn, actions) }
+        Box(
+            Modifier.sliding(this, motion),
+        ) { CategoryRow(entry, folded, showFold = signedIn, actions) }
     }
     val open = openTopic?.takeIf { it.categoryId == id }
     val followedHere = entry.topics.filterNot { it.id in unfollowing.gone }
@@ -179,7 +181,7 @@ private fun LazyListScope.category(
     val shown = if (expanded || topics.size <= SHOWN) topics else topics.take(SHOWN)
     shown.forEach { topic ->
         item(key = "topic:$id:${topic.id}") {
-            Box(sliding(motion)) {
+            Box(Modifier.sliding(this, motion)) {
                 TopicRow(
                     topic = topic,
                     open = topic.id == open?.id,
@@ -196,7 +198,7 @@ private fun LazyListScope.category(
     }
     if (shown.size < topics.size) {
         item(key = "more:$id") {
-            Box(sliding(motion)) { MoreRow(topics.size - shown.size, onExpand) }
+            Box(Modifier.sliding(this, motion)) { MoreRow(topics.size - shown.size, onExpand) }
         }
     }
 }
