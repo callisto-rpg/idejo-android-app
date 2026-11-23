@@ -13,9 +13,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,6 +32,7 @@ import coil3.compose.AsyncImage
 import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.data.PagesState
 import org.idejo.app.core.data.TopicView
+import org.idejo.app.core.designsystem.component.ChoiceToggle
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 
 /** A section's title with a line across, as the web's `.section-divider`. */
@@ -89,20 +87,16 @@ internal fun ViewToggle(
             style = IdejoTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        SingleChoiceSegmentedButtonRow {
-            val choices =
-                listOf(
-                    TopicView.Compact to R.string.view_compact,
-                    TopicView.Expanded to R.string.view_expanded,
-                )
-            choices.forEachIndexed { index, (choice, label) ->
-                SegmentedButton(
-                    selected = view == choice,
-                    onClick = { onView(choice) },
-                    shape = SegmentedButtonDefaults.itemShape(index, choices.size),
-                    icon = {},
-                ) { Text(stringResource(label), style = IdejoTheme.typography.labelMedium) }
-            }
+        ChoiceToggle(listOf(TopicView.Compact, TopicView.Expanded), view, onView) { choice ->
+            stringResource(
+                if (choice ==
+                    TopicView.Compact
+                ) {
+                    R.string.view_compact
+                } else {
+                    R.string.view_expanded
+                },
+            )
         }
     }
 }

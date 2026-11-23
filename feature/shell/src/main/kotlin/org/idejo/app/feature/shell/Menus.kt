@@ -28,9 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.idejo.app.core.data.ThemeMode
 import org.idejo.app.core.data.TutorialBubbles
+import org.idejo.app.core.designsystem.component.ChoiceToggle
 import org.idejo.app.core.designsystem.component.ForumLogo
 import org.idejo.app.core.designsystem.theme.onColorFor
 import org.idejo.app.core.designsystem.theme.parseHexColor
@@ -319,15 +317,13 @@ private fun <T> Choices(
     selected: T,
     onSelect: (T) -> Unit,
 ) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        options.forEachIndexed { index, (value, label) ->
-            SegmentedButton(
-                selected = value == selected,
-                onClick = { onSelect(value) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size),
-            ) { Text(stringResource(label), textAlign = TextAlign.Center) }
-        }
-    }
+    ChoiceToggle(
+        options.map { it.first },
+        selected,
+        onSelect,
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        fill = true,
+    ) { value -> stringResource(options.first { it.first == value }.second) }
 }
 
 @Composable

@@ -20,9 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -50,6 +47,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.idejo.app.core.api.ApiProblem
 import org.idejo.app.core.designsystem.component.Avatar
+import org.idejo.app.core.designsystem.component.ChoiceToggle
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.markdown.IdejoMarkdown
@@ -214,17 +212,8 @@ private fun BioForm(
             style = IdejoTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        SingleChoiceSegmentedButtonRow {
-            SegmentedButton(
-                selected = !preview,
-                onClick = { preview = false },
-                shape = SegmentedButtonDefaults.itemShape(0, 2),
-            ) { Text(stringResource(R.string.profile_write)) }
-            SegmentedButton(
-                selected = preview,
-                onClick = { preview = true },
-                shape = SegmentedButtonDefaults.itemShape(1, 2),
-            ) { Text(stringResource(R.string.profile_preview)) }
+        ChoiceToggle(listOf(false, true), preview, { preview = it }) { shown ->
+            stringResource(if (shown) R.string.profile_preview else R.string.profile_write)
         }
         val bio = state.bio.orEmpty()
         if (preview) {
