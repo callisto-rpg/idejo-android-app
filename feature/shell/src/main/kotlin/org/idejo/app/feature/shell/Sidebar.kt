@@ -110,6 +110,9 @@ fun Sidebar(
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
+    val unfollowing = remember { Unfollowing() }
+    UnfollowTimers(unfollowing, state, actions)
+    val motion = !IdejoTheme.reducedMotion
     LazyColumn(modifier, contentPadding = contentPadding) {
         item(key = "all") { AllCategories(linksRolled, actions) }
         if (!linksRolled) {
@@ -124,7 +127,9 @@ fun Sidebar(
         }
         state.sections.forEach { section ->
             section.group?.let { group ->
-                item(key = "group:${group.id}") { GroupHeading(group.name) }
+                item(key = "group:${group.id}") {
+                    Box(sliding(motion)) { GroupHeading(group.name) }
+                }
             }
             section.categories.forEach { entry ->
                 category(
@@ -137,6 +142,8 @@ fun Sidebar(
                     actions = actions,
                     onExpand = { expanded = expanded + entry.category.id },
                     offline = state.offline,
+                    unfollowing = unfollowing,
+                    motion = motion,
                 )
             }
         }
@@ -155,31 +162,42 @@ private fun LazyListScope.category(
     onExpand: () -> Unit,
     /** Not queued offline (OF-05): follows and Mark unread wait. */
     offline: Boolean = false,
+    unfollowing: Unfollowing = Unfollowing(),
+    /** Rows slide into the place of a topic unfollowed (not with reduced motion). */
+    motion: Boolean = true,
 ) {
     val id = entry.category.id
     item(key = "category:$id") {
-        CategoryRow(entry, folded, showFold = signedIn, actions)
+        Box(sliding(motion)) { CategoryRow(entry, folded, showFold = signedIn, actions) }
     }
     val open = openTopic?.takeIf { it.categoryId == id }
-    var topics = entry.topics
+    val followedHere = entry.topics.filterNot { it.id in unfollowing.gone }
+    var topics = followedHere
     // The topic open is listed even when not followed, with a + (SH-34).
     if (open != null && topics.none { it.id == open.id }) topics = topics + open
     if (folded) topics = topics.filter { it.dot() != null || it.id == open?.id }
     val shown = if (expanded || topics.size <= SHOWN) topics else topics.take(SHOWN)
     shown.forEach { topic ->
         item(key = "topic:$id:${topic.id}") {
-            TopicRow(
-                topic = topic,
-                open = topic.id == open?.id,
-                followed = entry.topics.any { it.id == topic.id },
-                glow = glowing[topic.id],
-                actions = actions,
-                offline = offline,
-            )
+            Box(sliding(motion)) {
+                TopicRow(
+                    topic = topic,
+                    open = topic.id == open?.id,
+                    followed = followedHere.any { it.id == topic.id },
+                    glow = glowing[topic.id],
+                    actions = actions,
+                    offline = offline,
+                    leaving = unfollowing.waiting[topic.id],
+                    onUnfollow = { unfollowing.start(topic) },
+                    onCancel = { unfollowing.cancel(topic.id) },
+                )
+            }
         }
     }
     if (shown.size < topics.size) {
-        item(key = "more:$id") { MoreRow(topics.size - shown.size, onExpand) }
+        item(key = "more:$id") {
+            Box(sliding(motion)) { MoreRow(topics.size - shown.size, onExpand) }
+        }
     }
 }
 
@@ -315,6 +333,10 @@ private fun TopicRow(
     glow: Int?,
     actions: SidebarActions,
     offline: Boolean,
+    /** Its × was tapped: the notice shows in place of the title, a tap cancels. */
+    leaving: Leaving? = null,
+    onUnfollow: () -> Unit = {},
+    onCancel: () -> Unit = {},
 ) {
     var menu by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -331,8 +353,10 @@ private fun TopicRow(
                 .onSecondaryClick { menu = true }
                 .combinedClickable(
                     role = Role.Button,
-                    onLongClick = { menu = true },
-                    onClick = { actions.open(Place.Topic(topic.id)) },
+                    onLongClick = { if (leaving == null) menu = true },
+                    onClick = {
+                        if (leaving != null) onCancel() else actions.open(Place.Topic(topic.id))
+                    },
                 ).padding(start = 22.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -340,34 +364,25 @@ private fun TopicRow(
             Box(Modifier.size(DOT_SPACE), contentAlignment = Alignment.Center) {
                 topic.dot()?.let { Dot(it) }
             }
-            GlowingName(
-                topic.title,
-                glow,
-                Modifier.weight(1f).tourTarget(TourTargets.topic(topic.id)),
-            )
-            if (followed) {
-                IconButton(
-                    onClick = { actions.follow(topic, false) },
-                    Modifier.size(TARGET),
-                    enabled = !offline,
-                ) {
-                    Icon(
-                        painterResource(org.idejo.app.core.designsystem.R.drawable.ic_close),
-                        stringResource(R.string.sidebar_unfollow, topic.title),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else if (open) {
-                IconButton(
-                    onClick = { actions.follow(topic, true) },
-                    Modifier.size(TARGET),
-                    enabled = !offline,
-                ) {
-                    Icon(
-                        painterResource(R.drawable.ic_add),
-                        stringResource(R.string.sidebar_follow, topic.title),
-                    )
-                }
+            if (leaving != null) {
+                UnfollowedNotice(leaving, Modifier.weight(1f))
+                // The ×'s place kept, so the row does not change height.
+                Spacer(Modifier.size(TARGET))
+            } else {
+                GlowingName(
+                    topic.title,
+                    glow,
+                    Modifier.weight(1f).tourTarget(TourTargets.topic(topic.id)),
+                )
+                FollowButton(
+                    topic,
+                    followed,
+                    open,
+                    offline,
+                    onUnfollow = onUnfollow,
+                    onFollow = { actions.follow(topic, true) },
+                    modifier = Modifier.size(TARGET),
+                )
             }
         }
         TopicMenu(topic, followed, menu, onDismiss = { menu = false }, actions, offline)

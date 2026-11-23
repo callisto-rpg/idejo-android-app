@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.idejo.app.core.designsystem.component.Crumb
+import org.idejo.app.core.designsystem.component.LocalTopBarMenu
 import org.idejo.app.core.designsystem.component.TopBar
 
 /**
@@ -113,7 +114,10 @@ private fun InboxFrame(
                         ),
                     ) + pages,
             )
-            Box(Modifier.weight(1f)) { content() }
+            // Under the bar: blurred while the forum menu comes in over it (SH-10).
+            Box(Modifier.weight(1f).then(LocalTopBarMenu.current?.below ?: Modifier)) {
+                content()
+            }
         }
     }
 }

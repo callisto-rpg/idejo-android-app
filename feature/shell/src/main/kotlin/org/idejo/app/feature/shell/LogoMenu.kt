@@ -133,6 +133,24 @@ fun LogoMenu(
     }
 }
 
+/**
+ * The forum menu over the group's inbox (SH-10, steward request 2026-11-23): no **This
+ * forum**, as the inbox is none, but **Support** (greyed, not offered yet) on its line, then
+ * **Your forums**, the inbox's shortcuts and **Add a forum** as in a forum (SH-12 to SH-14).
+ */
+@Composable
+internal fun InboxMenu(
+    group: GroupMenu,
+    actions: LogoMenuActions,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.verticalScroll(rememberScrollState()).padding(top = 8.dp, bottom = 8.dp)) {
+        ForumButtons(listOf(ForumButton(R.drawable.ic_help, R.string.logo_menu_support, null)))
+        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+        GroupPart(group, actions)
+    }
+}
+
 /** SH-12 to SH-14, in idejo ID mode. */
 @Composable
 private fun ColumnScope.GroupPart(

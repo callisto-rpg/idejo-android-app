@@ -6,9 +6,12 @@ package org.idejo.app.feature.inbox
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import org.idejo.app.core.data.InboxShortcut
 import org.idejo.app.core.data.InboxShortcuts
@@ -23,7 +26,7 @@ import javax.inject.Inject
 class InboxTabViewModel
     @Inject
     constructor(
-        shortcuts: InboxShortcuts,
+        private val shortcuts: InboxShortcuts,
         private val places: LastPlaces,
     ) : ViewModel() {
         /** Where the logo menu sent the member, taken once. */
@@ -37,6 +40,15 @@ class InboxTabViewModel
                     InboxShortcut.Chats -> InboxTab.Chats
                     else -> InboxTab.Forums
                 }
+
+        /**
+         * Where the inbox's own forum menu sends the member while the tabs are shown: a tab,
+         * the directory, or **Forums** for **Connect** (which the Forums tab takes).
+         */
+        val asked: Flow<InboxShortcut> =
+            shortcuts.waiting.filterNotNull().mapNotNull { waiting ->
+                if (waiting is InboxShortcut.Connect) waiting else shortcuts.take { it in TABS }
+            }
 
         private val mutableRestored = MutableStateFlow<InboxTab?>(null)
 

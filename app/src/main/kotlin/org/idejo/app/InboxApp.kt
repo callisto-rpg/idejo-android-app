@@ -31,6 +31,7 @@ import org.idejo.app.feature.inbox.InboxPageRoute
 import org.idejo.app.feature.inbox.InboxRoute
 import org.idejo.app.feature.settings.ProfileAndAccountRoute
 import org.idejo.app.feature.shell.ForwardDialog
+import org.idejo.app.feature.shell.InboxMenuFrame
 import org.idejo.app.feature.shell.Place
 import org.idejo.app.feature.shell.UserCardDialog
 import org.idejo.app.feature.topic.TopicRoute
@@ -38,8 +39,9 @@ import javax.inject.Inject
 
 /**
  * idejo ID mode's inbox (MD-02): its tabs (IB-01 to IB-03), and its chats on the topic page
- * without slow mode (IB-06), one back stack, Back from a chat to the tabs. [session] is the
- * inbox's: the topic page and the composer read it as any forum's.
+ * without slow mode (IB-06), one back stack, Back from a chat to the tabs, and the forum menu
+ * pulled down from any top bar (SH-10). [session] is the inbox's: the topic page and the
+ * composer read it as any forum's.
  */
 @Composable
 fun InboxApp(
@@ -49,7 +51,23 @@ fun InboxApp(
 ) {
     LaunchedEffect(session) { session.refreshServer() }
     val onTop = rememberLastPlace(session.origin, navigation)
-    NavHost(navigation, startDestination = Place.Home, modifier) {
+    // The forum menu comes down from any top bar of the inbox (SH-10).
+    InboxMenuFrame(
+        onHome = { navigation.go(Place.Home) },
+        onAddForum = { navigation.go(Place.AddForum) },
+        modifier = modifier,
+    ) { InboxPages(session, navigation, onTop) }
+    InboxLinks(session, navigation)
+    InboxSettingsShortcut(navigation)
+}
+
+@Composable
+private fun InboxPages(
+    session: ForumSession,
+    navigation: NavHostController,
+    onTop: (Place.Topic) -> Unit,
+) {
+    NavHost(navigation, startDestination = Place.Home) {
         composable<Place.Home> {
             InboxRoute(onConversation = { navigation.go(Place.Topic(it, private = true)) })
         }
@@ -67,9 +85,8 @@ fun InboxApp(
         }
         forwardCard(navigation)
         inboxSettings(navigation)
+        addForumPages(navigation)
     }
-    InboxLinks(session, navigation)
-    InboxSettingsShortcut(navigation)
 }
 
 /** The inbox's **Profile and account**: its settings, for all forums too (ST-07). */

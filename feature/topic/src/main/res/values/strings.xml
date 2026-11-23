@@ -136,7 +136,6 @@
     <string name="frame_open">Open %1$s</string>
     <string name="frame_loads_from">Shown here only when you ask: it loads from %1$s.</string>
     <string name="frame_play">Play video</string>
-    <string name="frame_show">Show page</string>
     <!-- Over a topic started from a message (idejo TP-09), as the web. -->
     <string name="topic_continued_from">Continued from %1$s in “%2$s”</string>
     <!-- The jump button (SH-04), as the web's topic navigator. -->

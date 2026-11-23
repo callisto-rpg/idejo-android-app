@@ -102,7 +102,7 @@ internal fun ActionsBar(
             }
         }
     Surface(
-        modifier.padding(top = 2.dp),
+        modifier,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {

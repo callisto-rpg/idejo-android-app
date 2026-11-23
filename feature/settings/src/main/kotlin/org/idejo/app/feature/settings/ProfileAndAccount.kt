@@ -16,8 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -29,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
@@ -295,12 +297,23 @@ private fun OnlyHere(
         Modifier.padding(top = 16.dp).semantics { liveRegion = LiveRegionMode.Polite },
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Legible: body size in the text's own colour (steward request, 2026-11-23).
         Text(
             stringResource(R.string.settings_only_here, forum),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
         )
-        OutlinedButton(onClick = onAllForums) {
+        // idejo's gold whatever the forum's colours, centred; dark text, as white on it
+        // falls short of AA (AX-01).
+        Button(
+            onClick = onAllForums,
+            Modifier.align(Alignment.CenterHorizontally),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = ALL_FORUMS_GOLD,
+                    contentColor = Color.Black,
+                ),
+        ) {
             Text(stringResource(R.string.settings_all_forums))
         }
     }
@@ -351,3 +364,6 @@ private fun ProfileAndAccountPreview() {
         )
     }
 }
+
+/** **Settings for all forums**: idejo's own gold (#daa304). */
+private val ALL_FORUMS_GOLD = Color(0xFFDAA304)

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -137,24 +138,33 @@ fun MessageItem(
                 },
             )
         }
+    // The controls take the space under the message when shown, and as much again: the
+    // message grows smoothly, so the ones below slide down (none with reduced motion).
+    val bar = actionsShown && message.state != MessageState.Deleted
+    val grow = if (IdejoTheme.reducedMotion) Modifier else Modifier.animateContentSize()
     Column(
         modifier
             .fillMaxWidth()
             .then(tap)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .then(grow)
+            // The mobile web's 14 dp above and 16 dp at the sides; below, half the controls'.
+            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = if (bar) 0.dp else UNDER)
             .semantics(mergeDescendants = false) {
                 if (message.state == MessageState.Open) contentDescription = open
             },
-        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Author(message, context)
-        when {
-            message.state == MessageState.Deleted -> Deleted(message)
-            message.author.ignoredByMe -> Ignored(message, context)
-            else -> Shown(message, context, pulse)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Author(message, context)
+            when {
+                message.state == MessageState.Deleted -> Deleted(message)
+                message.author.ignoredByMe -> Ignored(message, context)
+                else -> Shown(message, context, pulse)
+            }
+            Banners(message, context)
         }
-        Banners(message, context)
-        if (actionsShown) ActionsBar(message, context.actions, context.origin)
+        if (bar) {
+            ActionsBar(message, context.actions, context.origin, Modifier.height(BAR))
+        }
     }
 }
 
@@ -371,3 +381,12 @@ private fun MessageImage(
         contentScale = ContentScale.Fit,
     )
 }
+
+/** The message controls' bar: 48 dp targets (AX-01). */
+private val BAR = 48.dp
+
+/**
+ * The space under a message (steward, 2026-11-23): half its controls' bar, which takes it and
+ * as much again when the message is tapped.
+ */
+private val UNDER = 24.dp

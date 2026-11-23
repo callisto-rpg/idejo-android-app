@@ -137,7 +137,7 @@ Everything inside a forum shares one frame, close to the web's mobile layout.
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| SH-01 | A Material 3 top app bar in the forum's colours: the forum's logo at the left, the breadcrumbs, then **Unread** (with its count and colour, as the web's) and the member's avatar at the right. It collapses on scroll down and returns on scroll up | Must |
+| SH-01 | A Material 3 top app bar in the forum's colours: the forum's logo at the left, the breadcrumbs, then **Unread** (with its count and colour, as the web's) and the member's avatar at the right. It stays in view, pinned (steward, 2026-11-23) | Must |
 | SH-02 | Breadcrumbs as the web's on a phone: the forum's logo (home), the category's icon tile, the topic's title (one line, ellipsised). In a private conversation: **Private Conversations** › the other person's name. Each crumb is a link; long-pressing the title shows it whole | Must |
 | SH-03 | A dot on the logo as the web's community dot (idejo 0.3.10): white for new messages in followed topics of the member's other forums, red when one mentions them; in the app it is computed from the forums the app holds (IB-04) | Should |
 | SH-04 | The topic page adds the web's round **jump** button at the top right (First message, First unread, Last message, My last message, pinned messages) | Must |
@@ -157,7 +157,7 @@ Everything inside a forum shares one frame, close to the web's mobile layout.
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| SH-20 | Tapping the avatar opens a full-screen page: the member's picture, display name, user tag and roles in the forum's colours | Must |
+| SH-20 | Tapping the avatar opens a full-screen page: the member's picture, display name, @username (not the user tag) and roles in the forum's colours | Must |
 | SH-21 | The web's items: **Profile and account** (native screens, section 15), **Theme** (follow system, light, dark), **Tutorial bubbles** (All, Simple, Off), **Sign out** | Must |
 | SH-22 | **App settings** (section 15.2) | Must |
 | SH-23 | **Accounts**: every forum and the inbox with the account signed in there; sign out of one or of all (SI-11) | Must |
@@ -250,7 +250,7 @@ Specified in section 21; until then the right swipe does nothing.
 | TV-23 | Spoilers: the whole-message blur with **Reveal spoiler** and overlay text; inline bars revealed on tap | Must |
 | TV-24 | Code blocks in a monospace font, horizontally scrollable, no highlighting (as the web) | Must |
 | TV-25 | Images: lazy, sized from `width`/`height`, tap for a full-screen zoomable viewer with **Share** and **Save**; alt text read by TalkBack | Must |
-| TV-26 | Plugin blocks: `button` and `card` native; `forum` as a native forum card with **Join**/**Open** (SI-08); `youtube` and `iframe` as a placeholder card that loads a sandboxed WebView only on tap (no JavaScript bridge, no file access, third-party cookies off) | Must |
+| TV-26 | Plugin blocks: `button` and `card` native; `forum` as a native forum card with **Join**/**Open** (SI-08); `youtube` as a placeholder card that loads a sandboxed WebView only on tap, `iframe` shown at once in one, as on the web (steward, 2026-11-23) (no JavaScript bridge, no file access, third-party cookies off) | Must |
 | TV-27 | Polls: the web's side-by-side bars (or the list below when they do not fit), emoji, colours, **Change vote**, hidden results, closing time | Must |
 
 ## 10. The composer
@@ -418,7 +418,7 @@ The home of idejo ID mode, matching my.idejo.org's pages, in the inbox's own col
 | SY-02 | Tokens and push keys encrypted with a Keystore key (SI-04); excluded from Android backups and device transfer | Must |
 | SY-03 | No analytics, crash reporting or third-party SDKs; the only Google component is UnifiedPush's FCM distributor, free software that talks to Google Play services or microG when present | Must |
 | SY-04 | Each forum's data, tokens and cache are kept apart; a request is only ever sent with the token of its own host | Must |
-| SY-05 | WebViews only for tap-to-load embeds (TV-26), never for sign-in (Custom Tabs only) | Must |
+| SY-05 | WebViews only for plugin embeds (TV-26), never for sign-in (Custom Tabs only) | Must |
 | SY-06 | Screenshots allowed (it is a forum); private conversations hidden in the recent-apps preview | Should |
 | SY-07 | Discovery and every API answer parsed leniently: unknown fields and events ignored (idejo API guide section 10) | Must |
 

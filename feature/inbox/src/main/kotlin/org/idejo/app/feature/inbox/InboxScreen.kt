@@ -28,9 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.idejo.app.core.designsystem.component.Avatar
 import org.idejo.app.core.designsystem.component.Crumb
+import org.idejo.app.core.designsystem.component.LocalTopBarMenu
 import org.idejo.app.core.designsystem.component.TopBar
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
@@ -63,6 +66,8 @@ fun InboxScreen(
     restoredTab: InboxTab? = null,
     /** The tab shown, as it changes. */
     onTab: (InboxTab) -> Unit = {},
+    /** A tab the inbox's forum menu asks for while this is shown. */
+    askedTab: Flow<InboxTab> = emptyFlow(),
 ) {
     val pager = rememberPagerState(initialPage = initialTab.ordinal) { InboxTab.entries.size }
     LaunchedEffect(restoredTab) { restoredTab?.let { pager.scrollToPage(it.ordinal) } }
@@ -70,6 +75,7 @@ fun InboxScreen(
     LaunchedEffect(pager) {
         snapshotFlow { pager.settledPage }.collect { shown(InboxTab.entries[it]) }
     }
+    LaunchedEffect(askedTab) { askedTab.collect { pager.animateScrollToPage(it.ordinal) } }
     val scope = rememberCoroutineScope()
     val tab = InboxTab.entries[pager.currentPage]
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -87,20 +93,25 @@ fun InboxScreen(
                         Crumb.Page(stringResource(tab.title)),
                     ),
             ) { Me(state) }
-            PrimaryTabRow(selectedTabIndex = pager.currentPage) {
-                InboxTab.entries.forEach { each ->
-                    Tab(
-                        selected = each == tab,
-                        onClick = { scope.launch { pager.animateScrollToPage(each.ordinal) } },
-                        text = { Text(stringResource(each.title)) },
-                    )
+            // Under the bar: blurred while the forum menu comes in over it (SH-10).
+            Column(LocalTopBarMenu.current?.below ?: Modifier) {
+                PrimaryTabRow(selectedTabIndex = pager.currentPage) {
+                    InboxTab.entries.forEach { each ->
+                        Tab(
+                            selected = each == tab,
+                            onClick = {
+                                scope.launch { pager.animateScrollToPage(each.ordinal) }
+                            },
+                            text = { Text(stringResource(each.title)) },
+                        )
+                    }
                 }
-            }
-            HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
-                when (InboxTab.entries[page]) {
-                    InboxTab.Forums -> forums()
-                    InboxTab.Topics -> topics()
-                    InboxTab.Chats -> chats()
+                HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
+                    when (InboxTab.entries[page]) {
+                        InboxTab.Forums -> forums()
+                        InboxTab.Topics -> topics()
+                        InboxTab.Chats -> chats()
+                    }
                 }
             }
         }

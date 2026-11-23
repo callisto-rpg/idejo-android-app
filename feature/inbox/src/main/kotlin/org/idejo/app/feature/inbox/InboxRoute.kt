@@ -5,13 +5,16 @@ package org.idejo.app.feature.inbox
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.idejo.app.core.data.InboxShortcut
 
 /**
@@ -27,6 +30,19 @@ fun InboxRoute(
 ) {
     var finding by rememberSaveable {
         mutableStateOf(tabs.opening == InboxShortcut.FindForums)
+    }
+    // The inbox's forum menu, while the inbox is shown (SH-13, SH-14).
+    val asked = remember(tabs) { MutableSharedFlow<InboxTab>(extraBufferCapacity = 1) }
+    LaunchedEffect(tabs) {
+        tabs.asked.collect {
+            finding = it == InboxShortcut.FindForums
+            when (it) {
+                InboxShortcut.Topics -> asked.tryEmit(InboxTab.Topics)
+                InboxShortcut.Chats -> asked.tryEmit(InboxTab.Chats)
+                is InboxShortcut.Connect -> asked.tryEmit(InboxTab.Forums)
+                else -> Unit
+            }
+        }
     }
     if (finding) {
         BackHandler { finding = false }
@@ -44,5 +60,6 @@ fun InboxRoute(
         initialTab = tabs.firstTab,
         restoredTab = restored,
         onTab = tabs::shown,
+        askedTab = asked,
     )
 }

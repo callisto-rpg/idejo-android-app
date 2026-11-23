@@ -16,8 +16,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +39,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -58,10 +55,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -94,7 +87,6 @@ import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.designsystem.theme.parseHexColor
 import org.idejo.app.core.designsystem.theme.pictureUrl
 import org.idejo.app.core.model.Topic
-import kotlin.math.abs
 import org.idejo.app.core.designsystem.R as DesignR
 
 /** Which full-screen page covers the forum. */
@@ -141,7 +133,6 @@ fun ForumFrame(
         onNavigate(it)
     }
     val logo = logoOf(shell)
-    val scroll = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     // The menus under the top bar follow the finger as the sidebar does (Sliding).
     val scope = rememberCoroutineScope()
@@ -159,14 +150,7 @@ fun ForumFrame(
             })
         }
     val menuOpen = overlay == Overlay.LogoMenu
-    val menuShown =
-        overlay == Overlay.LogoMenu ||
-            overlay == Overlay.UserMenu ||
-            forumMenu.showing ||
-            userMenu.showing
     LaunchedEffect(menuOpen) { if (menuOpen) viewModel.logoMenuOpened() }
-    // The top bar and its breadcrumbs stay in view while the forum menu is.
-    LaunchedEffect(menuShown) { if (menuShown) scroll.state.heightOffset = 0f }
     var frameTop by remember { mutableFloatStateOf(0f) }
     var barBottom by remember { mutableFloatStateOf(0f) }
 
@@ -214,16 +198,20 @@ fun ForumFrame(
                                     .onGloballyPositioned {
                                         bar = it.positionInRoot()
                                         barBottom = it.boundsInRoot().bottom
-                                    }.pullDown(forumMenu, userMenu) { at ->
+                                    }.pullDown { at ->
                                         // From the member's picture, their menu.
-                                        account.contains(at + bar)
+                                        if (account.contains(at + bar)) userMenu else forumMenu
                                     },
-                            scrollBehavior = scroll,
-                            // The home page says the forum menu is a pull down (SH-10).
+                            // The home page says the forum menu is a pull down (SH-10); the
+                            // hint goes down with the pull and fades out.
                             pullHint =
                                 PullHint(
                                     stringResource(R.string.top_bar_pull_hint),
                                     stringResource(R.string.top_bar_pull_hint_short),
+                                    // Down with whichever menu the pull brings.
+                                    pulled = {
+                                        maxOf(forumMenu.shown.value, userMenu.shown.value)
+                                    },
                                 ).takeIf { place == Place.Home },
                         ) {
                             Account(
@@ -242,7 +230,6 @@ fun ForumFrame(
                             overlay = Overlay.LogoMenu
                         }
                     },
-                    modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
                     pageGlass = { maxOf(forumMenu.fraction, userMenu.fraction) },
                     page = {
                         Column(Modifier.fillMaxSize()) {
@@ -413,7 +400,7 @@ private fun UserMenuPage(
     val me = shell.me
     UserMenu(
         forumName = shell.name,
-        member = me?.let { MemberCard(it.displayName, it.userTag ?: it.username, it.roles) },
+        member = me?.let { MemberCard(it.displayName, it.username, it.roles) },
         administrator = me?.administrator == true,
         canSignUp =
             shell.record.discovery.account
@@ -514,51 +501,6 @@ private fun WholeTitle(
         ) { Text(title, Modifier.padding(16.dp), style = IdejoTheme.typography.titleMedium) }
     }
 }
-
-/**
- * A pull down that starts on this (the top bar, SH-01): seen before the bar's own drag, which
- * hides and shows it, so the pull always wins. From the member's picture ([fromAccount], with
- * where it started) their menu ([userMenu]) comes down with the finger, elsewhere the forum
- * menu ([forumMenu]), until it lets go.
- */
-private fun Modifier.pullDown(
-    forumMenu: Sliding,
-    userMenu: Sliding,
-    fromAccount: (Offset) -> Boolean,
-): Modifier =
-    pointerInput(forumMenu, userMenu) {
-        val slop = viewConfiguration.touchSlop
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            var moved = Offset.Zero
-            var pulled = false
-            // Watched until let go, pulled down, or dragged sideways.
-            var watching = true
-            while (watching) {
-                val change =
-                    awaitPointerEvent(PointerEventPass.Initial)
-                        .changes
-                        .firstOrNull { it.id == down.id }
-                moved += change?.positionChange() ?: Offset.Zero
-                pulled = moved.y > slop && moved.y > abs(moved.x)
-                if (pulled) change?.consume()
-                watching = change?.pressed == true && !pulled && abs(moved.x) <= slop
-            }
-            if (!pulled) return@awaitEachGesture
-            val menu = if (fromAccount(down.position)) userMenu else forumMenu
-            menu.drag(moved.y)
-            while (true) {
-                val change =
-                    awaitPointerEvent(PointerEventPass.Initial)
-                        .changes
-                        .firstOrNull { it.id == down.id }
-                if (change == null || !change.pressed) break
-                menu.drag(change.positionChange().y)
-                change.consume()
-            }
-            menu.release()
-        }
-    }
 
 /** The height of the sidebar head's forum logo and idejo button, the same. */
 private val HEAD_LOGO = 34.dp

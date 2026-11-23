@@ -26,16 +26,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -123,9 +123,10 @@ fun Breadcrumbs(
 
 /**
  * The forum's top bar (SH-01): the sidebar button, the breadcrumbs, **Unread** with its
- * count and colour, and the member's [account] picture. With a [scrollBehavior] it hides on
- * scroll down and returns on scroll up. [pullHint], on the forum's home page, says in its
- * middle that a pull down brings the forum menu (SH-10).
+ * count and colour, and the member's [account] picture. It always stays in view (steward,
+ * 2026-11-23). [pullHint], on the forum's home page, says in its middle that a pull down
+ * brings the forum menu (SH-10). Under a frame that gives [LocalTopBarMenu] (the inbox's), a
+ * pull down on it brings that frame's menu.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,14 +135,13 @@ fun TopBar(
     modifier: Modifier = Modifier,
     onSidebarClick: (() -> Unit)? = null,
     unread: Unread? = null,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
     pullHint: PullHint? = null,
     account: @Composable () -> Unit = {},
 ) {
     val background = MaterialTheme.colorScheme.background
-    Column(modifier) {
+    Column(modifier.then(LocalTopBarMenu.current?.pull ?: Modifier)) {
         Box {
-            Bar(crumbs, onSidebarClick, unread, scrollBehavior, background, account)
+            Bar(crumbs, onSidebarClick, unread, background, account)
             if (pullHint != null) PullHintLabel(pullHint, Modifier.matchParentSize())
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -154,7 +154,6 @@ private fun Bar(
     crumbs: List<Crumb>,
     onSidebarClick: (() -> Unit)?,
     unread: Unread?,
-    scrollBehavior: TopAppBarScrollBehavior?,
     background: Color,
     account: @Composable () -> Unit,
 ) {
@@ -180,23 +179,40 @@ private fun Bar(
                 containerColor = background,
                 scrolledContainerColor = background,
             ),
-        scrollBehavior = scrollBehavior,
     )
 }
 
 /**
+ * The menu a pull down on the [TopBar] brings, given by the frame around the page: the
+ * inbox's frame brings its forum menu (SH-10). [pull] goes on the bar; [below] on what the
+ * page shows under it, which blurs as the menu comes in. None by default; the forum's frame
+ * pulls its own bar.
+ */
+@Immutable
+class TopBarMenu(
+    val pull: Modifier,
+    val below: Modifier,
+)
+
+/** The [TopBarMenu] of the frame around the page, if it has one. */
+val LocalTopBarMenu = staticCompositionLocalOf<TopBarMenu?> { null }
+
+/**
  * What the home page's top bar says of the forum menu (SH-10): [text], or [short] where it
- * does not fit between the forum's logo and the member's picture.
+ * does not fit between the forum's logo and the member's picture. [pulled] is how far, in
+ * px, a pull down has brought a menu: the hint goes down with it and fades out.
  */
 @Immutable
 data class PullHint(
     val text: String,
     val short: String,
+    val pulled: () -> Float = { 0f },
 )
 
 /**
  * The [hint] over a v, 30 % larger than small labels and at half strength, centred across
- * the bar near its foot; clipped with the bar as it hides. TalkBack skips it: the forum
+ * the bar near its foot; clipped with the bar as it hides. A pull down takes it down with
+ * the finger, gone once pulled [PULL_HINT_FADE]. TalkBack skips it: the forum
  * menu has its button (the sidebar's idejo button, AX-04).
  */
 @Composable
@@ -214,8 +230,14 @@ private fun PullHintLabel(
         val room =
             constraints.maxWidth - with(LocalDensity.current) { (PULL_HINT_SIDE * 2).roundToPx() }
         val fits = measurer.measure(hint.text, style, maxLines = 1).size.width <= room
+        val fade = with(LocalDensity.current) { PULL_HINT_FADE.toPx() }
         Column(
-            Modifier.alpha(PULL_HINT_ALPHA),
+            // Read as it draws: a pull moves it without composing again.
+            Modifier.graphicsLayer {
+                val pulled = hint.pulled().coerceAtLeast(0f)
+                translationY = pulled
+                alpha = PULL_HINT_ALPHA * (1f - pulled / fade).coerceIn(0f, 1f)
+            },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -382,3 +404,6 @@ private val PULL_HINT_SIDE = 72.dp
 
 /** The room each side of a crumb: the forum logo's, 34 dp in its 48 dp target (SH-02). */
 private val CRUMB_GAP = 7.dp
+
+/** How far a pull down goes before the pull hint, going down with it, has faded out. */
+private val PULL_HINT_FADE = 40.dp

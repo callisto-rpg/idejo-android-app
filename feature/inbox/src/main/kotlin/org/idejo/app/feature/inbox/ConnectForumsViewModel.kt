@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.idejo.app.core.api.ApiResult
@@ -85,6 +86,12 @@ class ConnectForumsViewModel
                     mutableState.update { it.copy(unread = read.unread) }
                 }
             }
+            // **Connect** in the inbox's own forum menu, while this tab is shown (SH-12).
+            viewModelScope.launch {
+                shortcuts.waiting.filterIsInstance<InboxShortcut.Connect>().collect {
+                    connectAsked(state.value.forums)
+                }
+            }
         }
 
         fun onEvent(event: ConnectForumsEvent) {
@@ -145,6 +152,8 @@ class ConnectForumsViewModel
 
         /** **Connect** beside a forum in the logo menu (SH-12): its sign-in, here. */
         private fun connectAsked(forums: List<GroupForum>) {
+            // Until the forums are read, it waits for them.
+            if (forums.isEmpty()) return
             val asked = shortcuts.take { it is InboxShortcut.Connect } as? InboxShortcut.Connect
             val forum = forums.firstOrNull { it.url == asked?.url } ?: return
             if (!forum.connected) connect(listOf(forum))
