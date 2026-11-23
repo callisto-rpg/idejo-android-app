@@ -64,8 +64,10 @@ data class YourForum(
 )
 
 /**
- * **Your forums** (SH-12): every forum the app holds, in the order added, then the group's
- * forums the member joined that the app does not hold, to connect. [read] gives the dots.
+ * **Favourites** (SH-12; steward request 2026-11-23): every forum the app holds, in the order
+ * added, then the group's forums the member joined that the app does not hold, to connect;
+ * only the member's favourites (marked in the inbox's Forums tab) once the inbox says which
+ * they are, all of them with an inbox before that. [read] gives the dots.
  */
 internal fun yourForums(
     held: List<ForumRecord>,
@@ -92,7 +94,10 @@ internal fun yourForums(
         joined.filter { it.url !in origins }.map {
             YourForum(it.url, it.name, it.logoUrl, held = false, connect = true, new = it.new)
         }
-    return kept + waiting
+    val all = kept + waiting
+    if (joined.none { it.favourite != null }) return all
+    val favourites = joined.filter { it.favourite == true }.map { it.url }.toSet()
+    return all.filter { it.origin in favourites }
 }
 
 /** What the member does with a forum of **Your forums** (SH-12, SH-15). */

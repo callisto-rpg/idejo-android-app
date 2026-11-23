@@ -31,6 +31,7 @@ class LogoMenuTest {
     private val done = mutableListOf<String>()
     private val garden = "https://garden.example.org/"
     private val bees = "https://bees.example.org/"
+    private val own = "https://own.example.org/"
 
     private fun menu(group: GroupMenu) =
         rule.setContent {
@@ -84,12 +85,45 @@ class LogoMenuTest {
     }
 
     @Test
-    fun `SH-13 All my topics and Private Conversations with its count`() {
+    fun `SH-12 only the favourites, once the inbox says which they are`() {
+        val held =
+            listOf(
+                ForumRecord(garden, Discovery("Garden club", garden), sealedToken = "sealed"),
+                ForumRecord(bees, Discovery("Bee keepers", bees), sealedToken = "sealed"),
+                ForumRecord(own, Discovery("Own forum", own), sealedToken = "sealed"),
+            )
+        val weave = "https://weave.example.org/"
+        val read = InboxTopicsState()
+
+        // An inbox before favourites: every forum, as before.
+        val before = listOf(GroupForum("Bee keepers", bees), GroupForum("Weavers", weave))
+        assertEquals(
+            listOf("Garden club", "Bee keepers", "Own forum", "Weavers"),
+            yourForums(held, before, read, current = garden).map { it.name },
+        )
+
+        // Favourites known (steward request 2026-11-23): those only, held or to connect.
+        val joined =
+            listOf(
+                GroupForum("Garden club", garden, favourite = false),
+                GroupForum("Bee keepers", bees, favourite = true),
+                GroupForum("Weavers", weave, favourite = true),
+            )
+        assertEquals(
+            listOf("Bee keepers", "Weavers"),
+            yourForums(held, joined, read, current = garden).map { it.name },
+        )
+    }
+
+    @Test
+    fun `SH-13 All my forums, All my topics and Private Conversations with its count`() {
         menu(GroupMenu(forums, chatsWithNews = 3))
+        rule.onNodeWithText("Favourites").assertExists()
         rule.onNodeWithText("3").assertExists()
+        rule.onNodeWithText("All my forums").performScrollTo().performClick()
         rule.onNodeWithText("All my topics").performScrollTo().performClick()
         rule.onNodeWithText("Private Conversations").performScrollTo().performClick()
-        assertEquals(listOf("topics", "chats"), done)
+        assertEquals(listOf("forums", "topics", "chats"), done)
     }
 
     @Test

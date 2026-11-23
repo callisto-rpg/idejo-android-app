@@ -60,6 +60,8 @@ internal fun logoMenuActions(
 
         override fun openInBrowser(forum: YourForum) = context.openPage(forum.origin)
 
+        override fun forums() = viewModel.openInbox(InboxShortcut.Forums)
+
         override fun topics() = viewModel.openInbox(InboxShortcut.Topics)
 
         override fun chats() = viewModel.openInbox(InboxShortcut.Chats)

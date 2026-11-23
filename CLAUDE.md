@@ -549,7 +549,8 @@ Docker image) are added with them.
   `TopBar` under it the pull (`LocalTopBarMenu`, core/designsystem; `pullDown` in `MenuPanel`),
   and the page under the bar the forum's blur (`glassBehind`) as the menu comes in.
   Over the inbox the menu (`InboxMenu`) has no **This forum**, only **Support** (greyed) on its
-  line, then **Your forums**, **All my topics**, **Private Conversations** and **Add a forum**.
+  line, then **Favourites**, **All my forums**, **All my topics**, **Private Conversations**
+  and **Add a forum**.
   Its shortcuts reach the tabs already shown through `InboxShortcuts.waiting`.
 - 2026-11-23 — The sidebar's × (SH-33) is 40 % smaller (14.4 dp) in the same 44 dp target. A tap
   puts "Topic unfollowed. Tap to cancel" (70 % opacity) in place of the title for 3 s; it then
@@ -579,6 +580,12 @@ Docker image) are added with them.
 - 2026-11-23 — The user menu's head (SH-20) shows the member's `@username`. It showed their user
   tag (the line beside their name in messages) with an @ before it, the username only when
   they had no tag (steward bug report). `MemberCard.tag` is now `username`.
+- 2026-11-23 — The forum menu's list (SH-12) is **Favourites** (was **Your forums**): only the
+  forums the member marked as favourites in the inbox's Forums tab, held or to connect, from
+  `GET /me/communities`' `favourite` (callisto-rpg/Idejo#392, idejo 0.3.27; `GroupForum.favourite`).
+  An inbox that does not say (older) keeps every forum listed. Above **All my topics**,
+  **All my forums** opens the inbox's **Forums** (`InboxShortcut.Forums`, `ic_forums`, four
+  rounded squares, the app's own drawing).
 - 2026-11-23 — A message's user tag (TV-02) is in the name's face and size (the title face at
   the member's message text size), on the name's baseline, in its own soft colour; a long one
   ends in "…". The role keeps its small label, on the same baseline.

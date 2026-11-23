@@ -37,6 +37,7 @@ fun InboxRoute(
         tabs.asked.collect {
             finding = it == InboxShortcut.FindForums
             when (it) {
+                InboxShortcut.Forums -> asked.tryEmit(InboxTab.Forums)
                 InboxShortcut.Topics -> asked.tryEmit(InboxTab.Topics)
                 InboxShortcut.Chats -> asked.tryEmit(InboxTab.Chats)
                 is InboxShortcut.Connect -> asked.tryEmit(InboxTab.Forums)

@@ -70,4 +70,10 @@ class InboxTabViewModel
     }
 
 /** The shortcuts this screen takes; Connect is the Forums tab's, Settings the app's. */
-private val TABS = setOf(InboxShortcut.Topics, InboxShortcut.Chats, InboxShortcut.FindForums)
+private val TABS =
+    setOf(
+        InboxShortcut.Forums,
+        InboxShortcut.Topics,
+        InboxShortcut.Chats,
+        InboxShortcut.FindForums,
+    )

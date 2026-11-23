@@ -281,6 +281,17 @@ class IdejoIdModeTest {
     }
 
     @Test
+    fun `SH-12 the inbox says which forums are favourites`() {
+        inbox.communities =
+            listOf(
+                Community("Garden club", garden.address.toString(), favourite = true),
+                Community("Bee keepers", bees.address.toString(), favourite = false),
+            )
+        signInToInbox()
+        assertEquals(listOf(true, false), joined().map { it.favourite })
+    }
+
+    @Test
     fun `SI-06 Connect runs the forum's sign-in page, then the forum shows connected`() =
         runBlocking {
             joinedBoth()
