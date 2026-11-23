@@ -148,8 +148,8 @@ Everything inside a forum shares one frame, close to the web's mobile layout.
 | --- | --- | --- |
 | SH-10 | Tapping the logo opens a full-screen page (slides down from the top bar; system back or swipe up closes it) | Must |
 | SH-11 | **This forum** at the top: logo, name, address, **Home**, **Share link** | Must |
-| SH-12 | idejo ID mode: **Your forums**, every forum held in the app with its logo, name and unread dot (grey/blue/orange/red, as the sidebar's); tapping one switches to it. Not connected ones show **Connect** | Must |
-| SH-13 | idejo ID mode: the inbox's shortcuts — **All my topics** (inbox Topics tab), **Private Conversations** (Chats, with its count), **Find more forums** (SI-08) | Must |
+| SH-12 | idejo ID mode: **Favourites** (steward request 2026-11-23: was **Your forums**; only the forums marked as favourites in the inbox's Forums tab, every one with an inbox that does not say), every forum held in the app with its logo, name and unread dot (grey/blue/orange/red, as the sidebar's); tapping one switches to it. Not connected ones show **Connect** | Must |
+| SH-13 | idejo ID mode: the inbox's shortcuts — **All my forums** (inbox Forums tab; steward request 2026-11-23), **All my topics** (inbox Topics tab), **Private Conversations** (Chats, with its count), **Find more forums** (SI-08) | Must |
 | SH-14 | **Add a forum**: by address (SI-01) or from the directory (SI-08); in single-forum mode it explains MD-03 | Must |
 | SH-15 | Long-press a forum: **Mark all read** (Could), **Remove from app**, **Open in browser** | Should |
 

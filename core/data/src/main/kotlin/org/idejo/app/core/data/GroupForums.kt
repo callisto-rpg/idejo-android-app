@@ -41,6 +41,11 @@ data class GroupForum(
     val connected: Boolean = false,
     /** Joined since the member last saw the group's forums (SI-07). */
     val new: Boolean = false,
+    /**
+     * One of the member's favourites (steward request 2026-11-23); null when the inbox does
+     * not say.
+     */
+    val favourite: Boolean? = null,
 )
 
 /**
@@ -192,7 +197,14 @@ class GroupForums(
         seen: Set<String>,
     ): GroupForum? {
         val origin = addressOf(url)?.toString() ?: return null
-        return GroupForum(name, origin, logoUrl, origin in connected, new = origin !in seen)
+        return GroupForum(
+            name,
+            origin,
+            logoUrl,
+            origin in connected,
+            new = origin !in seen,
+            favourite = favourite,
+        )
     }
 }
 

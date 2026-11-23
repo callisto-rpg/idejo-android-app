@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Mariano Pictet and contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+<!-- Four rounded squares, the inbox's forum cards: "All my forums" (steward request, 2026-11-23). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="64"
+        android:strokeLineJoin="round"
+        android:pathData="M200,140h120a60,60 0 0 1 60,60v120a60,60 0 0 1 -60,60h-120a60,60 0 0 1 -60,-60v-120a60,60 0 0 1 60,-60zM640,140h120a60,60 0 0 1 60,60v120a60,60 0 0 1 -60,60h-120a60,60 0 0 1 -60,-60v-120a60,60 0 0 1 60,-60zM200,580h120a60,60 0 0 1 60,60v120a60,60 0 0 1 -60,60h-120a60,60 0 0 1 -60,-60v-120a60,60 0 0 1 60,-60zM640,580h120a60,60 0 0 1 60,60v120a60,60 0 0 1 -60,60h-120a60,60 0 0 1 -60,-60v-120a60,60 0 0 1 60,-60z" />
+</vector>

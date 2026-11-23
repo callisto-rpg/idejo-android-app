@@ -84,7 +84,7 @@ class NewForumsTest {
             )
         }
         rule.onNodeWithText("Add a forum").assertExists()
-        rule.onNodeWithText("Your forums").assertDoesNotExist()
+        rule.onNodeWithText("Favourites").assertDoesNotExist()
         rule.onNodeWithText("Sign in with idejo ID").performScrollTo().performClick()
         assertEquals(listOf("idejo ID"), done)
     }
@@ -108,6 +108,10 @@ internal class RecordedActions(
 
     override fun openInBrowser(forum: YourForum) {
         done += "browser ${forum.origin}"
+    }
+
+    override fun forums() {
+        done += "forums"
     }
 
     override fun topics() {

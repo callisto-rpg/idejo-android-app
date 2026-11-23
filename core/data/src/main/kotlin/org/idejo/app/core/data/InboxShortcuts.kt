@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /** Where in the inbox the logo menu sends the member (SH-12 to SH-14). */
 sealed interface InboxShortcut {
+    /** **All my forums**: the inbox's **Forums** (steward request 2026-11-23). */
+    data object Forums : InboxShortcut
+
     /** **All my topics**: the inbox's **Topics**. */
     data object Topics : InboxShortcut
 

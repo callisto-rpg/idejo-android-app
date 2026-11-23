@@ -122,6 +122,11 @@ private fun inboxMenuActions(
 
         override fun openInBrowser(forum: YourForum) = context.openPage(forum.origin)
 
+        override fun forums() {
+            viewModel.ask(InboxShortcut.Forums)
+            home()
+        }
+
         override fun topics() {
             viewModel.ask(InboxShortcut.Topics)
             home()

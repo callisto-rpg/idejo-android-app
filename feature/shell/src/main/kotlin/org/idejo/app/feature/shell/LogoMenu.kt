@@ -51,6 +51,9 @@ data class GroupMenu(
 
 /** What the member does in the logo menu beyond **This forum**. */
 interface LogoMenuActions : YourForumsActions {
+    /** **All my forums** (steward request 2026-11-23): the inbox's Forums. */
+    fun forums()
+
     /** **All my topics** (SH-13): the inbox's Topics. */
     fun topics()
 
@@ -157,9 +160,10 @@ private fun ColumnScope.GroupPart(
     group: GroupMenu,
     actions: LogoMenuActions,
 ) {
-    Heading(stringResource(R.string.logo_menu_your_forums))
+    Heading(stringResource(R.string.logo_menu_favourites))
     YourForumsList(group.forums, actions)
     HorizontalDivider(Modifier.padding(vertical = 8.dp))
+    Item(R.drawable.ic_forums, stringResource(R.string.logo_menu_all_forums), actions::forums)
     Item(
         R.drawable.ic_notifications,
         stringResource(R.string.logo_menu_all_topics),

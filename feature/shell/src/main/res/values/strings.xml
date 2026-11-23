@@ -57,8 +57,10 @@ SPDX-License-Identifier: Apache-2.0
     <string name="logo_menu_connect">Connect</string>
     <string name="logo_menu_connect_conversations">Connect idejo ID for private conversations</string>
     <string name="logo_menu_add_forum">Add a forum</string>
-    <string name="logo_menu_your_forums">Your forums</string>
+    <!-- Steward request, 2026-11-23: the member's favourite forums only. -->
+    <string name="logo_menu_favourites">Favourites</string>
     <string name="logo_menu_new_forum">A forum you joined is waiting to be connected</string>
+    <string name="logo_menu_all_forums">All my forums</string>
     <string name="logo_menu_all_topics">All my topics</string>
     <string name="logo_menu_by_address">By address</string>
     <string name="logo_menu_find_more">Find more forums</string>
