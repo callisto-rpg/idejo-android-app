@@ -20,8 +20,8 @@ import org.idejo.app.core.designsystem.theme.MessageTextSize
 
 /**
  * The line above a message (TV-02): the author's picture, display name (in Fraunces; in
- * their role's colour, made readable, TH-05, while [ROLE_COLOURED_NAMES] is on), user tag,
- * role, and the time at the right.
+ * their role's colour, made readable, TH-05, while [ROLE_COLOURED_NAMES] is on), user tag
+ * (in the name's face and size, softer), role, and the time at the right.
  */
 @Composable
 fun MessageHeader(
@@ -49,30 +49,30 @@ fun MessageHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // As big as the message's text, at the member's size inside messages (ST-22).
-            Box(Modifier.weight(1f, fill = false)) {
-                MessageTextSize {
-                    Text(
-                        displayName,
-                        nameModifier,
-                        color =
-                            if (ROLE_COLOURED_NAMES) {
-                                IdejoTheme.colors.roleName(roleColor)
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        // The title face, as tall as the message's text (17 sp).
-                        style = IdejoTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+            // As big as the message's text, at the member's size inside messages (ST-22). The
+            // name, tag and role stand on one baseline.
+            HeaderTitle(
+                displayName,
+                if (ROLE_COLOURED_NAMES) {
+                    IdejoTheme.colors.roleName(roleColor)
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                Modifier.weight(1f, fill = false).alignByBaseline(),
+                nameModifier,
+            )
             if (!userTag.isNullOrBlank()) {
-                Text(userTag, color = soft, style = IdejoTheme.typography.labelMedium, maxLines = 1)
+                // In the name's face and size, in its own soft colour (steward, 2026-11-23).
+                HeaderTitle(userTag, soft, Modifier.weight(1f, fill = false).alignByBaseline())
             }
             if (!role.isNullOrBlank()) {
-                Text(role, color = soft, style = IdejoTheme.typography.labelMedium, maxLines = 1)
+                Text(
+                    role,
+                    Modifier.alignByBaseline(),
+                    color = soft,
+                    style = IdejoTheme.typography.labelMedium,
+                    maxLines = 1,
+                )
             }
         }
         Text(
@@ -81,6 +81,26 @@ fun MessageHeader(
             color = soft,
             style = IdejoTheme.typography.labelMedium,
             maxLines = 1,
+        )
+    }
+}
+
+/** The name or user tag: the title face, as tall as the message's text (17 sp, ST-22). */
+@Composable
+private fun HeaderTitle(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
+) = Box(modifier) {
+    MessageTextSize {
+        Text(
+            text,
+            textModifier,
+            color = color,
+            style = IdejoTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

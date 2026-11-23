@@ -572,6 +572,16 @@ Docker image) are added with them.
   its content, as an `AndroidView` is by default, it took the page's height for its viewport,
   so pages laid out against the frame (itch.io's widget) collapsed to nothing over their dark
   body: the black box the steward saw. Checked on a Pixel 6a.
+- 2026-11-23 — The note that a forum's settings apply only to it (ST-07) is in body text at the
+  text's own colour (was smaller, in the muted colour), and **Settings for all forums** is a
+  filled button in idejo's gold (#daa304, whatever the forum's colours), centred, with black
+  text (white on that gold falls short of AA).
+- 2026-11-23 — The user menu's head (SH-20) shows the member's `@username`. It showed their user
+  tag (the line beside their name in messages) with an @ before it, the username only when
+  they had no tag (steward bug report). `MemberCard.tag` is now `username`.
+- 2026-11-23 — A message's user tag (TV-02) is in the name's face and size (the title face at
+  the member's message text size), on the name's baseline, in its own soft colour; a long one
+  ends in "…". The role keeps its small label, on the same baseline.
 
 ## Milestones (spec §26)
 

@@ -157,7 +157,7 @@ Everything inside a forum shares one frame, close to the web's mobile layout.
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| SH-20 | Tapping the avatar opens a full-screen page: the member's picture, display name, user tag and roles in the forum's colours | Must |
+| SH-20 | Tapping the avatar opens a full-screen page: the member's picture, display name, @username (not the user tag) and roles in the forum's colours | Must |
 | SH-21 | The web's items: **Profile and account** (native screens, section 15), **Theme** (follow system, light, dark), **Tutorial bubbles** (All, Simple, Off), **Sign out** | Must |
 | SH-22 | **App settings** (section 15.2) | Must |
 | SH-23 | **Accounts**: every forum and the inbox with the account signed in there; sign out of one or of all (SI-11) | Must |

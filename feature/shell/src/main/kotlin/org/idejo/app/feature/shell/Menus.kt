@@ -69,7 +69,8 @@ import org.idejo.app.core.model.Role as MemberRole
 /** Who the member is, for the user menu's head (SH-20). */
 data class MemberCard(
     val name: String,
-    val tag: String?,
+    /** Their @username, never their user tag (the line they choose to show). */
+    val username: String?,
     val roles: List<MemberRole>,
 )
 
@@ -95,7 +96,7 @@ interface UserMenuActions {
 }
 
 /**
- * The user menu (SH-20 to SH-25): the member's picture, name, tag and roles; **Theme**,
+ * The user menu (SH-20 to SH-25): the member's picture, name, @username and roles; **Theme**,
  * **Tutorial bubbles**, **App settings**, **Accounts**, **Admin** for administrators and
  * **Sign out**; **Profile and account** first, for a member signed in. A visitor gets
  * **Sign in** and **Sign up** instead. It is the content of [MenuPanel], as the forum menu
@@ -162,7 +163,7 @@ fun UserMenu(
     }
 }
 
-/** SH-20: the member's picture, display name, user tag and roles; a visitor's line. */
+/** SH-20: the member's picture, display name, @username and roles; a visitor's line. */
 @Composable
 private fun MemberHead(
     member: MemberCard?,
@@ -179,9 +180,9 @@ private fun MemberHead(
                 member?.name ?: stringResource(R.string.user_menu_visitor),
                 style = MaterialTheme.typography.headlineSmall,
             )
-            member?.tag?.let {
+            member?.username?.let {
                 Text(
-                    stringResource(R.string.user_menu_tag, it),
+                    stringResource(R.string.user_menu_username, it),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

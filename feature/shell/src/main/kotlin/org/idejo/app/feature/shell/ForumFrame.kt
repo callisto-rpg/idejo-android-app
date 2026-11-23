@@ -400,7 +400,7 @@ private fun UserMenuPage(
     val me = shell.me
     UserMenu(
         forumName = shell.name,
-        member = me?.let { MemberCard(it.displayName, it.userTag ?: it.username, it.roles) },
+        member = me?.let { MemberCard(it.displayName, it.username, it.roles) },
         administrator = me?.administrator == true,
         canSignUp =
             shell.record.discovery.account
