@@ -17,9 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -35,6 +32,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.idejo.app.core.data.TagGroup
 import org.idejo.app.core.data.tagGroups
+import org.idejo.app.core.designsystem.component.ChoiceToggle
 import org.idejo.app.core.designsystem.component.TopicItem
 import org.idejo.app.core.designsystem.theme.IdejoTheme
 import org.idejo.app.core.model.Tag
@@ -225,18 +223,8 @@ private fun Actions(
                 style = IdejoTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            SingleChoiceSegmentedButtonRow {
-                listOf(false to R.string.tags_and, true to R.string.tags_or).forEachIndexed {
-                    index,
-                    (any, label),
-                    ->
-                    SegmentedButton(
-                        selected = choice.any == any,
-                        onClick = { actions.onOperator(any) },
-                        shape = SegmentedButtonDefaults.itemShape(index, 2),
-                        icon = {},
-                    ) { Text(stringResource(label), style = IdejoTheme.typography.labelMedium) }
-                }
+            ChoiceToggle(listOf(false, true), choice.any, actions.onOperator) { any ->
+                stringResource(if (any) R.string.tags_or else R.string.tags_and)
             }
         }
     }

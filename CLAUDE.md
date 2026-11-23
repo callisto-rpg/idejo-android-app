@@ -582,7 +582,7 @@ Docker image) are added with them.
   they had no tag (steward bug report). `MemberCard.tag` is now `username`.
 - 2026-11-23 — The forum menu's list (SH-12) is **Favourites** (was **Your forums**): only the
   forums the member marked as favourites in the inbox's Forums tab, held or to connect, from
-  `GET /me/communities`' `favourite` (callisto-rpg/Idejo#392, idejo 0.3.27; `GroupForum.favourite`).
+  `GET /me/communities`' `favourite` (callisto-rpg/Idejo#392, idejo 0.3.26; `GroupForum.favourite`).
   An inbox that does not say (older) keeps every forum listed. Above **All my topics**,
   **All my forums** opens the inbox's **Forums** (`InboxShortcut.Forums`, `ic_forums`, four
   rounded squares, the app's own drawing).
@@ -591,6 +591,13 @@ Docker image) are added with them.
   ends in "…". The role keeps its small label, on the same baseline.
 - 2026-11-23 — The sidebar's head (SH-30) has no idejo button (steward request): the forum's
   logo and name only. The forum menu still comes with a pull down on the top bar.
+- 2026-11-23 — Every toggle selector is one component, `ChoiceToggle` (core/designsystem; steward
+  request), as the web's view toggle in the forum's colours: a rounded rectangle holding the
+  options side by side, the chosen one under a selector in the primary colour that slides to
+  a tapped option and can be dragged from side to side (let go, the nearest option is picked;
+  no slide with reduced motion), and no check-marks. It replaces Material's segmented buttons:
+  the user menu's Theme and Tutorial bubbles, the View toggle (home, category), Filter by tag's
+  Operator and the bio's Write / Preview. Never a `SegmentedButton` again.
 
 ## Milestones (spec §26)
 
