@@ -589,6 +589,8 @@ Docker image) are added with them.
 - 2026-11-23 — A message's user tag (TV-02) is in the name's face and size (the title face at
   the member's message text size), on the name's baseline, in its own soft colour; a long one
   ends in "…". The role keeps its small label, on the same baseline.
+- 2026-11-23 — The sidebar's head (SH-30) has no idejo button (steward request): the forum's
+  logo and name only. The forum menu still comes with a pull down on the top bar.
 
 ## Milestones (spec §26)
 

@@ -127,8 +127,17 @@ internal fun UnfollowedNotice(
 }
 
 /** A sidebar row that slides into the place of one gone above it (none with reduced motion). */
-internal fun LazyItemScope.sliding(motion: Boolean): Modifier =
-    if (motion) Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null) else Modifier
+internal fun Modifier.sliding(
+    item: LazyItemScope,
+    motion: Boolean,
+): Modifier =
+    if (motion) {
+        with(item) {
+            then(Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
+        }
+    } else {
+        this
+    }
 
 /**
  * A sidebar topic's × ([onUnfollow]) when followed, or the open topic's + ([onFollow]) when
