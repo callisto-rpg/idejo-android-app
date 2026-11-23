@@ -582,7 +582,7 @@ Docker image) are added with them.
   they had no tag (steward bug report). `MemberCard.tag` is now `username`.
 - 2026-11-23 — The forum menu's list (SH-12) is **Favourites** (was **Your forums**): only the
   forums the member marked as favourites in the inbox's Forums tab, held or to connect, from
-  `GET /me/communities`' `favourite` (callisto-rpg/Idejo#392, idejo 0.3.27; `GroupForum.favourite`).
+  `GET /me/communities`' `favourite` (callisto-rpg/Idejo#392, idejo 0.3.26; `GroupForum.favourite`).
   An inbox that does not say (older) keeps every forum listed. Above **All my topics**,
   **All my forums** opens the inbox's **Forums** (`InboxShortcut.Forums`, `ic_forums`, four
   rounded squares, the app's own drawing).

@@ -74,6 +74,6 @@ data class Community(
     val name: String,
     val url: String,
     @SerialName("logo_url") val logoUrl: String? = null,
-    /** Marked in the inbox's Forums tab (idejo 0.3.27, steward request 2026-11-23); null before. */
+    /** Marked in the inbox's Forums tab (idejo 0.3.26, steward request 2026-11-23); null before. */
     val favourite: Boolean? = null,
 )
