@@ -115,10 +115,15 @@ fun UserMenu(
     logo: String? = null,
     /** **Profile and account** (SH-21): for a member signed in to this forum. */
     profileAndAccount: Boolean = member != null,
+    /**
+     * **Accounts** and **Sign out**: a forum's. The group's inbox has neither; leaving idejo
+     * ID mode is App settings' **Mode** (MD-04).
+     */
+    accounts: Boolean = true,
 ) {
-    var accounts by rememberSaveable { mutableStateOf(false) }
-    if (accounts) {
-        Accounts(forumName, member, actions, onBack = { accounts = false }, modifier, logo)
+    var showAccounts by rememberSaveable { mutableStateOf(false) }
+    if (showAccounts && accounts) {
+        Accounts(forumName, member, actions, onBack = { showAccounts = false }, modifier, logo)
         return
     }
     MenuColumn(modifier) {
@@ -143,15 +148,17 @@ fun UserMenu(
             stringResource(R.string.user_menu_app_settings),
             actions::appSettings,
         )
-        Item(
-            R.drawable.ic_accounts,
-            stringResource(R.string.user_menu_accounts),
-            onClick = { accounts = true },
-        )
+        if (accounts) {
+            Item(
+                R.drawable.ic_accounts,
+                stringResource(R.string.user_menu_accounts),
+                onClick = { showAccounts = true },
+            )
+        }
         if (administrator) {
             Item(R.drawable.ic_admin, stringResource(R.string.user_menu_admin), actions::admin)
         }
-        if (member != null) {
+        if (member != null && accounts) {
             Item(
                 R.drawable.ic_sign_out,
                 stringResource(R.string.user_menu_sign_out),

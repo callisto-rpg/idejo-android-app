@@ -92,7 +92,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 is Launch.Inbox -> {
-                    IdejoTheme(display = display) {
+                    // The inbox's own Theme, from its user menu (TH-03).
+                    val record by current.session.record.collectAsStateWithLifecycle()
+                    IdejoTheme(darkTheme = record.dark(), display = display) {
                         key(current.session) { InboxApp(current.session) }
                     }
                 }

@@ -141,7 +141,9 @@ fun TopBar(
     val background = MaterialTheme.colorScheme.background
     Column(modifier.then(LocalTopBarMenu.current?.pull ?: Modifier)) {
         Box {
-            Bar(crumbs, onSidebarClick, unread, background, account)
+            Bar(crumbs, onSidebarClick, unread, background) {
+                Box(LocalTopBarMenu.current?.account ?: Modifier) { account() }
+            }
             if (pullHint != null) PullHintLabel(pullHint, Modifier.matchParentSize())
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -184,14 +186,16 @@ private fun Bar(
 
 /**
  * The menu a pull down on the [TopBar] brings, given by the frame around the page: the
- * inbox's frame brings its forum menu (SH-10). [pull] goes on the bar; [below] on what the
- * page shows under it, which blurs as the menu comes in. None by default; the forum's frame
- * pulls its own bar.
+ * inbox's frame brings its forum menu (SH-10), and from the member's picture its user menu
+ * (SH-20). [pull] goes on the bar; [below] on what the page shows under it, which blurs as
+ * the menu comes in; [account] on the member's picture, which opens the user menu on a tap.
+ * None by default; the forum's frame pulls its own bar.
  */
 @Immutable
 class TopBarMenu(
     val pull: Modifier,
     val below: Modifier,
+    val account: Modifier = Modifier,
 )
 
 /** The [TopBarMenu] of the frame around the page, if it has one. */

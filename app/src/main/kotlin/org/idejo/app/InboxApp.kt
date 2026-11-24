@@ -56,6 +56,8 @@ fun InboxApp(
         onHome = { navigation.go(Place.Home) },
         onAddForum = { navigation.go(Place.AddForum) },
         modifier = modifier,
+        onProfileAndAccount = { navigation.go(Place.ProfileAndAccount()) },
+        onAppSettings = { navigation.go(Place.AppSettings) },
     ) { InboxPages(session, navigation, onTop) }
     InboxLinks(session, navigation)
     InboxSettingsShortcut(navigation)

@@ -4,6 +4,10 @@
 package org.idejo.app.feature.shell
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
@@ -15,6 +19,12 @@ import androidx.compose.ui.test.performTouchInput
 import org.idejo.app.core.data.ForumRecord
 import org.idejo.app.core.data.GroupForum
 import org.idejo.app.core.data.InboxTopicsState
+import org.idejo.app.core.data.ThemeMode
+import org.idejo.app.core.data.TutorialBubbles
+import org.idejo.app.core.designsystem.component.Crumb
+import org.idejo.app.core.designsystem.component.LocalTopBarMenu
+import org.idejo.app.core.designsystem.component.TopBar
+import org.idejo.app.core.designsystem.component.TopBarMenu
 import org.idejo.app.core.model.Discovery
 import org.idejo.app.core.model.MentionState
 import org.junit.Assert.assertEquals
@@ -227,5 +237,60 @@ class LogoMenuTest {
             )
         }
         rule.onNodeWithText("Private Conversations").assertDoesNotExist()
+    }
+
+    @Test
+    fun `SH-20 on the inbox, a tap on the member's picture reaches the frame's user menu`() {
+        var opened = 0
+        rule.setContent {
+            CompositionLocalProvider(
+                LocalTopBarMenu provides
+                    TopBarMenu(Modifier, Modifier, account = Modifier.clickable { opened++ }),
+            ) {
+                TopBar(listOf(Crumb.Page("Forums"))) { Text("Ada's picture") }
+            }
+        }
+        rule.onNodeWithText("Ada's picture").performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun `SH-20 the inbox's user menu has no Accounts and no Sign out`() {
+        rule.setContent {
+            UserMenu(
+                forumName = "idejo",
+                member = MemberCard("Ada Lovelace", "ada", emptyList()),
+                administrator = false,
+                canSignUp = false,
+                themeMode = ThemeMode.System,
+                tutorialBubbles = TutorialBubbles.All,
+                actions = NoUserActions,
+                accounts = false,
+            )
+        }
+        rule.onNodeWithText("Profile and account").assertExists()
+        rule.onNodeWithText("App settings").assertExists()
+        rule.onNodeWithText("Accounts").assertDoesNotExist()
+        rule.onNodeWithText("Sign out").assertDoesNotExist()
+    }
+
+    private object NoUserActions : UserMenuActions {
+        override fun themeMode(mode: ThemeMode) = Unit
+
+        override fun tutorialBubbles(choice: TutorialBubbles) = Unit
+
+        override fun profileAndAccount() = Unit
+
+        override fun appSettings() = Unit
+
+        override fun admin() = Unit
+
+        override fun signIn() = Unit
+
+        override fun signUp() = Unit
+
+        override fun signOut() = Unit
+
+        override fun remove() = Unit
     }
 }

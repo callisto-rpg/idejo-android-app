@@ -610,6 +610,14 @@ Docker image) are added with them.
   each row's text or tile, not the text, the 34 dp tiles or the 44 dp targets. Rows are at
   least 48 dp (were 54), categories 52 dp with 3 dp above (56 and 4), group headings 13 dp
   above and 3 below (16 and 4), All categories' label 10 dp above and below (12) (SH-38).
+- 2026-11-24 — The inbox's user menu (SH-20; steward bug report): a tap on the member's picture in
+  any inbox top bar, or a pull down from it, brings the user menu as in a forum
+  (`InboxMenuFrame`, through `TopBarMenu.account`). It is the forum's `UserMenu` without
+  **Accounts** and **Sign out** (`accounts = false`): leaving idejo ID mode is App settings'
+  **Mode**. **Theme** is kept on the inbox's record, which the inbox now follows.
+- 2026-11-24 — The glass blur (`glassBehind`) is clipped to what it blurs: unclipped, its edge spilled
+  a band of the page's background over the inbox's top bar as the forum menu came down
+  (steward bug report).
 
 ## Milestones (spec §26)
 
