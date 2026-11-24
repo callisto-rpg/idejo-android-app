@@ -46,7 +46,11 @@ internal fun glassBackground(opaque: Boolean = false): Color =
         alpha = if (SidebarGlass.ON && !opaque) SidebarGlass.ALPHA else 1f,
     )
 
-/** Blurs this as far as [share] (0 to 1) says the glass over it has come in. */
+/**
+ * Blurs this as far as [share] (0 to 1) says the glass over it has come in. Clipped to its
+ * bounds: unclipped, the blur's clamped edge spilled out over what is beside it, as a band of
+ * the page's background over the inbox's top bar (steward bug report, 2026-11-24).
+ */
 internal fun Modifier.glassBehind(
     enabled: Boolean = true,
     share: () -> Float,
@@ -55,6 +59,7 @@ internal fun Modifier.glassBehind(
         this
     } else {
         graphicsLayer {
+            clip = true
             val radius = SidebarGlass.BLUR.toPx() * share().coerceIn(0f, 1f)
             renderEffect = if (radius > 0f) BlurEffect(radius, radius) else null
         }
