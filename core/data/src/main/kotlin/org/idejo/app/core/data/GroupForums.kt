@@ -54,6 +54,7 @@ data class GroupForum(
  * connecting them: each one's own sign-in page in a Custom Tab, one tap with the idejo ID
  * session, its token kept beside the inbox's.
  */
+@Suppress("TooManyFunctions") // One per thing done with the group's forums.
 class GroupForums(
     private val sessions: SessionManager,
     private val signIn: SignInCoordinator,
@@ -143,6 +144,46 @@ class GroupForums(
             ?.directoryUrl
             ?.toHttpUrlOrNull()
 
+    /**
+     * Whether the inbox answers the Forums tab's menu, **Add to favourites** and **Leave
+     * forum** (idejo 0.3.28): its discovery read now, since the one kept at sign-in may
+     * predate an update, lists `forum_menu`.
+     */
+    suspend fun hasMenu(): Boolean {
+        val inbox = sessions.state.first().inbox ?: return false
+        val address = addressOf(inbox.origin) ?: return false
+        val found = discovery.discover(address) as? DiscoveryResult.Found ?: return false
+        return FORUM_MENU in found.discovery.features
+    }
+
+    /** [forum] marked as a favourite, or not, on the inbox; the list shows it at once. */
+    suspend fun favourite(
+        forum: GroupForum,
+        favourite: Boolean,
+    ): Boolean {
+        val done = sessions.onInbox { favourite(forum.url, favourite) } is ApiResult.Success
+        if (done) {
+            mutableJoined.value =
+                mutableJoined.value.map {
+                    if (it.url == forum.url) it.copy(favourite = favourite) else it
+                }
+        }
+        return done
+    }
+
+    /**
+     * Leaves [forum] on the inbox (the forum keeps the member's account and messages); the
+     * app lets go of it too, its token revoked, as **Remove from app** does.
+     */
+    suspend fun leave(forum: GroupForum): Boolean {
+        val done = sessions.onInbox { leaveCommunity(forum.url) } is ApiResult.Success
+        if (done) {
+            mutableJoined.value = mutableJoined.value.filterNot { it.url == forum.url }
+            if (forum.connected) sessions.remove(forum.url)
+        }
+        return done
+    }
+
     /** The member saw the group's forums (the inbox's list): none is new any more. */
     suspend fun seen() {
         val forums = mutableJoined.value
@@ -210,3 +251,6 @@ class GroupForums(
 
 private fun httpsOnly(url: String): ForumAddress? =
     (ForumAddress.parse(url) as? ForumAddress.Parsed.Valid)?.address
+
+/** Discovery's feature for the inbox's forum menu through the API (idejo 0.3.28). */
+private const val FORUM_MENU = "forum_menu"

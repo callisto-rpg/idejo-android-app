@@ -71,4 +71,15 @@ SPDX-License-Identifier: Apache-2.0
     <string name="find_failed">The directory did not answer. Try again in a moment.</string>
     <string name="connect_not_connected">Not connected</string>
     <string name="inbox_profile_and_account">Profile and account</string>
+    <!-- The Forums tab's long-press menu (steward request 2026-11-24), in the web's words. -->
+    <string name="forum_menu_more">Menu</string>
+    <string name="forum_menu_favourite">Add to favourites</string>
+    <string name="forum_menu_unfavourite">Remove from favourites</string>
+    <string name="forum_menu_leave_forum">Leave forum</string>
+    <string name="forum_menu_leave_title">Leave %1$s?</string>
+    <string name="forum_menu_leave_text">Your account and messages there are kept.</string>
+    <string name="forum_menu_leave">Leave</string>
+    <string name="forum_menu_cancel">Cancel</string>
+    <string name="forum_menu_is_favourite">Favourite</string>
+    <string name="forum_menu_failed">That did not work. Try again in a minute.</string>
 </resources>

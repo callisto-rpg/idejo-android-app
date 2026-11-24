@@ -18,6 +18,7 @@ import org.idejo.app.core.model.Command
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
+import org.idejo.app.core.model.CommunityRef
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Conversation
 import org.idejo.app.core.model.ConversationStart
@@ -172,6 +173,24 @@ class ForumApi(
     suspend fun testPush(): ApiResult<PushTest> = call { testPush() }
 
     suspend fun communities(): ApiResult<List<Community>> = call { communities().data }
+
+    /** On the inbox: one of the member's forums as a favourite, or not (idejo 0.3.28). */
+    suspend fun favourite(
+        url: String,
+        favourite: Boolean,
+    ): ApiResult<Unit> =
+        call {
+            val body = CommunityRef(url)
+            val answer = if (favourite) addFavourite(body) else removeFavourite(body)
+            if (!answer.isSuccessful) throw HttpException(answer)
+        }
+
+    /** On the inbox: leaves one of the member's forums; it keeps their account (0.3.28). */
+    suspend fun leaveCommunity(url: String): ApiResult<Unit> =
+        call {
+            val answer = leaveCommunity(CommunityRef(url))
+            if (!answer.isSuccessful) throw HttpException(answer)
+        }
 
     suspend fun categories(): ApiResult<List<Category>> = call { categories().data }
 

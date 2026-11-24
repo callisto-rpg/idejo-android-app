@@ -598,6 +598,14 @@ Docker image) are added with them.
   no slide with reduced motion), and no check-marks. It replaces Material's segmented buttons:
   the user menu's Theme and Tutorial bubbles, the View toggle (home, category), Filter by tag's
   Operator and the bio's Write / Preview. Never a `SegmentedButton` again.
+- 2026-11-24 — The inbox's Forums tab (IB-02): a long-press (or right-click) on a forum's card opens
+  its menu, as the web's Forums tab: **Add to favourites** (or **Remove from favourites**) and
+  **Leave forum**, which asks first ("Leave {name}? Your account and messages there are kept.").
+  Through the inbox's API (IX-19, callisto-rpg/Idejo#397, idejo 0.3.28: `GroupForums.favourite`,
+  `leave`); leaving also lets go of the forum in the app, as **Remove from app**. The menu shows
+  only where the inbox's discovery, read again with the list (`GroupForums.hasMenu`), lists
+  `forum_menu`. A favourite's card has a small red heart at its right (`ic_favourite`, Material
+  Symbols Rounded; `IdejoTheme.colors.favourite`, the web's red).
 
 ## Milestones (spec §26)
 

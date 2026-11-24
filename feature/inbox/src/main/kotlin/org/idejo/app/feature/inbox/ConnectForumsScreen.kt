@@ -3,8 +3,9 @@
 
 package org.idejo.app.feature.inbox
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,9 +18,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -28,16 +34,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.idejo.app.core.data.GroupForum
 import org.idejo.app.core.designsystem.component.ForumLogo
+import org.idejo.app.core.designsystem.theme.IdejoTheme
+import org.idejo.app.core.designsystem.R as DesignR
 
 /** idejo ID mode's inbox (MD-02): for now, the group's forums to connect and open (SI-06). */
 @Composable
@@ -83,12 +97,23 @@ fun ConnectForumsScreen(
                     modifier = Modifier.widthIn(max = 560.dp).padding(bottom = 16.dp),
                 )
             }
+            if (state.actionFailed) {
+                item {
+                    Text(
+                        stringResource(R.string.forum_menu_failed),
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.widthIn(max = 560.dp).padding(vertical = 8.dp),
+                    )
+                }
+            }
             items(state.forums, key = { it.url }) { forum ->
                 ForumRow(
                     forum,
                     unread = state.unread[forum.url] ?: 0,
                     connecting = state.connecting == forum.url,
                     busy = state.connecting != null,
+                    menu = state.menu,
                     onEvent = onEvent,
                     modifier = Modifier.widthIn(max = 560.dp),
                 )
@@ -105,6 +130,30 @@ fun ConnectForumsScreen(
             }
         }
     }
+    state.leaving?.let { LeaveDialog(it, onEvent) }
+}
+
+/** "Leave {name}?", as the web asks: the forum keeps the account and messages. */
+@Composable
+private fun LeaveDialog(
+    forum: GroupForum,
+    onEvent: (ConnectForumsEvent) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { onEvent(ConnectForumsEvent.ConfirmLeave(false)) },
+        title = { Text(stringResource(R.string.forum_menu_leave_title, forum.name)) },
+        text = { Text(stringResource(R.string.forum_menu_leave_text)) },
+        confirmButton = {
+            TextButton(onClick = { onEvent(ConnectForumsEvent.ConfirmLeave(true)) }) {
+                Text(stringResource(R.string.forum_menu_leave))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onEvent(ConnectForumsEvent.ConfirmLeave(false)) }) {
+                Text(stringResource(R.string.forum_menu_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -156,26 +205,68 @@ private fun Heading(
     }
 }
 
+/**
+ * A forum's card. A connected one opens on a tap; one not connected is no link yet, and not
+ * faded either: **Connect** is its action. Where the inbox answers it, a long-press (or a
+ * right-click) opens the card's menu (steward request 2026-11-24).
+ */
 @Composable
 private fun ForumRow(
     forum: GroupForum,
     unread: Int,
     connecting: Boolean,
     busy: Boolean,
+    menu: Boolean,
     onEvent: (ConnectForumsEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // A forum not connected is no link yet, and not faded either: Connect is its action.
-    if (forum.connected) {
+    var open by remember { mutableStateOf(false) }
+    val more = stringResource(R.string.forum_menu_more)
+    val enter = { onEvent(ConnectForumsEvent.Enter(forum)) }
+    val shape = CardDefaults.outlinedShape
+    Box(modifier) {
         OutlinedCard(
-            onClick = { onEvent(ConnectForumsEvent.Enter(forum)) },
-            enabled = !busy,
-            modifier = modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .combinedClickable(
+                    enabled = !busy && (forum.connected || menu),
+                    role = Role.Button,
+                    onLongClickLabel = more.takeIf { menu },
+                    onLongClick = { open = true }.takeIf { menu },
+                    onClick = { if (forum.connected) enter() },
+                ),
+            shape = shape,
         ) { ForumCardContent(forum, unread, connecting, busy, onEvent) }
-    } else {
-        OutlinedCard(modifier.fillMaxWidth()) {
-            ForumCardContent(forum, unread, connecting, busy, onEvent)
-        }
+        if (menu) ForumMenu(open, forum, { open = false }, onEvent)
+    }
+}
+
+/** The card's long-press menu: the web's Forums tab menu, in its words. */
+@Composable
+private fun ForumMenu(
+    expanded: Boolean,
+    forum: GroupForum,
+    onDismiss: () -> Unit,
+    onEvent: (ConnectForumsEvent) -> Unit,
+) {
+    val favourite = forum.favourite == true
+    val label = if (favourite) R.string.forum_menu_unfavourite else R.string.forum_menu_favourite
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text(stringResource(label)) },
+            onClick = {
+                onDismiss()
+                onEvent(ConnectForumsEvent.Favourite(forum, !favourite))
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.forum_menu_leave_forum)) },
+            onClick = {
+                onDismiss()
+                onEvent(ConnectForumsEvent.Leave(forum))
+            },
+        )
     }
 }
 
@@ -218,6 +309,7 @@ private fun ForumCardContent(
                 )
             }
         }
+        if (forum.favourite == true) FavouriteHeart()
         when {
             connecting -> {
                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -233,6 +325,17 @@ private fun ForumCardContent(
             }
         }
     }
+}
+
+/** A favourite forum's small red heart, at the card's right (as the web's Forums tab). */
+@Composable
+private fun FavouriteHeart() {
+    Icon(
+        painterResource(DesignR.drawable.ic_favourite),
+        contentDescription = stringResource(R.string.forum_menu_is_favourite),
+        tint = IdejoTheme.colors.favourite,
+        modifier = Modifier.size(16.dp),
+    )
 }
 
 /** SI-07: a forum joined since last seen, waiting to be connected. */
