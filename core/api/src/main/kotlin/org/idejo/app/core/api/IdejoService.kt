@@ -10,6 +10,7 @@ import org.idejo.app.core.model.Command
 import org.idejo.app.core.model.Commit
 import org.idejo.app.core.model.CommitResult
 import org.idejo.app.core.model.Community
+import org.idejo.app.core.model.CommunityRef
 import org.idejo.app.core.model.ComposerState
 import org.idejo.app.core.model.Conversation
 import org.idejo.app.core.model.ConversationStart
@@ -61,6 +62,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -140,6 +142,21 @@ internal interface IdejoService {
 
     @GET("me/communities")
     suspend fun communities(): ListBody<Community>
+
+    @PUT("me/communities/favourite")
+    suspend fun addFavourite(
+        @Body body: CommunityRef,
+    ): Response<Unit>
+
+    @HTTP(method = "DELETE", path = "me/communities/favourite", hasBody = true)
+    suspend fun removeFavourite(
+        @Body body: CommunityRef,
+    ): Response<Unit>
+
+    @POST("me/communities/leave")
+    suspend fun leaveCommunity(
+        @Body body: CommunityRef,
+    ): Response<Unit>
 
     @GET("categories")
     suspend fun categories(): ListBody<Category>

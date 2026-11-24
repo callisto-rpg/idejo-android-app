@@ -292,6 +292,67 @@ class IdejoIdModeTest {
     }
 
     @Test
+    fun `IB-02 the Forums tab's menu shows only where the inbox answers it`() =
+        runBlocking {
+            joinedBoth()
+            signInToInbox()
+            assertFalse(group.hasMenu())
+            inbox.forumMenu = true
+            // Read now, not from the discovery kept at sign-in: the inbox may have updated.
+            assertTrue(group.hasMenu())
+        }
+
+    @Test
+    fun `IB-02 a forum marked as a favourite and back, through the inbox`() =
+        runBlocking {
+            joinedBoth()
+            inbox.forumMenu = true
+            signInToInbox()
+            val garden = joined().first()
+            assertTrue(group.favourite(garden, true))
+            assertEquals(
+                true,
+                group.joined.value
+                    .first()
+                    .favourite,
+            )
+            assertEquals(listOf(true, null), joined().map { it.favourite })
+            assertTrue(group.favourite(garden, false))
+            assertEquals(listOf(false, null), joined().map { it.favourite })
+        }
+
+    @Test
+    fun `IB-02 leaving a forum takes it off the list and out of the app`() =
+        runBlocking {
+            joinedBoth()
+            inbox.forumMenu = true
+            signInToInbox()
+            val forum = joined().first()
+            group.connect(forum) { url ->
+                coordinator.complete(requireNotNull(garden.authorize(url, FakePeople.Ada)))
+                true
+            }
+            val connected = joined().first()
+            assertTrue(connected.connected)
+            assertTrue(group.leave(connected))
+            assertEquals(listOf(garden.address.toString()), inbox.left)
+            assertEquals(listOf("Bee keepers"), group.joined.value.map { it.name })
+            assertFalse(sessions.connected(garden.address.toString()))
+            assertEquals(listOf("Bee keepers"), joined().map { it.name })
+        }
+
+    @Test
+    fun `IB-02 an inbox without the menu refuses, and nothing changes`() =
+        runBlocking {
+            joinedBoth()
+            signInToInbox()
+            val forum = joined().first()
+            assertFalse(group.favourite(forum, true))
+            assertFalse(group.leave(forum))
+            assertEquals(listOf("Garden club", "Bee keepers"), joined().map { it.name })
+        }
+
+    @Test
     fun `SI-06 Connect runs the forum's sign-in page, then the forum shows connected`() =
         runBlocking {
             joinedBoth()

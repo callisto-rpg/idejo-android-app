@@ -469,6 +469,7 @@ falls back as stated.
 | IX-16 | `GET /server` gives `push_vapid_key`, the forum's VAPID public key (base64url, 87 characters) while push is on (callisto-rpg/Idejo#373) | NT-02, NT-06 | Distributors that need no VAPID key (ntfy…) work; the embedded FCM distributor cannot register |
 | IX-17 | On a group's inbox, `GET /me` says `everywhere` (a member linked to its provider), and `POST /me/everywhere` `{sections}` saves the inbox's Profile and account sections on every forum the member joined, as the web's **Save for all forums**, answering `{saved, missed}` (callisto-rpg/Idejo#375) | ST-07 | The inbox's settings apply to the inbox only |
 | IX-18 | `GET /me` gives `onboarding` (`topic_id`, `topic_title`, `question`) while the member is on the onboarding tour and may post in the onboarding topic, else null; `POST /me/onboarded` finishes the tour (idejo's onboarding, steward request, 2026-11-22) | BR-07 | No tour |
+| IX-19 | On a group's inbox, discovery lists `forum_menu`; `PUT` and `DELETE /me/communities/favourite` `{url}` mark one of the member's forums as a favourite or not, and `POST /me/communities/leave` `{url}` leaves it, keeping its account (callisto-rpg/Idejo#397, idejo 0.3.28; steward request, 2026-11-24) | IB-02 | The Forums tab's cards have no long-press menu |
 
 ## 23. Non-functional requirements
 

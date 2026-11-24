@@ -79,6 +79,8 @@ data class IdejoColors(
     val slowModeContainer: Color,
     val onSlowModeContainer: Color,
     val unsentHighlight: Color,
+    /** A favourite forum's heart: the web's red (oklch 63 % 0.22 15), in both themes. */
+    val favourite: Color,
     private val linkHues: Map<LinkKind, Color>,
     private val backgrounds: List<Color>,
     private val fallbackName: Color,
@@ -144,6 +146,7 @@ fun idejoColors(
         slowModeContainer = if (dark) Color(0xFF4A2C10) else Color(0xFFFBE8D4),
         onSlowModeContainer = if (dark) Color(0xFFFFD3A6) else Color(0xFF8A4300),
         unsentHighlight = scheme.primary.copy(alpha = if (dark) UNSENT_DARK else UNSENT_LIGHT),
+        favourite = Color(0xFFE2335E),
         linkHues =
             mapOf(
                 LinkKind.User to scheme.primary,

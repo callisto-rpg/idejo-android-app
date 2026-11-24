@@ -77,3 +77,12 @@ data class Community(
     /** Marked in the inbox's Forums tab (idejo 0.3.26, steward request 2026-11-23); null before. */
     val favourite: Boolean? = null,
 )
+
+/**
+ * One of the member's forums, by its `url` from `GET /me/communities`: the body of the
+ * inbox's favourite and leave calls (idejo 0.3.28, API guide §9).
+ */
+@Serializable
+data class CommunityRef(
+    val url: String,
+)

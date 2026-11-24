@@ -151,6 +151,16 @@ class FakeIdejo(
      */
     @Volatile var everywhere: EverywhereResult? = null
 
+    /**
+     * A group's inbox answering the Forums tab's menu (idejo 0.3.28): discovery lists
+     * `forum_menu`, and `PUT`/`DELETE /me/communities/favourite` and
+     * `POST /me/communities/leave` change [communities]; off, they answer 404.
+     */
+    @Volatile var forumMenu: Boolean = false
+
+    /** The forums left through `POST /me/communities/leave`, by url. */
+    val left: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
+
     /** The sections each `POST /me/everywhere` asked for, in order. */
     val savedEverywhere: MutableList<List<String>> =
         java.util.Collections.synchronizedList(
@@ -781,6 +791,14 @@ class FakeIdejo(
                     ?: notFound()
             },
             Route("GET", "me/communities") { ok(ListBody(communities)) },
+            Route("PUT", "me/communities/favourite") { call -> favourite(call, true) },
+            Route("DELETE", "me/communities/favourite") { call -> favourite(call, false) },
+            Route("POST", "me/communities/leave") { call ->
+                val url = communityOf(call) ?: return@Route notFound()
+                communities = communities.filterNot { it.url == url }
+                left += url
+                status(HTTP_NO_CONTENT)
+            },
             Route("POST", "me/everywhere") { call ->
                 val answer = everywhere ?: return@Route notFound()
                 if (call.viewer == null) return@Route unauthenticated()
@@ -1443,7 +1461,9 @@ class FakeIdejo(
                                 ?.toString()
                                 ?.takeIf { accountDeletion },
                     ),
-                features = listOf("unifiedpush", "polls", "private_messages"),
+                features =
+                    listOf("unifiedpush", "polls", "private_messages") +
+                        listOfNotNull("forum_menu".takeIf { forumMenu }),
                 community =
                     if (directory != null || chat != null) {
                         org.idejo.app.core.model.CommunityInfo(
@@ -2472,6 +2492,27 @@ class FakeIdejo(
         code: String,
         message: String,
     ) = json(output.encodeToString(ErrorBody(ApiError(code, message))), status)
+
+    /** One of the member's [communities] named by the body's `url`, while [forumMenu]. */
+    private fun communityOf(call: Call): String? {
+        if (!forumMenu || call.viewer == null) return null
+        val url =
+            IdejoJson
+                .decodeFromString<org.idejo.app.core.model.CommunityRef>(
+                    call.request.body?.utf8() ?: return null,
+                ).url
+        return url.takeIf { wanted -> communities.any { it.url == wanted } }
+    }
+
+    private fun favourite(
+        call: Call,
+        favourite: Boolean,
+    ): MockResponse {
+        val url = communityOf(call) ?: return notFound()
+        communities =
+            communities.map { if (it.url == url) it.copy(favourite = favourite) else it }
+        return status(HTTP_NO_CONTENT)
+    }
 
     private fun notFound() = error(HTTP_NOT_FOUND, ApiError.NOT_FOUND, "Not found.")
 

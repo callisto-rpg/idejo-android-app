@@ -11,9 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -125,6 +128,74 @@ class ConnectForumsScreenTest {
         }
         rule.onNodeWithText("You joined Village choir").assertDoesNotExist()
     }
+
+    @Test
+    fun `IB-02 a long-press opens the card's menu, favourite and leave`() {
+        val events = mutableListOf<ConnectForumsEvent>()
+        rule.setContent { ConnectForumsScreen(state.copy(menu = true), { events += it }) }
+        rule.onNodeWithText("Garden club").performTouchInput { longClick() }
+        rule.onNodeWithText("Add to favourites").performClick()
+        rule.onNodeWithText("Bee keepers").performTouchInput { longClick() }
+        rule.onNodeWithText("Leave forum").performClick()
+        assertEquals(
+            listOf(
+                ConnectForumsEvent.Favourite(garden, true),
+                ConnectForumsEvent.Leave(bees),
+            ),
+            events,
+        )
+    }
+
+    @Test
+    fun `IB-02 a favourite has a heart, and its menu takes it out`() {
+        val events = mutableListOf<ConnectForumsEvent>()
+        val loved = garden.copy(favourite = true)
+        rule.setContent {
+            ConnectForumsScreen(state.copy(forums = listOf(loved, bees), menu = true), {
+                events += it
+            })
+        }
+        rule.onAllNodesWithContentDescription("Favourite").assertCountEquals(1)
+        rule.onNodeWithText("Garden club").performTouchInput { longClick() }
+        rule.onNodeWithText("Remove from favourites").performClick()
+        assertEquals(listOf<ConnectForumsEvent>(ConnectForumsEvent.Favourite(loved, false)), events)
+    }
+
+    @Test
+    fun `IB-02 leaving asks first`() {
+        val events = mutableListOf<ConnectForumsEvent>()
+        rule.setContent {
+            ConnectForumsScreen(state.copy(menu = true, leaving = garden), {
+                events +=
+                    it
+            })
+        }
+        rule.onNodeWithText("Leave Garden club?").assertExists()
+        rule.onNodeWithText("Your account and messages there are kept.").assertExists()
+        rule.onNodeWithText("Leave").performClick()
+        assertEquals(listOf<ConnectForumsEvent>(ConnectForumsEvent.ConfirmLeave(true)), events)
+    }
+
+    @Test
+    fun `IB-02 an inbox without the menu, a long-press does nothing`() {
+        val events = mutableListOf<ConnectForumsEvent>()
+        rule.setContent { ConnectForumsScreen(state, { events += it }) }
+        rule.onNodeWithText("Garden club").performTouchInput { longClick() }
+        rule.onNodeWithText("Add to favourites").assertDoesNotExist()
+    }
+
+    @Test
+    fun `IB-02 favourite screenshot`() =
+        snapshots("ConnectForumsFavourite") {
+            ConnectForumsScreen(
+                state.copy(
+                    forums = listOf(garden.copy(favourite = true), bees, choir),
+                    unread = mapOf(garden.url to 3),
+                    menu = true,
+                ),
+                {},
+            )
+        }
 
     @Test
     fun `SI-07 screenshot`() =

@@ -38,6 +38,15 @@ data class ConnectForumsState(
     val directory: Boolean = false,
     /** Each connected forum's new messages (IB-02), by origin. */
     val unread: Map<String, Int> = emptyMap(),
+    /**
+     * The inbox answers the cards' long-press menu, **Add to favourites** and **Leave
+     * forum** (idejo 0.3.28, discovery's `forum_menu`; steward request 2026-11-24).
+     */
+    val menu: Boolean = false,
+    /** The forum whose **Leave forum** waits for the member's answer. */
+    val leaving: GroupForum? = null,
+    /** The last favourite or leave the inbox did not take: "That did not work…". */
+    val actionFailed: Boolean = false,
 ) {
     val notConnected: List<GroupForum> get() = forums.filterNot { it.connected }
 
@@ -59,6 +68,22 @@ sealed interface ConnectForumsEvent {
     ) : ConnectForumsEvent
 
     data object Refresh : ConnectForumsEvent
+
+    /** The card's menu: **Add to favourites** or **Remove from favourites**. */
+    data class Favourite(
+        val forum: GroupForum,
+        val favourite: Boolean,
+    ) : ConnectForumsEvent
+
+    /** The card's menu: **Leave forum**, which asks first. */
+    data class Leave(
+        val forum: GroupForum,
+    ) : ConnectForumsEvent
+
+    /** The member's answer to "Leave {name}?". */
+    data class ConfirmLeave(
+        val leave: Boolean,
+    ) : ConnectForumsEvent
 }
 
 @HiltViewModel
@@ -115,6 +140,64 @@ class ConnectForumsViewModel
                 ConnectForumsEvent.Refresh -> {
                     refresh()
                 }
+
+                is ConnectForumsEvent.Favourite -> {
+                    favourite(event.forum, event.favourite)
+                }
+
+                is ConnectForumsEvent.Leave -> {
+                    mutableState.update { it.copy(leaving = event.forum, actionFailed = false) }
+                }
+
+                is ConnectForumsEvent.ConfirmLeave -> {
+                    leave(event.leave)
+                }
+            }
+        }
+
+        private fun favourite(
+            forum: GroupForum,
+            favourite: Boolean,
+        ) {
+            viewModelScope.launch {
+                mutableState.update { it.copy(actionFailed = false) }
+                val done = group.favourite(forum, favourite)
+                mutableState.update { state ->
+                    state.copy(
+                        forums =
+                            if (done) {
+                                state.forums.map {
+                                    if (it.url == forum.url) it.copy(favourite = favourite) else it
+                                }
+                            } else {
+                                state.forums
+                            },
+                        actionFailed = !done,
+                    )
+                }
+            }
+        }
+
+        private fun leave(confirmed: Boolean) {
+            val forum = state.value.leaving ?: return
+            mutableState.update { it.copy(leaving = null) }
+            if (!confirmed) return
+            viewModelScope.launch {
+                val done = group.leave(forum)
+                mutableState.update { state ->
+                    state.copy(
+                        forums =
+                            if (done) {
+                                state.forums.filterNot {
+                                    it.url == forum.url
+                                }
+                            } else {
+                                state.forums
+                            },
+                        actionFailed = !done,
+                    )
+                }
+                if (done) topics.refresh()
             }
         }
 
@@ -129,6 +212,7 @@ class ConnectForumsViewModel
         private suspend fun read() {
             mutableState.update { it.copy(loading = it.forums.isEmpty(), failed = false) }
             val directory = group.hasDirectory()
+            val menu = group.hasMenu()
             when (val result = group.refresh()) {
                 is ApiResult.Success -> {
                     val fresh = result.value.filter { it.new }.map { it.url }
@@ -138,6 +222,7 @@ class ConnectForumsViewModel
                             loading = false,
                             fresh = it.fresh + fresh,
                             directory = directory,
+                            menu = menu,
                         )
                     }
                     group.seen()

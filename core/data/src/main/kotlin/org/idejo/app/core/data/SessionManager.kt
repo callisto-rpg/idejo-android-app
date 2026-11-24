@@ -179,6 +179,12 @@ class SessionManager(
         return signedIn(inbox.origin) { communities() }
     }
 
+    /** [request] on the inbox with its own token; null outside idejo ID mode or signed out. */
+    suspend fun <T> onInbox(request: suspend ForumApi.() -> ApiResult<T>): ApiResult<T>? {
+        val inbox = store.current().inbox ?: return null
+        return signedIn(inbox.origin, request)
+    }
+
     /**
      * [request] on the forum or inbox at [origin] with its own token, outside any session:
      * the inbox reading every connected forum (IB-02, IB-04). Null without a token for it.
