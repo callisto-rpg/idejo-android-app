@@ -606,6 +606,10 @@ Docker image) are added with them.
   only where the inbox's discovery, read again with the list (`GroupForums.hasMenu`), lists
   `forum_menu`. A favourite's card has a small red heart at its right (`ic_favourite`, Material
   Symbols Rounded; `IdejoTheme.colors.favourite`, the web's red).
+- 2026-11-24 — The sidebar's vertical spacing is 20 % less (steward request): the space around
+  each row's text or tile, not the text, the 34 dp tiles or the 44 dp targets. Rows are at
+  least 48 dp (were 54), categories 52 dp with 3 dp above (56 and 4), group headings 13 dp
+  above and 3 below (16 and 4), All categories' label 10 dp above and below (12) (SH-38).
 
 ## Milestones (spec §26)
 
