@@ -177,7 +177,7 @@ The web's sidebar, filling the whole screen when pulled.
 | SH-34 | **×** unfollows; the topic open is highlighted and listed with **+** to follow when not followed | Must |
 | SH-35 | Above the categories: **Filter by tag**, **Search**, **Rules & Roles**, **Help**, with the web's roll-up (^/V) into icons, remembered | Must |
 | SH-36 | ~~At the bottom: **Private Conversations** with its count~~ (steward decision, 2026-11-20: **Private Conversations** is in the forum (logo) menu, PC-01, never in the sidebar) and, on linked forums, **All my topics** | Must |
-| SH-38 | Sized for the thumb: every row at least 54 dp tall (categories 56 dp), text 17–18 sp, category tiles 34 dp, and the fold arrow, × and + each a 44 dp target of their own, so a tap on them never opens the topic | Must |
+| SH-38 | Sized for the thumb: every row at least 48 dp tall (categories 52 dp; 54 and 56 until the steward's 20 % tighter sidebar, 2026-11-24), text 17–18 sp, category tiles 34 dp, and the fold arrow, × and + each a 44 dp target of their own, so a tap on them never opens the topic | Must |
 | SH-37 | Long-press a topic: **Follow/Unfollow**, **Unfollow & mute**, **Mark unread**, **Copy link**, **Share** | Must |
 
 ### Right sidebar (M7)

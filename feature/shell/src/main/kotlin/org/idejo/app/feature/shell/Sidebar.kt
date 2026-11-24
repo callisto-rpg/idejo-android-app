@@ -222,7 +222,7 @@ private fun AllCategories(
                 .combinedClickable(role = Role.Button) { actions.open(Place.Home) }
                 .tourTarget(TourTargets.ALL)
                 .heightIn(min = TARGET)
-                .padding(horizontal = 8.dp, vertical = 12.dp)
+                .padding(horizontal = 8.dp, vertical = 10.dp)
                 .semantics { heading() },
             style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
             fontWeight = FontWeight.SemiBold,
@@ -268,7 +268,7 @@ private fun GroupHeading(name: String) {
     Text(
         name.uppercase(),
         Modifier
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 13.dp, bottom = 3.dp)
             .semantics { heading() },
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -287,7 +287,7 @@ private fun CategoryRow(
         Modifier
             .fillMaxWidth()
             .heightIn(min = CATEGORY_HEIGHT)
-            .padding(top = 4.dp),
+            .padding(top = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
@@ -485,9 +485,12 @@ internal val links =
 
 private const val SHOWN = 4
 
-/** SH-38: rows at least 54 dp, categories 56 dp, each small button a 44 dp target. */
-internal val ROW_HEIGHT = 54.dp
-private val CATEGORY_HEIGHT = 56.dp
+/**
+ * SH-38: rows at least 48 dp, categories 52 dp, each small button a 44 dp target: the space
+ * around the text and tiles 20 % less than the spec's 54 and 56 (steward request, 2026-11-24).
+ */
+internal val ROW_HEIGHT = 48.dp
+private val CATEGORY_HEIGHT = 52.dp
 private val TARGET = 44.dp
 private val DOT_SPACE = 14.dp
 
